@@ -43,8 +43,8 @@ project settings, and nothing else is needed.
 | Var | What |
 | --- | --- |
 | `DATABASE_URL` | Supabase Postgres as the `website` role, **transaction pooler, port 6543** |
-| `TURNSTILE_SECRET_KEY` | server half of the Cloudflare Turnstile widget |
-| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | client half of the same widget |
+| `TURNSTILE_SECRET_KEY` | server half of the Cloudflare Turnstile widget — **unset means registration is closed**, by design |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | client half of the same widget — unset means the form says so and disables submit |
 | `SITE_URL` | the site's own origin, e.g. `https://zanaris.rs` — `metadataBase` in `app/layout.tsx`, so relative metadata URLs resolve against the real host instead of Next's `localhost:3000` guess. Unset or malformed falls back to `https://zanaris.rs`. |
 | `DATABASE_SSL_CA` | *optional* override for the vendored Supabase CA — see below |
 
@@ -97,7 +97,19 @@ For local development, Cloudflare publishes
 [test keys](https://developers.cloudflare.com/turnstile/troubleshooting/testing/):
 `1x00000000000000000000AA` / `1x0000000000000000000000000000000AA` always pass,
 and `2x0000000000000000000000000000000AA` always fails, which is the useful one
-for checking the rejection path.
+for checking the rejection path. They are **local dev only; never in
+production** — an always-pass key is not a gate, it is the shape of one, and it
+is why `.env.example` ships both Turnstile variables blank with the test keys
+only in a comment. Nothing that can be pasted straight into a production
+environment should be able to open the gate by accident.
+
+**Until a real Turnstile widget exists, registration stays closed**, which is
+the correct resting state: with `TURNSTILE_SECRET_KEY` unset every request ends
+in `400 { "error": "turnstile" }` before the database is touched, and with
+`NEXT_PUBLIC_TURNSTILE_SITE_KEY` unset the form says registration is closed and
+disables its own submit button. Creating the widget in the Cloudflare dashboard
+for the live hostname, and setting both keys in the Vercel project, is the one
+remaining step that opens it.
 
 ## Registration, and how the gate is built
 
