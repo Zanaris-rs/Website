@@ -10,6 +10,7 @@ import {
   PASSWORD_MIN,
   validateUsername,
 } from "@/lib/account/validation";
+import { submitState } from "@/lib/account/submit";
 
 import frame from "@/components/site/Frame.module.css";
 
@@ -112,6 +113,16 @@ export default function RegisterForm() {
 
   const canonical = validateUsername(username);
   const preview = canonical.ok ? canonical.value : toSafeName(username);
+
+  // No token, no submit. Posting without one is a certain 400 `turnstile`,
+  // which reads as "the check is broken" when the widget had only not
+  // finished yet - or had finished and expired, since both the expired and
+  // error callbacks put the token back to null.
+  const submit = submitState({
+    configured: Boolean(siteKey),
+    token,
+    submitting: state.kind === "submitting",
+  });
 
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -302,9 +313,9 @@ export default function RegisterForm() {
           <button
             className={styles.submit}
             type="submit"
-            disabled={state.kind === "submitting" || !siteKey}
+            disabled={submit.disabled}
           >
-            {state.kind === "submitting" ? "Creating..." : "Create account"}
+            {submit.label}
           </button>
         </div>
       </form>
