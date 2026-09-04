@@ -46,6 +46,7 @@ project settings, and nothing else is needed.
 | `TURNSTILE_SECRET_KEY` | server half of the Cloudflare Turnstile widget |
 | `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | client half of the same widget |
 | `SITE_URL` | `https://zanaris.rs` |
+| `DATABASE_SSL_CA` | *optional*, Supabase's CA as PEM — see below |
 
 Two details in `DATABASE_URL` are load-bearing:
 
@@ -58,6 +59,15 @@ Two details in `DATABASE_URL` are load-bearing:
   dedicated connection per client; serverless scales to many instances and
   would exhaust the free pooler budget. `6543` multiplexes — which is why
   `lib/db.ts` never uses a named prepared statement.
+
+TLS is configured in `lib/db.ts` and deliberately not in the URL: `pg` only
+turns it on when `ssl` is set or the URL carries `sslmode`, and a URL parameter
+would override the object. The pooler's certificate chains to a self-signed
+"Supabase Root 2021 CA" that Node does not ship, so out of the box the
+connection is **encrypted but not verified**. Set `DATABASE_SSL_CA` to that
+certificate (Supabase dashboard → Settings → Database → SSL configuration) and
+`lib/db.ts` switches to full verification, which is what the engine's login
+server already does.
 
 For local development, Cloudflare publishes
 [test keys](https://developers.cloudflare.com/turnstile/troubleshooting/testing/):

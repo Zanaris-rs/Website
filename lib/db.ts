@@ -21,6 +21,10 @@ import { Pool, type QueryResultRow } from "pg";
  *
  * `import "server-only"` makes a stray client-side import a build error rather
  * than a bundled connection string.
+ *
+ * No `int8` type parser is registered, unlike the engine's pool: every query in
+ * `lib/hiscores/queries.ts` casts its `row_number()` and `count(*)` to `int`,
+ * so nothing bigint-shaped reaches JavaScript as a string.
  */
 
 const POOL_MAX = 2;
@@ -42,17 +46,39 @@ function create(): Pool {
     throw new Error("DATABASE_URL is not set");
   }
 
-  return new Pool({
+  // TLS has to be configured here and not in the URL: `pg` only enables it
+  // when `ssl` is set or the URL carries `sslmode`, and a URL parameter
+  // overrides this object. The plan's `DATABASE_URL` has no `sslmode`, so
+  // without this the password would cross the internet in the clear.
+  //
+  // Verified 2026-09-04: `aws-0-us-east-1.pooler.supabase.com:6543` presents
+  // `CN=*.pooler.supabase.com` chaining to a self-signed "Supabase Root 2021
+  // CA", which Node does not ship and Supabase no longer publishes at a stable
+  // URL — it comes from the project dashboard. So:
+  //
+  // - with `DATABASE_SSL_CA` set to that PEM, the chain is verified, which is
+  //   what the engine's login server does and what this should end up doing;
+  // - without it, the connection is still encrypted but the chain is not
+  //   verified, which leaves an in-region man-in-the-middle possible.
+  const ca = process.env.DATABASE_SSL_CA;
+
+  const pool = new Pool({
     connectionString,
     max: POOL_MAX,
     statement_timeout: STATEMENT_TIMEOUT_MS,
     connectionTimeoutMillis: CONNECTION_TIMEOUT_MS,
     idleTimeoutMillis: IDLE_TIMEOUT_MS,
-    // Supabase's pooler presents a certificate for *.pooler.supabase.com that
-    // chains to a root Node does not ship. The connection is still TLS; the
-    // chain is not verified. Same trade-off the hub's login server makes.
-    ssl: { rejectUnauthorized: false },
+    ssl: ca ? { rejectUnauthorized: true, ca } : { rejectUnauthorized: false },
   });
+
+  // A pooler dropping an idle client emits `error` on the pool, and an
+  // unhandled `error` event takes the whole process down — here, the serverless
+  // instance, mid-request for whoever else it was serving.
+  pool.on("error", (error) => {
+    console.error("[db] idle client error", error);
+  });
+
+  return pool;
 }
 
 /** The lazily-created shared pool. */
