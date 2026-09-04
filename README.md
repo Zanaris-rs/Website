@@ -46,7 +46,7 @@ project settings, and nothing else is needed.
 | `TURNSTILE_SECRET_KEY` | server half of the Cloudflare Turnstile widget |
 | `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | client half of the same widget |
 | `SITE_URL` | `https://zanaris.rs` |
-| `DATABASE_SSL_CA` | *optional*, Supabase's CA as PEM — see below |
+| `DATABASE_SSL_CA` | *optional* override for the vendored Supabase CA — see below |
 
 Two details in `DATABASE_URL` are load-bearing:
 
@@ -62,12 +62,36 @@ Two details in `DATABASE_URL` are load-bearing:
 
 TLS is configured in `lib/db.ts` and deliberately not in the URL: `pg` only
 turns it on when `ssl` is set or the URL carries `sslmode`, and a URL parameter
-would override the object. The pooler's certificate chains to a self-signed
-"Supabase Root 2021 CA" that Node does not ship, so out of the box the
-connection is **encrypted but not verified**. Set `DATABASE_SSL_CA` to that
-certificate (Supabase dashboard → Settings → Database → SSL configuration) and
-`lib/db.ts` switches to full verification, which is what the engine's login
-server already does.
+would override the object. The chain is **always verified** —
+`rejectUnauthorized` is never false, because the same host and password reach a
+`postgres` role that can read every password hash.
+
+That needs a certificate the app ships with. The pooler presents
+`CN=*.pooler.supabase.com` under a **self-signed** "Supabase Root 2021 CA" that
+no public trust store carries, so it is vendored:
+
+| | |
+| --- | --- |
+| `lib/supabase-root-2021.crt` | the certificate, for inspection and diffing |
+| `lib/supabase-ca.ts` | the same PEM inlined, which is what actually ships |
+| SHA-256 | `80:70:25:AD:50:D4:ED:21:9D:2C:9C:7D:29:9C:00:4F:82:4E:B0:0C:F7:F6:5A:FE:F6:07:D0:7B:72:E6:CA:FA` |
+| Valid until | 2031-04-26 |
+
+It is inlined as a string rather than read at runtime because a `readFileSync`
+would depend on the file being traced into the serverless bundle, and a miss
+shows up only as a connection failure in production.
+`lib/supabase-ca.test.ts` asserts the two are byte-identical, that the PEM
+parses, that its subject is `CN=Supabase Root 2021 CA`, and that the
+fingerprint above still matches.
+
+**This copy was captured from the live chain**, on 2026-09-04, with
+`openssl s_client -connect aws-0-us-east-1.pooler.supabase.com:6543 -starttls
+postgres -showcerts`, and confirmed to validate that chain as its sole trust
+root. It is *not* a copy of Supabase's published file — compare it against
+`prod-ca-2021.crt` from the dashboard (Settings → Database → SSL
+configuration) before relying on it, and regenerate `lib/supabase-ca.ts` if
+Supabase rotates the root. `DATABASE_SSL_CA` overrides the vendored copy, for a
+rotation that has to land before a deploy can.
 
 For local development, Cloudflare publishes
 [test keys](https://developers.cloudflare.com/turnstile/troubleshooting/testing/):
@@ -249,6 +273,7 @@ The worlds themselves are not here — they stay on the hub under
 | `components/TitlePage.tsx`, `components/WorldTable.tsx` | the original two screens |
 | `lib/db.ts` | the one `pg.Pool`, and the only `query()` |
 | `lib/base37.ts` | name encoding, ported from the engine's `util/JString.ts` |
+| `lib/supabase-ca.ts`, `lib/supabase-root-2021.crt` | Supabase's root CA, so TLS is verified |
 | `lib/hiscores/` | categories, formatting, params, SQL, response shapes |
 | `lib/account/` | validation, email, IP grouping, Turnstile, bcrypt, the register call |
 | `scripts/db-check.mts` | `npm run db:check` |

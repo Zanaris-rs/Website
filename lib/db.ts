@@ -2,6 +2,8 @@ import "server-only";
 
 import { Pool, type QueryResultRow } from "pg";
 
+import { SUPABASE_ROOT_CA } from "./supabase-ca.ts";
+
 /**
  * The one Postgres pool for the whole site: hiscores reads and the
  * registration function both go through it.
@@ -28,8 +30,15 @@ import { Pool, type QueryResultRow } from "pg";
  */
 
 const POOL_MAX = 2;
-/** Supabase is in the same region; a query that takes longer is stuck. */
-const STATEMENT_TIMEOUT_MS = 10_000;
+/**
+ * Supabase is in the same region; a query that takes longer is stuck.
+ *
+ * `query_timeout`, not `statement_timeout`: the latter is a *server* GUC that
+ * `pg` sends in the StartupMessage, and a transaction-mode pooler may reject
+ * the connection outright for sending one. This is enforced client-side, which
+ * the pooler cannot object to.
+ */
+const QUERY_TIMEOUT_MS = 10_000;
 const CONNECTION_TIMEOUT_MS = 10_000;
 /** Vercel freezes idle instances; a long-idle socket is usually already dead. */
 const IDLE_TIMEOUT_MS = 30_000;
@@ -51,24 +60,26 @@ function create(): Pool {
   // overrides this object. The plan's `DATABASE_URL` has no `sslmode`, so
   // without this the password would cross the internet in the clear.
   //
-  // Verified 2026-09-04: `aws-0-us-east-1.pooler.supabase.com:6543` presents
-  // `CN=*.pooler.supabase.com` chaining to a self-signed "Supabase Root 2021
-  // CA", which Node does not ship and Supabase no longer publishes at a stable
-  // URL — it comes from the project dashboard. So:
+  // The chain is **always** verified. `rejectUnauthorized: false` is never an
+  // option here: this credential can call `accounts.register`, and the
+  // `postgres` role reachable at the same host with the same password can read
+  // every password hash, so an unauthenticated TLS session is not good enough.
   //
-  // - with `DATABASE_SSL_CA` set to that PEM, the chain is verified, which is
-  //   what the engine's login server does and what this should end up doing;
-  // - without it, the connection is still encrypted but the chain is not
-  //   verified, which leaves an in-region man-in-the-middle possible.
-  const ca = process.env.DATABASE_SSL_CA;
+  // Verified 2026-09-04: `aws-0-us-east-1.pooler.supabase.com:6543` presents
+  // `CN=*.pooler.supabase.com` under a self-signed "Supabase Root 2021 CA"
+  // that no public trust store carries, so the CA has to be shipped with the
+  // app — `lib/supabase-ca.ts`, which validates that live chain as its sole
+  // trust root. `DATABASE_SSL_CA` overrides it, for a rotation that lands
+  // before a deploy can.
+  const ca = process.env.DATABASE_SSL_CA || SUPABASE_ROOT_CA;
 
   const pool = new Pool({
     connectionString,
     max: POOL_MAX,
-    statement_timeout: STATEMENT_TIMEOUT_MS,
+    query_timeout: QUERY_TIMEOUT_MS,
     connectionTimeoutMillis: CONNECTION_TIMEOUT_MS,
     idleTimeoutMillis: IDLE_TIMEOUT_MS,
-    ssl: ca ? { rejectUnauthorized: true, ca } : { rejectUnauthorized: false },
+    ssl: { rejectUnauthorized: true, ca },
   });
 
   // A pooler dropping an idle client emits `error` on the pool, and an

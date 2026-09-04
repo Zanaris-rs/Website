@@ -39,6 +39,9 @@ describe("password hashing, against the engine's fixture", () => {
 
   it("has an entry from each side, or the test proves nothing", () => {
     const sources = fixture.hashes.map((entry) => entry.source);
+    // The one the engine repo published; without it this file would only be
+    // checking that bcrypt agrees with itself.
+    expect(sources).toContain("engine-published");
     expect(sources).toContain("engine");
     expect(sources).toContain("website");
   });
