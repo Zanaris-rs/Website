@@ -13,9 +13,16 @@ export default function TitlePage() {
           Play now
         </Link>
 
+        <p className={styles.links}>
+          <Link href="/hiscores">Hiscores</Link>
+          <span aria-hidden="true">·</span>
+          <Link href="/register">Create account</Link>
+        </p>
+
+        {/* Accounts are no longer created by typing a new name at the login
+            screen; the website is the only way in. */}
         <p className={styles.accounts}>
-          Enter any username and password on your first login and the account is
-          created for you.
+          Create your account here first, then log in with it in the game.
         </p>
       </div>
 

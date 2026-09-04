@@ -1,0 +1,166 @@
+/*
+ * Layout for the hiscores screens, matching the 2004 tables the original used:
+ * a 250px header box, then a 150px category list beside a 300px results panel,
+ * then the two stone search boxes.
+ */
+
+.header {
+  width: 250px;
+  max-width: 100%;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.spacer {
+  height: 13px;
+}
+
+.profileForm {
+  margin: 0 0 4px;
+  text-align: center;
+}
+
+.profileSelect {
+  background-color: #b1977e;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 13px;
+}
+
+.columns {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.left {
+  width: 160px;
+  text-align: center;
+}
+
+.right {
+  width: 290px;
+  text-align: center;
+}
+
+.listPanel {
+  width: 150px;
+  height: 400px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.categoryList {
+  height: 380px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.resultsPanel {
+  width: 300px;
+  height: 400px;
+  margin: 0 auto;
+  overflow: auto;
+}
+
+/* The results table. Rank / Level / XP are right-aligned as in the original;
+   Name takes what is left. */
+.rows {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 13px;
+}
+
+.rows th,
+.rows td {
+  padding: 0 4px;
+  white-space: nowrap;
+  font-weight: normal;
+  text-align: right;
+}
+
+.rows thead th {
+  font-weight: bold;
+}
+
+.rows .name {
+  text-align: left;
+  width: 100%;
+}
+
+.empty,
+.status {
+  padding: 1rem 0.5rem;
+  text-align: center;
+}
+
+/* The two search boxes, side by side under the tables. */
+.searches {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  padding-top: 13px;
+  flex-wrap: wrap;
+}
+
+.searchBox {
+  width: 200px;
+  text-align: center;
+}
+
+.searchBox input[type="text"],
+.searchBox input[type="number"] {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 13px;
+  width: 12ch;
+}
+
+.searchButton {
+  margin-top: 4px;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 13px;
+}
+
+/* The personal page: Skill / Rank / Level / XP. */
+.playerPanel {
+  display: inline-block;
+  text-align: left;
+}
+
+.playerTable {
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.playerTable th,
+.playerTable td {
+  padding: 0 6px;
+  font-weight: normal;
+  white-space: nowrap;
+}
+
+.playerTable thead th {
+  font-weight: bold;
+}
+
+.playerTable .skill {
+  width: 120px;
+  text-align: left;
+}
+
+.playerTable .figure {
+  width: 80px;
+  text-align: right;
+}
+
+.playerHeading {
+  text-align: center;
+  padding-bottom: 8px;
+}

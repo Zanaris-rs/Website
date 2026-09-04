@@ -1,0 +1,83 @@
+/* The register form, inside the same 2004 frame as the hiscores. */
+
+.wrap {
+  width: 420px;
+  max-width: 100%;
+  margin: 0 auto;
+  text-align: left;
+}
+
+.heading {
+  text-align: center;
+  padding-bottom: 8px;
+}
+
+.field {
+  display: block;
+  padding: 4px 0;
+}
+
+.field > span {
+  display: block;
+  padding-bottom: 2px;
+}
+
+.field input {
+  width: 100%;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 13px;
+}
+
+/* The canonical name the game will actually store, shown live. base37 strips
+   trailing underscores and folds case, so a player who types `Bob_` must see
+   `bob` before they commit to it. */
+.preview {
+  padding: 4px 0 0;
+  min-height: 1.2em;
+}
+
+.previewName {
+  color: #ff0;
+}
+
+.note {
+  font-size: 11px;
+  padding: 2px 0 0;
+}
+
+.warnings {
+  margin: 12px 0 0;
+  padding: 0 0 0 18px;
+  font-size: 11px;
+}
+
+.warnings li {
+  padding-bottom: 4px;
+}
+
+.error {
+  color: #ff6b6b;
+  padding: 8px 0 0;
+}
+
+.actions {
+  padding-top: 12px;
+  text-align: center;
+}
+
+.submit {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 13px;
+  padding: 2px 12px;
+}
+
+.turnstile {
+  padding-top: 12px;
+  display: flex;
+  justify-content: center;
+}
+
+.success {
+  text-align: center;
+  padding: 8px 0;
+}
