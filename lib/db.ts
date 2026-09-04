@@ -33,7 +33,6 @@ const IDLE_TIMEOUT_MS = 30_000;
 declare global {
   // Dev hot-reloads re-evaluate modules; without this each reload would leak a
   // pool. `var` is what `globalThis` augmentation needs.
-  // eslint-disable-next-line no-var
   var __zanarisPgPool: Pool | undefined;
 }
 

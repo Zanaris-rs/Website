@@ -1,0 +1,226 @@
+{
+  "rows": [
+    {
+      "input": "bob",
+      "base37": "3295",
+      "safeName": "bob",
+      "displayName": "Bob"
+    },
+    {
+      "input": "Bob",
+      "base37": "3295",
+      "safeName": "bob",
+      "displayName": "Bob"
+    },
+    {
+      "input": "BOB",
+      "base37": "3295",
+      "safeName": "bob",
+      "displayName": "Bob"
+    },
+    {
+      "input": "bob_",
+      "base37": "3295",
+      "safeName": "bob",
+      "displayName": "Bob"
+    },
+    {
+      "input": "bob__",
+      "base37": "3295",
+      "safeName": "bob",
+      "displayName": "Bob"
+    },
+    {
+      "input": "_bob",
+      "base37": "3295",
+      "safeName": "bob",
+      "displayName": "Bob"
+    },
+    {
+      "input": "the_inducted",
+      "base37": "3597471809891503097",
+      "safeName": "the_inducted",
+      "displayName": "The Inducted"
+    },
+    {
+      "input": "The Inducted",
+      "base37": "3597471809891503097",
+      "safeName": "the_inducted",
+      "displayName": "The Inducted"
+    },
+    {
+      "input": "the inducted",
+      "base37": "3597471809891503097",
+      "safeName": "the_inducted",
+      "displayName": "The Inducted"
+    },
+    {
+      "input": "Hunter2",
+      "base37": "22009293223",
+      "safeName": "hunter2",
+      "displayName": "Hunter2"
+    },
+    {
+      "input": "a",
+      "base37": "1",
+      "safeName": "a",
+      "displayName": "A"
+    },
+    {
+      "input": "z",
+      "base37": "26",
+      "safeName": "z",
+      "displayName": "Z"
+    },
+    {
+      "input": "0",
+      "base37": "27",
+      "safeName": "0",
+      "displayName": "0"
+    },
+    {
+      "input": "9",
+      "base37": "36",
+      "safeName": "9",
+      "displayName": "9"
+    },
+    {
+      "input": "abcdefghijkl",
+      "base37": "187939216216112118",
+      "safeName": "abcdefghijkl",
+      "displayName": "Abcdefghijkl"
+    },
+    {
+      "input": "abcdefghijklm",
+      "base37": "187939216216112118",
+      "safeName": "abcdefghijkl",
+      "displayName": "Abcdefghijkl"
+    },
+    {
+      "input": "x y z",
+      "base37": "45014115",
+      "safeName": "x_y_z",
+      "displayName": "X Y Z"
+    },
+    {
+      "input": "Mod Ash",
+      "base37": "34402101396",
+      "safeName": "mod_ash",
+      "displayName": "Mod Ash"
+    },
+    {
+      "input": "mod_ash",
+      "base37": "34402101396",
+      "safeName": "mod_ash",
+      "displayName": "Mod Ash"
+    },
+    {
+      "input": "",
+      "base37": "0",
+      "safeName": "invalid_name",
+      "displayName": "Invalid Name"
+    },
+    {
+      "input": "   ",
+      "base37": "0",
+      "safeName": "invalid_name",
+      "displayName": "Invalid Name"
+    },
+    {
+      "input": "!!!",
+      "base37": "0",
+      "safeName": "invalid_name",
+      "displayName": "Invalid Name"
+    },
+    {
+      "input": "a!b",
+      "base37": "1371",
+      "safeName": "a_b",
+      "displayName": "A B"
+    },
+    {
+      "input": "player-one",
+      "base37": "2121697045681383",
+      "safeName": "player_one",
+      "displayName": "Player One"
+    },
+    {
+      "input": "T B O W",
+      "base37": "51318297060",
+      "safeName": "t_b_o_w",
+      "displayName": "T B O W"
+    },
+    {
+      "input": "zzzznotarealplayer",
+      "base37": "4754353058571156706",
+      "safeName": "zzzznotareal",
+      "displayName": "Zzzznotareal"
+    },
+    {
+      "input": "ez",
+      "base37": "211",
+      "safeName": "ez",
+      "displayName": "Ez"
+    },
+    {
+      "input": "PK",
+      "base37": "603",
+      "safeName": "pk",
+      "displayName": "Pk"
+    },
+    {
+      "input": "w0rld",
+      "base37": "44498424",
+      "safeName": "w0rld",
+      "displayName": "W0rld"
+    }
+  ],
+  "decode": [
+    {
+      "value": "0",
+      "name": "invalid_name"
+    },
+    {
+      "value": "1",
+      "name": "a"
+    },
+    {
+      "value": "37",
+      "name": "invalid_name"
+    },
+    {
+      "value": "6582952005840035281",
+      "name": "invalid_name"
+    },
+    {
+      "value": "6582952005840035280",
+      "name": "999999999999"
+    },
+    {
+      "value": "-1",
+      "name": "invalid_name"
+    }
+  ],
+  "titleCase": [
+    {
+      "input": "the inducted",
+      "output": "The Inducted"
+    },
+    {
+      "input": "bob",
+      "output": "Bob"
+    },
+    {
+      "input": "BOB smith",
+      "output": "Bob Smith"
+    },
+    {
+      "input": "a b c",
+      "output": "A B C"
+    },
+    {
+      "input": "mod ash",
+      "output": "Mod Ash"
+    }
+  ]
+}
