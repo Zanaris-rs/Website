@@ -7,15 +7,21 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest run"
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "db:check": "node --conditions=react-server --experimental-strip-types scripts/db-check.mts"
   },
   "dependencies": {
+    "bcrypt-ts": "^9.0.2",
     "next": "16.3.4",
+    "pg": "^8.23.0",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "server-only": "^0.0.1"
   },
   "devDependencies": {
     "@types/node": "^24.13.3",
+    "@types/pg": "^8.23.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
@@ -23,5 +29,5 @@
     "typescript": "^5",
     "vitest": "^5.0.0"
   },
-  "description": "World-select website for Zanaris, a Lost City (2004scape) server."
+  "description": "Website for Zanaris on the Zanaris fleet, a Lost City (2004scape) server: world list, hiscores and account registration."
 }

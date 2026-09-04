@@ -1,8 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // The site is served as static files by Caddy: no Node process at runtime.
-  output: "export",
+  // The site runs on Vercel as a Node app: hiscores and registration are
+  // server-side route handlers, so there is no static export any more.
   trailingSlash: false,
   images: { unoptimized: true },
 };
