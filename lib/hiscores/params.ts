@@ -135,19 +135,22 @@ function decodeSafely(segment: string): string {
   }
 }
 
-/** Build the canonical link for a table view, used by every page control. */
-export function tableHref(
-  params: Pick<TableParams, "category"> & Partial<TableParams>,
-): string {
+/**
+ * The link to one category's table.
+ *
+ * Deliberately carries no search: switching table on the 2004 site cleared the
+ * rank or name, and a rank means something different in another skill. The
+ * default profile is left out so the common URL is the short one.
+ */
+export function tableHref({
+  profile,
+  category,
+}: {
+  profile?: string;
+  category: number;
+}): string {
   const search = new URLSearchParams();
-  if (params.profile && params.profile !== DEFAULT_PROFILE) {
-    search.set("profile", params.profile);
-  }
-  search.set("category", String(params.category));
-
-  const selection = params.selection;
-  if (selection?.kind === "rank") search.set("rank", String(selection.rank));
-  if (selection?.kind === "name") search.set("username", selection.username);
-
+  if (profile && profile !== DEFAULT_PROFILE) search.set("profile", profile);
+  search.set("category", String(category));
   return `/hiscores?${search.toString()}`;
 }

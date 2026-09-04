@@ -139,21 +139,18 @@ describe("parsePlayerParams", () => {
 describe("tableHref", () => {
   it("keeps the default profile out of the URL", () => {
     expect(tableHref({ category: 3 })).toBe("/hiscores?category=3");
+    expect(tableHref({ profile: DEFAULT_PROFILE, category: 3 })).toBe(
+      "/hiscores?category=3",
+    );
   });
 
-  it("carries a search through a category change", () => {
-    expect(
-      tableHref({
-        profile: DEFAULT_PROFILE,
-        category: 7,
-        selection: { kind: "name", username: "the_inducted" },
-      }),
-    ).toBe("/hiscores?category=7&username=the_inducted");
+  it("keeps any other profile in it", () => {
+    expect(tableHref({ profile: "beta-week8", category: 7 })).toBe(
+      "/hiscores?profile=beta-week8&category=7",
+    );
   });
 
-  it("carries a rank", () => {
-    expect(
-      tableHref({ category: 0, selection: { kind: "rank", rank: 500 } }),
-    ).toBe("/hiscores?category=0&rank=500");
+  it("carries no search, so switching table starts fresh", () => {
+    expect(tableHref({ category: 21 })).toBe("/hiscores?category=21");
   });
 });

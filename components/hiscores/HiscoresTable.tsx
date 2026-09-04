@@ -108,9 +108,12 @@ export default function HiscoresTable() {
             <ul className={styles.categoryList}>
               {CATEGORIES.map((entry) => (
                 <li key={entry.id}>
+                  {/* Plain `?category=N`, as the 2004 site had it: switching
+                      table clears the search rather than carrying a rank from
+                      one skill to another, where it means something else. */}
                   <a
                     className={frame.link}
-                    href={tableHref({ profile, category: entry.id, selection })}
+                    href={tableHref({ profile, category: entry.id })}
                   >
                     {entry.name}
                   </a>
@@ -188,11 +191,17 @@ export default function HiscoresTable() {
             <form action="/hiscores">
               <b>Search by rank</b>
               <br />
+              {/* Each box keeps its own current value, as the 2004 site did,
+                  so refining a search does not mean retyping it. */}
               <input
+                key={`rank-${selection.kind === "rank" ? selection.rank : ""}`}
                 type="number"
                 name="rank"
                 min={1}
                 size={12}
+                defaultValue={
+                  selection.kind === "rank" ? String(selection.rank) : ""
+                }
                 aria-label="Rank"
               />
               <br />
@@ -212,10 +221,14 @@ export default function HiscoresTable() {
               <b>Search by name</b>
               <br />
               <input
+                key={`name-${selection.kind === "name" ? selection.username : ""}`}
                 type="text"
                 name="name"
                 maxLength={12}
                 size={12}
+                defaultValue={
+                  selection.kind === "name" ? selection.username : ""
+                }
                 autoComplete="off"
                 aria-label="Name"
               />
