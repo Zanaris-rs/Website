@@ -1,0 +1,19 @@
+{
+  "_comment": "Cross-repo password-hash contract: bcrypt(password.toLowerCase(), 10). Every hash below must verify against `password` and against its lower-cased form, from either repo. bcrypt salts randomly, so the strings differ by design and only verification is meaningful. Add an entry (do not replace one) when the engine publishes a new fixture.",
+  "password": "Hunter2",
+  "cost": 10,
+  "hashes": [
+    {
+      "source": "engine",
+      "library": "bcrypt-ts@9.0.2",
+      "note": "produced by bcrypt.hashSync(password.toLowerCase(), 10), the call LoginServer.ts makes",
+      "hash": "$2b$10$/hLuSnK.LKAXnSuH4ojsXeNLFznzJHHiBeockeHLAk/mxGhVW/RIe"
+    },
+    {
+      "source": "website",
+      "library": "bcrypt-ts@9.0.2",
+      "note": "produced by lib/account/hash.ts hashPassword('Hunter2')",
+      "hash": "$2b$10$RgbWJ9hfwLpd7xJxFuN3.eZuloYj7boXRRVgZyE1BGBQJtEUUnCuO"
+    }
+  ]
+}
