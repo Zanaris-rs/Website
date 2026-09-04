@@ -139,7 +139,7 @@ The rest of the checks, in the order the route runs them:
 | --- | --- |
 | `lib/account/validation.ts` | usernames outside `[A-Za-z0-9_ ]{1,12}`, names base37 cannot encode, `mod_*` and eight reserved staff words; passwords outside 8–20 printable ASCII |
 | `lib/account/email.ts` | malformed addresses, ~8.7k disposable domains, domains with no MX record |
-| `accounts.register(...)` | duplicate usernames (409) and the rate caps (429) |
+| `accounts.register(...)` | duplicate usernames (409) and the rate caps (429) — 3 per ip per 10 min, 10 per ip per day, 30 per /24 or /64 per day, charged for accounts created rather than calls made |
 
 The rate limits are enforced **inside the SQL function**, in one statement and
 one implicit transaction, so a malformed client cannot skip the counting by

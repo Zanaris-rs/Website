@@ -2,11 +2,17 @@
  * The call into `accounts.register`, and the mapping from its answer to HTTP.
  *
  * Everything the gate actually enforces at write time lives inside that
- * function: the three rate caps, the attempt row and the account insert, in
+ * function: the three rate caps, the account insert and the attempt row, in
  * one statement and therefore one implicit transaction. That matters on a
  * transaction pooler, where a multi-statement transaction from the app is not
  * reliably the same backend, and it means a malformed client cannot skip the
  * counting by calling things out of order.
+ *
+ * The order inside it is load-bearing: the attempt row is written **last**, so
+ * the caps (3 per ip per 10 minutes, 10 per ip per day, 30 per /24 or /64 per
+ * day) are charged for accounts created and not for calls made. A
+ * `username_taken` or a `rate_limited` answer costs the caller nothing, so
+ * three unlucky guesses at a free name cannot lock a player out.
  *
  * The `website` role has `EXECUTE` on this function and nothing else — no
  * `INSERT` on `account`, no `SELECT` on it either. The signature below is the
