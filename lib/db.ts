@@ -2,6 +2,7 @@ import "server-only";
 
 import { Pool, type QueryResultRow } from "pg";
 
+import { registerInt8AsNumber } from "./pg-int8.ts";
 import { SUPABASE_ROOT_CA } from "./supabase-ca.ts";
 
 /**
@@ -24,9 +25,10 @@ import { SUPABASE_ROOT_CA } from "./supabase-ca.ts";
  * `import "server-only"` makes a stray client-side import a build error rather
  * than a bundled connection string.
  *
- * No `int8` type parser is registered, unlike the engine's pool: every query in
- * `lib/hiscores/queries.ts` casts its `row_number()` and `count(*)` to `int`,
- * so nothing bigint-shaped reaches JavaScript as a string.
+ * An `int8` type parser **is** registered, like the engine's pool. The casts in
+ * `lib/hiscores/queries.ts` cover `row_number()` and `count(*)`, but
+ * `hiscore_large.value` is a `BIGINT` selected raw, and pg's default for `int8`
+ * is a string — see `lib/pg-int8.ts` for why `Number` is safe for this column.
  */
 
 const POOL_MAX = 2;
@@ -50,6 +52,10 @@ declare global {
 }
 
 function create(): Pool {
+  // Process-global inside `pg`, so it happens once, here, before any pool
+  // exists and therefore before any row is parsed.
+  registerInt8AsNumber();
+
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) {
     throw new Error("DATABASE_URL is not set");
