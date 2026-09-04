@@ -1,0 +1,66 @@
+.page {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
+  padding: 3rem 1.25rem 2rem;
+  text-align: center;
+}
+
+.card {
+  width: 100%;
+  max-width: 34rem;
+  padding: 2.5rem 1.5rem 2rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-panel);
+  box-shadow: 0 0 0 1px #0000004d inset;
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(2rem, 8vw, 3rem);
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+  color: var(--gold);
+  text-shadow: 0 2px 0 #00000066;
+}
+
+.subtitle {
+  margin: 0.5rem 0 0;
+  font-size: 1.05rem;
+  color: var(--muted);
+}
+
+.play {
+  display: inline-block;
+  margin-top: 2rem;
+  padding: 0.85rem 2.75rem;
+  border: 1px solid var(--gold-soft);
+  border-radius: 6px;
+  background: linear-gradient(#ffd75e, #e6a91f);
+  color: #14110c;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+}
+
+.play:hover {
+  background: linear-gradient(#ffe28a, #f0b62c);
+  color: #14110c;
+}
+
+.accounts {
+  margin: 1.75rem auto 0;
+  max-width: 30rem;
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+
+.footer {
+  font-size: 0.9rem;
+  color: var(--muted);
+}

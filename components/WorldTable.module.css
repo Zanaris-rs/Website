@@ -1,0 +1,131 @@
+.scroller {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-panel);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.98rem;
+  white-space: nowrap;
+}
+
+.table th,
+.table td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.table thead th {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: #191509;
+  border-bottom: 1px solid var(--border);
+}
+
+.table tbody tr:last-child th,
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.table tbody tr:hover {
+  background: var(--bg-row);
+}
+
+.name {
+  font-weight: 700;
+  color: var(--parchment);
+}
+
+.players {
+  font-variant-numeric: tabular-nums;
+  color: var(--parchment);
+}
+
+.offline {
+  color: var(--offline);
+}
+
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.link {
+  display: inline-block;
+  padding: 0.35rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: #2b2416;
+  color: var(--gold);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.link:hover {
+  background: #3a3020;
+  color: #ffe08a;
+}
+
+.status,
+.unavailable {
+  margin: 0;
+  padding: 1.5rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-panel);
+  text-align: center;
+}
+
+.status {
+  color: var(--muted);
+}
+
+.unavailable {
+  color: var(--offline);
+}
+
+/* Phone widths: tighten the cells and stack the two client links so a row
+   fits without sideways scrolling on a 375px screen. */
+@media (max-width: 40rem) {
+  .table {
+    font-size: 0.82rem;
+  }
+
+  .table th,
+  .table td {
+    padding: 0.55rem 0.3rem;
+  }
+
+  .table thead th {
+    font-size: 0.62rem;
+    letter-spacing: 0.03em;
+  }
+
+  .links {
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .link {
+    text-align: center;
+    padding: 0.3rem 0.25rem;
+    font-size: 0.8rem;
+  }
+}
+
+/* Below roughly an iPhone SE, let the button labels wrap rather than push the
+   row into a sideways scroll. */
+@media (max-width: 22rem) {
+  .table {
+    white-space: normal;
+  }
+}

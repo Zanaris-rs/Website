@@ -1,0 +1,24 @@
+.page {
+  width: 100%;
+  max-width: 52rem;
+  margin: 0 auto;
+  padding: 3rem 1.25rem 3rem;
+}
+
+.heading {
+  margin: 0 0 1.5rem;
+  font-size: clamp(1.6rem, 6vw, 2.25rem);
+  color: var(--gold);
+  text-shadow: 0 2px 0 #00000066;
+}
+
+.back {
+  margin: 1.5rem 0 0;
+  font-size: 0.95rem;
+}
+
+@media (max-width: 40rem) {
+  .page {
+    padding: 2rem 0.75rem 2.5rem;
+  }
+}
