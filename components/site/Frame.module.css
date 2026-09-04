@@ -110,6 +110,7 @@
 /* `<font color=yellow>`: the searched-for row, and the name in a heading. */
 .highlight {
   color: #ff0;
+  text-decoration: none;
 }
 
 a.highlight:hover {

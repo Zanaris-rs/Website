@@ -159,7 +159,9 @@ export default function HiscoresTable() {
                     const lit = row.username === state.data.highlight;
                     return (
                       <tr key={row.username} className={lit ? frame.highlight : undefined}>
-                        <td>{formatNumber(row.rank)}</td>
+                        {/* The 2004 table prints the rank plain; only the
+                            personal page groups it. */}
+                        <td>{row.rank}</td>
                         <th scope="row" className={styles.name}>
                           <a
                             className={lit ? frame.highlight : frame.link}
@@ -186,7 +188,13 @@ export default function HiscoresTable() {
             <form action="/hiscores">
               <b>Search by rank</b>
               <br />
-              <input type="number" name="rank" min={1} aria-label="Rank" />
+              <input
+                type="number"
+                name="rank"
+                min={1}
+                size={12}
+                aria-label="Rank"
+              />
               <br />
               <input type="hidden" name="category" value={category} />
               <input
