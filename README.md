@@ -45,6 +45,7 @@ project settings, and nothing else is needed.
 | `DATABASE_URL` | Supabase Postgres as the `website` role, **transaction pooler, port 6543** |
 | `TURNSTILE_SECRET_KEY` | server half of the Cloudflare Turnstile widget — **unset means registration is closed**, by design |
 | `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | *optional* — client half of the same widget. Site keys are public, so the live one is the shipped default (`lib/account/site-key.ts`); set this only to point the form at a different widget |
+| `ALLOWED_TURNSTILE_HOSTNAMES` | *optional* — comma-separated hostnames a Turnstile challenge may have been solved on. Unset means the built-in list; an entry may start `*.` to match subdomains |
 | `SITE_URL` | the site's own origin, e.g. `https://zanaris.rs` — `metadataBase` in `app/layout.tsx`, so relative metadata URLs resolve against the real host instead of Next's `localhost:3000` guess. Unset or malformed falls back to `https://zanaris.rs`. |
 | `DATABASE_SSL_CA` | *optional* override for the vendored Supabase CA — see below |
 
@@ -103,13 +104,12 @@ is why `.env.example` ships both Turnstile variables blank with the test keys
 only in a comment. Nothing that can be pasted straight into a production
 environment should be able to open the gate by accident.
 
-**Until a real Turnstile widget exists, registration stays closed**, which is
-the correct resting state: with `TURNSTILE_SECRET_KEY` unset every request ends
-in `400 { "error": "turnstile" }` before the database is touched, and with
-`NEXT_PUBLIC_TURNSTILE_SITE_KEY` unset the form says registration is closed and
-disables its own submit button. Creating the widget in the Cloudflare dashboard
-for the live hostname, and setting both keys in the Vercel project, is the one
-remaining step that opens it.
+The live widget exists, and its site key ships in `lib/account/site-key.ts`.
+**`TURNSTILE_SECRET_KEY` in the Vercel project is the one thing that opens the
+gate**: unset, every request ends in `400 { "error": "turnstile" }` before the
+database is touched. That is the correct resting state, and it is also why a
+deploy that "looks fine" proves nothing — the failure mode is a working page
+whose every submission is refused. See below for how to tell the two apart.
 
 ## Registration, and how the gate is built
 
@@ -132,6 +132,80 @@ before anything touches the database:
 deliberate — a misconfigured gate must not silently become no gate — but it
 means the variable has to be set in Vercel before the site can create accounts,
 and it is worth verifying in production rather than assuming.
+
+### The Turnstile flow, end to end
+
+Cloudflare's own [existing-widget
+flow](https://developers.cloudflare.com/turnstile/), followed exactly, with
+where each half lives here:
+
+1. **The script.** `components/account/RegisterForm.tsx` loads
+   `https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit`
+   through `next/script`, and renders the widget itself once the script is
+   ready. Explicit render rather than the implicit `data-*` markup, because the
+   form has to know the moment a token arrives — see point 5.
+2. **The site key.** `lib/account/site-key.ts`, overridable with
+   `NEXT_PUBLIC_TURNSTILE_SITE_KEY`. Site keys are public — this one is in the
+   HTML of `/register` for anyone to read — so shipping it costs nothing and
+   saves the page from going blank over a missing variable.
+3. **The action.** The widget renders with `action: "signup"`, the value of
+   `TURNSTILE_ACTION`. The form imports that same constant from
+   `lib/account/turnstile.ts`, so the label the widget mints and the label the
+   server demands cannot drift apart.
+4. **The token.** The widget's callback puts it in React state; the form posts
+   it as `turnstileToken` (Cloudflare's own field name for the same thing is
+   `cf-turnstile-response`).
+5. **No token, no submit.** The button is disabled and says *Waiting for the
+   anti-bot check…* until a token exists, and the expiry and error callbacks
+   put it back to `null`. Posting without one is a certain 400, which reads to
+   a player as "the check is broken" when the widget had merely not finished.
+   `lib/account/submit.ts` holds that rule, because it is exactly the sort of
+   thing that regresses in silence.
+6. **Siteverify, server-side.** `lib/account/turnstile.ts` POSTs `secret`,
+   `response` and `remoteip` to
+   `https://challenges.cloudflare.com/turnstile/v0/siteverify` with a 5s
+   timeout, and accepts only when **all three** hold:
+
+   | | |
+   | --- | --- |
+   | `success` | is exactly `true` |
+   | `action` | equals `signup` |
+   | `hostname` | is on the approved list |
+
+   The last two are the ones that are easy to leave out, and the reason they
+   matter is point 2: because the site key is public, `success: true` on its
+   own only proves that *somebody* solved *some* challenge for our widget.
+   Someone can embed our site key on their own page, solve it there and post
+   the token here — `hostname` is what makes that fail, and `action` is what
+   stops a token minted for some other purpose being spent on an account.
+
+   The approved list defaults to `zanaris.rs`, `www.zanaris.rs`,
+   `zanaris.vercel.app`, `localhost` and `127.0.0.1`.
+   `ALLOWED_TURNSTILE_HOSTNAMES` overrides it, comma-separated, and an entry
+   may start `*.` to match subdomains — `*.vercel.app` for preview
+   deployments. Unset means *the defaults*, never "allow anything": a variable
+   nobody set must not be the thing that switches the check off.
+7. **Reset after every submit.** Tokens are single-use, so the form calls
+   `turnstile.reset(widgetId)` in a `finally` and clears its own state. A
+   retry after a failure gets a fresh challenge rather than replaying a spent
+   one.
+
+#### Checking the secret is really set
+
+The route answers `400 { "error": "turnstile" }` for *both* "no secret
+configured" and "bad token", deliberately — the client learns nothing about
+which. That also means **curl cannot tell you whether the secret is set**: a
+dummy token gets the same 400 either way.
+
+Two things that do distinguish them:
+
+- **Against siteverify directly**, a dummy token and a *valid* secret returns
+  `success: false` with `["invalid-input-response"]`, while a wrong or absent
+  secret returns `["invalid-input-secret"]` or `["missing-input-secret"]`.
+- **Through a real browser**, complete the widget on `/register` and submit. A
+  200 proves the secret is valid, the action matches and the hostname is
+  approved, all at once. Nothing short of a real browser mints a token that
+  can prove it.
 
 The rest of the checks, in the order the route runs them:
 
