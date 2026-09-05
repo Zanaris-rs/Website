@@ -92,6 +92,16 @@ async function main(): Promise<void> {
     "public.ticket_message",
     "public.staff_action",
     "public.report",
+    // 4_evidence_and_records. The evidence tables are the most sensitive rows
+    // on the fleet - one is a recording of a player's mouse and one is their
+    // private messages - and `session_wealth`, `public_chat` and `private_chat`
+    // have been unreadable since 0_init and must stay that way now that
+    // functions read them on the site's behalf.
+    "public.report_input",
+    "public.report_chat",
+    "public.session_wealth",
+    "public.public_chat",
+    "public.private_chat",
   ]) {
     try {
       await query(`select 1 from ${table} limit 1`);
@@ -129,6 +139,15 @@ async function main(): Promise<void> {
     "accounts.staff_reply(text, int, text, boolean)",
     "accounts.staff_notice(text, text, text, text, text)",
     "accounts.staff_reports(text, timestamptz)",
+    // 4_evidence_and_records.
+    "accounts.staff_report(text, int)",
+    "accounts.staff_report_input(text, int)",
+    "accounts.staff_report_chat(text, int)",
+    "accounts.staff_report_wealth(text, int)",
+    "accounts.staff_wealth(text, text, timestamptz)",
+    "accounts.staff_report_resolve(text, text, int, text, text)",
+    "accounts.staff_lift(text, text, int, text)",
+    "accounts.staff_punishment_note(text, int, text)",
   ];
   const withheld = [
     "accounts.throttled(text, text)",
@@ -206,6 +225,99 @@ async function main(): Promise<void> {
   }
 
   await checkMessageCentre();
+  await checkEvidence();
+}
+
+/**
+ * One call per function in `4_evidence_and_records`, all of them against
+ * `__db_check__`.
+ *
+ * **Nothing here writes a row**, and again that is a property of the functions
+ * rather than of this script: all three writes check `accounts.is_staff` first
+ * and return `forbidden` before they look at the candidate hash, the report id
+ * or the punishment id. In particular `staff_report_resolve` cannot delete
+ * evidence from here, which is the one call in this file that could do real
+ * damage if it did anything at all.
+ *
+ * The reads exist for the `RETURNS TABLE` shapes. `lib/staff/queries.ts` reads
+ * `data_base64`, `same_ip_as_reporter`, `counterpart_items` and a dozen other
+ * column names by hand, and a column renamed in a later migration would show up
+ * as an empty page rather than as an error - unless it fails here first.
+ */
+async function checkEvidence(): Promise<void> {
+  const reads: [string, string, readonly unknown[]][] = [
+    ["staff_report", "select * from accounts.staff_report($1, $2)", ["__db_check__", 1]],
+    [
+      "staff_report_input",
+      "select * from accounts.staff_report_input($1, $2)",
+      ["__db_check__", 1],
+    ],
+    [
+      "staff_report_chat",
+      "select * from accounts.staff_report_chat($1, $2)",
+      ["__db_check__", 1],
+    ],
+    [
+      "staff_report_wealth",
+      "select * from accounts.staff_report_wealth($1, $2)",
+      ["__db_check__", 1],
+    ],
+    [
+      "staff_wealth",
+      "select * from accounts.staff_wealth($1, $2, $3)",
+      ["__db_check__", "__db_check__", null],
+    ],
+  ];
+
+  for (const [name, text, values] of reads) {
+    const rows = await query(text, values);
+    if (rows.length === 0) {
+      console.log(`accounts.${name}('__db_check__', …): 0 rows (expected)`);
+    } else {
+      console.error(
+        `FAIL: ${name} returned ${rows.length} rows for a name nobody has.`,
+      );
+      process.exitCode = 1;
+    }
+  }
+
+  // A 60-character string in the hash slot: the functions check `is_staff`
+  // before they look at the hash at all, so it is never compared, but passing
+  // something shaped wrong would prove less.
+  const hash = `$2b$10$${"x".repeat(53)}`;
+
+  const writes: [string, string, readonly unknown[], string][] = [
+    [
+      "staff_report_resolve",
+      "select accounts.staff_report_resolve($1, $2, $3, $4, $5) as result",
+      ["__db_check__", hash, 1, "watch", "db:check"],
+      "forbidden",
+    ],
+    [
+      "staff_lift",
+      "select accounts.staff_lift($1, $2, $3, $4) as result",
+      ["__db_check__", hash, 1, "db:check"],
+      "forbidden",
+    ],
+    [
+      "staff_punishment_note",
+      "select accounts.staff_punishment_note($1, $2, $3) as result",
+      ["__db_check__", 1, "db:check"],
+      "forbidden",
+    ],
+  ];
+
+  for (const [name, text, values, expected] of writes) {
+    const [row] = await query<{ result: string }>(text, values);
+    if (row?.result === expected) {
+      console.log(`accounts.${name}('__db_check__', …): ${expected} (expected)`);
+    } else {
+      console.error(
+        `FAIL: ${name} answered ${JSON.stringify(row?.result)}; expected ${expected}.`,
+      );
+      process.exitCode = 1;
+    }
+  }
 }
 
 /**

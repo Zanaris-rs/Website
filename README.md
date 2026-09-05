@@ -546,6 +546,125 @@ A report carries no text: the 2004 packet is an offender and a rule number.
 `ReportAbuseReason` (zero-based, onto the twelve rules `/rules` already lists)
 and `CoordGrid.packCoord` — with the engine file named against each.
 
+## Report evidence
+
+A macro report used to be a sentence with nothing behind it. From migration 4
+the world keeps a rolling ten minutes of every player's mouse in memory, and a
+report for macroing or bug abuse drains that ring into `report_input` and opens
+a fifteen-minute live tail; the logger server copies the offender's own chat
+for the window into `report_chat`, and `session_wealth` — kept seven days for
+everybody — supplies what changed hands. `/staff/reports/<id>` is where a
+moderator reads all of it.
+
+### The decoder
+
+`lib/staff/macro/decode.ts` is **the only thing anywhere that reads
+`report_input.data`**. The engine passes the client's bytes through untouched
+and the database stores them as `bytea`, so both encodings are decoded here:
+
+- the engine's framing from `engine/src/engine/entity/tracking/InputRing.ts` —
+  a one-byte record type then a big-endian payload, six of them: camera, applet
+  focus, click, move, a per-tick **time anchor** and a **marker** saying why the
+  record has a hole in it (a dropped move packet, the flood cap, the ring
+  wrapping, the live tail beginning);
+- the client's own from `Client.ts:2061-2189` — the click word
+  `(delta50ms << 20) | (button << 19) | (y * 765 + x)`, and the 2/3/4-byte
+  cursor encoding whose `delta` counts the 50 ms samples in which the cursor
+  did not move.
+
+`lib/staff/macro/input-tracking-contract.json` is a **byte-for-byte copy** of
+`engine/test/fixtures/input-tracking-contract.json`: a real chunk with every
+event it must decode to. `decode.test.ts` asserts the decoder reproduces it
+exactly and writes the record and marker numbers out by hand, so re-copying the
+fixture after a framing change fails a test rather than shipping quietly. The
+same file supplies `TICK_MS`, `SAMPLE_MS` and the applet's 765×503 rather than
+this side repeating them.
+
+Times are milliseconds from the chunk's `started_at`. An anchor dates the
+records after it to 600 ms; a move record's samples *end* at that instant and
+run backwards at 50 ms each, so the events of one record can be dated earlier
+than the record before it — they are, and sorting them by time would be the
+lie. A chunk with no anchor at all (nothing the current engine writes) is
+reconstructed backwards from `flushed_at` with the click chain as the clock.
+
+Two things the decoder refuses to guess. The cursor is a relative encoding
+whose state lives in the client across packets, so a capture that begins
+mid-session has no position until the first absolute step: those steps decode
+with `x` and `y` null and raise `unknown-cursor`. And a relative step that
+lands outside the applet means the tracking is wrong rather than that the mouse
+left the screen — the client clamps every sample — so the cursor goes unknown
+until an absolute step re-seats it.
+
+### The verdict
+
+`metrics.ts` measures and `verdict.ts` judges, and they are separate files so
+that moving a threshold cannot quietly change what was measured. Eleven signals
+sit in three families — **timing** (click-interval spread, commonest interval,
+longest unbroken rhythm, break regularity), **cursor** (repeated pixels, spread
+inside the busiest square, clicks with no approach, samples per click,
+stillness around a click, straight-line journeys) and **focus** (clicks while
+the applet had none).
+
+| Verdict | When |
+| --- | --- |
+| Likely macro | bot-like on ≥2 timing **and** ≥1 cursor signal; or any unfocused click; or ≥3 bot-like across families |
+| Review | one bot-like signal, or three suspicious ones |
+| Human-like | everything else |
+| Not enough data | nothing could be measured |
+
+The headline is the family verdict and **never a count of signals**: half of
+them are different ways of noticing one fixed click interval, and a moderator
+who trusts a fraction will ban somebody for clicking a bank booth in a rhythm.
+Every row of the table prints the false positive that makes it a signal rather
+than a proof. Timing needs 30 click intervals and 50 for a rhythm; below that
+it says so.
+
+Three deliberate brakes:
+
+- the cursor family is **not evaluated at all** for a Java client (whose packets
+  carry at most one move record) or a throttled tab (whose 50 ms sampler is not
+  running), and the page says which;
+- a **touch-like** stream — taps with nothing between them, spread around the
+  screen, at a person's uneven pace — never exceeds Review, because a phone has
+  no cursor to measure;
+- click *intervals* come from the client's own click word, not from the event
+  times: the engine can only date a click to 600 ms, and a spread computed from
+  that would be a measurement of the tick.
+
+Two of the plan's signals had to be redefined against what the client actually
+does. It flushes its move packet **on the click** and writes no step for a
+still cursor, so the last movement before a click is always dated at the click
+and "time since the cursor last moved" is not a measurable quantity. What is
+measurable is the length of the last hop into the target (a hand decelerates; a
+`moveTo` does not) and the stillness *around* a click, which arrives late but
+arrives whole.
+
+`reference-encoder.ts` is imported by nothing on the site: it mirrors the
+client's own loop so the tests can write a stream as positions and clicks and
+read it back as events. Five of them — a player, a fixed-period script, a
+script that draws curves, a phone and a background tab — go through the whole
+pipeline in `verdict.test.ts` with the verdict a moderator should get.
+
+### Resolving, and lifting
+
+`POST /api/staff/reports/<id>/resolve` re-types the moderator's password
+through the same salt handshake `/staff/notice` uses, because one of the three
+resolutions is destructive: **`dismissed` deletes the evidence** for that
+report's uuid, immediately and permanently. `POST
+/api/staff/punishments/<id>/lift` re-types one because it clears
+`account.banned_until` or `muted_until` *and* stamps `punishment.lifted_at` in
+one statement — the two drifting apart is the failure it replaces, where a
+player un-banned in the database was still banned on the public page. The
+punishment row is never deleted; it stays on `/bans` saying it was lifted.
+
+The drawings on the page are **server-rendered SVG with no script**: a click
+tick per click, cursor density behind them, unfocused spans shaded, the report
+instant marked, and the applet's own 765×503 with the clicks plotted on it.
+Evidence that needs JavaScript to appear is evidence that disappears.
+
+`/staff/wealth?username=` is a plain GET form over
+`accounts.staff_wealth`: seven days, staff only, never public.
+
 ## Hiscores
 
 Ranking is the game's own: `value DESC, date ASC, account_id ASC`, rank from
