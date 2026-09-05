@@ -44,7 +44,7 @@ project settings, and nothing else is needed.
 | --- | --- |
 | `DATABASE_URL` | Supabase Postgres as the `website` role, **transaction pooler, port 6543** |
 | `TURNSTILE_SECRET_KEY` | server half of the Cloudflare Turnstile widget — **unset means registration is closed**, by design |
-| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | client half of the same widget — unset means the form says so and disables submit |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | *optional* — client half of the same widget. Site keys are public, so the live one is the shipped default (`lib/account/site-key.ts`); set this only to point the form at a different widget |
 | `SITE_URL` | the site's own origin, e.g. `https://zanaris.rs` — `metadataBase` in `app/layout.tsx`, so relative metadata URLs resolve against the real host instead of Next's `localhost:3000` guess. Unset or malformed falls back to `https://zanaris.rs`. |
 | `DATABASE_SSL_CA` | *optional* override for the vendored Supabase CA — see below |
 

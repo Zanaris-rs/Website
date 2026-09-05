@@ -10,6 +10,7 @@ import {
   PASSWORD_MIN,
   validateUsername,
 } from "@/lib/account/validation";
+import { turnstileSiteKey } from "@/lib/account/site-key";
 import { submitState } from "@/lib/account/submit";
 
 import frame from "@/components/site/Frame.module.css";
@@ -81,7 +82,10 @@ type State =
   | { kind: "done"; username: string };
 
 export default function RegisterForm() {
-  const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
+  // Site keys are public, so this one has a shipped default and the form
+  // renders a widget even where `NEXT_PUBLIC_TURNSTILE_SITE_KEY` was never
+  // set. See lib/account/site-key.ts.
+  const siteKey = turnstileSiteKey(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
 
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
