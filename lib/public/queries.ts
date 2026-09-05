@@ -79,6 +79,18 @@ export function publicEconomyStatement(days: number = ECONOMY_DAYS): Statement {
   };
 }
 
+/**
+ * The ceiling `public_economy_flow` returns at, mirrored from the migration.
+ *
+ * The function is `ORDER BY taken_at DESC ... LIMIT 5000`, so a busy month
+ * comes back with the *oldest* rows missing and nothing to say it happened.
+ * Exactly this many rows means "at least this many exist", and `dailyFlows`
+ * turns that into a sentence on the page rather than a quietly short list.
+ * A number that drifts from the migration makes the page claim to be complete
+ * when it is not, so it belongs next to the statement that provokes it.
+ */
+export const ECONOMY_FLOW_ROW_LIMIT = 5000;
+
 /** What entered or left the game, per tracked item, per census. */
 export function publicEconomyFlowStatement(
   days: number = ECONOMY_DAYS,

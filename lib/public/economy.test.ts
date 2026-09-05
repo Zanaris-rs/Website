@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { Flow, Snapshot } from "./queries";
+import { ECONOMY_FLOW_ROW_LIMIT, type Flow, type Snapshot } from "./queries";
 import {
   chartPath,
   dailyChange,
@@ -126,10 +126,13 @@ describe("dailyFlows", () => {
         flow("2026-09-04T09:00:00Z", 1038, 2),
         flow("2026-09-05T09:00:00Z", 1050, -1),
       ]),
-    ).toEqual([
-      { day: "2026-09-05", items: [{ itemId: 1050, delta: -1 }] },
-      { day: "2026-09-04", items: [{ itemId: 1038, delta: 3 }] },
-    ]);
+    ).toEqual({
+      days: [
+        { day: "2026-09-05", items: [{ itemId: 1050, delta: -1 }] },
+        { day: "2026-09-04", items: [{ itemId: 1038, delta: 3 }] },
+      ],
+      truncated: false,
+    });
   });
 
   it("drops an item that came back the same day, and a day left with nothing", () => {
@@ -138,7 +141,7 @@ describe("dailyFlows", () => {
         flow("2026-09-04T01:00:00Z", 1038, 1),
         flow("2026-09-04T09:00:00Z", 1038, -1),
       ]),
-    ).toEqual([]);
+    ).toEqual({ days: [], truncated: false });
   });
 
   it("puts the biggest movement of a day first", () => {
@@ -146,12 +149,51 @@ describe("dailyFlows", () => {
       flow("2026-09-04T01:00:00Z", 1038, 1),
       flow("2026-09-04T01:00:00Z", 1050, -4),
       flow("2026-09-04T01:00:00Z", 962, 2),
-    ]);
+    ]).days;
     expect(day.items.map((item) => item.itemId)).toEqual([1050, 962, 1038]);
   });
 
   it("ignores a row with no timestamp", () => {
-    expect(dailyFlows([{ takenAt: null, itemId: 1, delta: 1 }])).toEqual([]);
+    expect(dailyFlows([{ takenAt: null, itemId: 1, delta: 1 }])).toEqual({
+      days: [],
+      truncated: false,
+    });
+  });
+
+  it("says so, and drops the half-read day, at the SQL's row ceiling", () => {
+    // `public_economy_flow` is `ORDER BY taken_at DESC ... LIMIT 5000`, so a
+    // window busier than that comes back with its oldest rows missing and the
+    // cut somewhere inside a day. Two days here: a complete newest one and an
+    // oldest one that is whatever was left of the budget.
+    const rows: Flow[] = [];
+    for (let i = 0; i < ECONOMY_FLOW_ROW_LIMIT - 1; i++) {
+      rows.push(flow("2026-09-05T09:00:00Z", 1038, 1));
+    }
+    rows.push(flow("2026-09-04T09:00:00Z", 1050, 1));
+
+    const folded = dailyFlows(rows);
+    expect(folded.truncated).toBe(true);
+    // The oldest day is not shown as "one whip entered": some unknown number
+    // of its rows was never returned, and a wrong figure on a page whose whole
+    // point is being checkable is worse than a missing one.
+    expect(folded.days).toEqual([
+      { day: "2026-09-05", items: [{ itemId: 1038, delta: 4_999 }] },
+    ]);
+  });
+
+  it("keeps every day when the read came back under the ceiling", () => {
+    const rows: Flow[] = [];
+    for (let i = 0; i < ECONOMY_FLOW_ROW_LIMIT - 2; i++) {
+      rows.push(flow("2026-09-05T09:00:00Z", 1038, 1));
+    }
+    rows.push(flow("2026-09-04T09:00:00Z", 1050, 1));
+
+    const folded = dailyFlows(rows);
+    expect(folded.truncated).toBe(false);
+    expect(folded.days.map((day) => day.day)).toEqual([
+      "2026-09-05",
+      "2026-09-04",
+    ]);
   });
 });
 

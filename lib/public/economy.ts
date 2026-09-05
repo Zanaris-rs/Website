@@ -1,4 +1,4 @@
-import type { Flow, Snapshot } from "@/lib/public/queries";
+import { ECONOMY_FLOW_ROW_LIMIT, type Flow, type Snapshot } from "@/lib/public/queries";
 
 /**
  * The maths behind /economy: the shape of a line, and a month of hourly
@@ -123,6 +123,16 @@ export type DayFlow = {
   readonly items: readonly { readonly itemId: number; readonly delta: number }[];
 };
 
+export type FlowDays = {
+  /** Newest day first. Every one of them is a whole day. */
+  readonly days: readonly DayFlow[];
+  /**
+   * True when the read came back at the SQL's row ceiling, so days older than
+   * the last one here exist and were never loaded.
+   */
+  readonly truncated: boolean;
+};
+
 /**
  * A month of hourly flow rows as days.
  *
@@ -135,13 +145,40 @@ export type DayFlow = {
  * dropped — nothing happened to it that day, whatever the rows say — and a day
  * left with nothing at all is dropped too. Newest day first, and within a day
  * the biggest movement first.
+ *
+ * ## When there were more rows than the function will return
+ *
+ * `public_economy_flow` is `ORDER BY taken_at DESC ... LIMIT 5000`, so a month
+ * busier than the ceiling arrives with its oldest rows missing — and the cut
+ * lands in the middle of a day, not between two. Folding that as it stands
+ * publishes a part of a day as the whole of one: "on 12 August, four whips
+ * left the game" when nine did, in a table whose entire purpose is being
+ * checkable from outside the server.
+ *
+ * So the oldest day of a full read is dropped rather than half-reported, and
+ * `truncated` says the rest is a window rather than the month. The page prints
+ * that; it does not print a wrong number and hope.
  */
-export function dailyFlows(flows: readonly Flow[]): DayFlow[] {
+export function dailyFlows(flows: readonly Flow[]): FlowDays {
+  const truncated = flows.length >= ECONOMY_FLOW_ROW_LIMIT;
+
+  // Which day the cut landed in. Computed from the rows rather than taken from
+  // the last of them, because a pure function of a list should not depend on
+  // the order the caller happened to fetch it in.
+  let partial: string | null = null;
+  if (truncated) {
+    for (const flow of flows) {
+      const day = utcDay(flow.takenAt);
+      if (day === null) continue;
+      if (partial === null || day < partial) partial = day;
+    }
+  }
+
   const days = new Map<string, Map<number, number>>();
 
   for (const flow of flows) {
     const day = utcDay(flow.takenAt);
-    if (day === null) continue;
+    if (day === null || day === partial) continue;
     let items = days.get(day);
     if (!items) {
       items = new Map();
@@ -159,7 +196,10 @@ export function dailyFlows(flows: readonly Flow[]): DayFlow[] {
     if (kept.length > 0) out.push({ day, items: kept });
   }
 
-  return out.sort((a, b) => b.day.localeCompare(a.day));
+  return {
+    days: out.sort((a, b) => b.day.localeCompare(a.day)),
+    truncated,
+  };
 }
 
 /** The newest snapshot in a series, which is what "currently" means on the page. */

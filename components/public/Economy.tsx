@@ -25,6 +25,11 @@ import {
 import EconomyChart from "./EconomyChart";
 import styles from "./Public.module.css";
 
+/** "1 day", "2 days": a page that says "1 days" reads as a machine wrote it. */
+function plural(n: number, one: string, many = `${one}s`): string {
+  return `${n} ${n === 1 ? one : many}`;
+}
+
 /** A total, or a dash — a census that counted nothing must not print a zero. */
 function figure(value: number | null): string {
   return value === null ? "—" : formatNumber(value);
@@ -63,7 +68,8 @@ export default function Economy({ economy }: { economy: EconomyData }) {
   const latest = latestSnapshot(snapshots);
   // `null` all the way through rather than an empty list: the block below has
   // a different sentence for "could not be read" than for "nothing moved".
-  const days = economy.flows === null ? null : dailyFlows(economy.flows);
+  const flows = economy.flows === null ? null : dailyFlows(economy.flows);
+  const days = flows === null ? null : flows.days;
   const partial = economy.flows === null || spawns === null;
 
   const coins = (snapshot: Snapshot) => snapshot.coins;
@@ -167,8 +173,12 @@ export default function Economy({ economy }: { economy: EconomyData }) {
           <div className={styles.empty}>This could not be read just now.</div>
         ) : days.length === 0 ? (
           <div className={styles.empty}>
-            Nothing tracked has entered or left the game in the last{" "}
-            {ECONOMY_DAYS} days.
+            {flows?.truncated
+              ? // Everything one read returns came from a single day, and a
+                // part of a day is not a day. There is movement to show and
+                // this page cannot honestly show it.
+                "More movement was recorded in the last day than one read of this page returns, so none of it can be shown as a whole day."
+              : `Nothing tracked has entered or left the game in the last ${ECONOMY_DAYS} days.`}
           </div>
         ) : (
           days.map((day) => (
@@ -190,6 +200,14 @@ export default function Economy({ economy }: { economy: EconomyData }) {
             </div>
           ))
         )}
+        {flows !== null && flows.truncated && days !== null && days.length > 0 ? (
+          <p className={styles.note}>
+            The census wrote more rows in this window than one read returns, so
+            this is the newest {plural(days.length, "day")} rather than the
+            whole {ECONOMY_DAYS}: older days are not loaded. The day the read
+            stopped inside is left out rather than shown as a part of itself.
+          </p>
+        ) : null}
       </Panel>
 
       <Panel>
