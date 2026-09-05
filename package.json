@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "bcrypt-ts": "^9.0.2",
+    "marked": "^18.0.11",
     "next": "16.3.4",
     "pg": "^8.23.0",
     "react": "19.2.8",
