@@ -140,3 +140,18 @@ export function chatKindLabel(kind: string): string {
 export function punishmentUntilLabel(until: string | null): string {
   return until === null ? "permanent" : `until ${until}`;
 }
+
+/**
+ * The two notes a moderator can write, and what this side refuses before the
+ * database does.
+ *
+ * The public note on a punishment is one line on a page anybody can read, so
+ * it is short by design — the plan's cap, and the function's. The staff note on
+ * a report is internal and can be an explanation; the cap is here so a runaway
+ * paste is refused with a sentence rather than by a `invalid` from SQL.
+ *
+ * **The functions are the authority.** These numbers are what the site refuses
+ * a moment earlier, with a message naming the field.
+ */
+export const PUBLIC_NOTE_MAX = 120;
+export const STAFF_NOTE_MAX = 1000;

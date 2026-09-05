@@ -34,3 +34,83 @@
   gap: 6px;
   padding-top: 8px;
 }
+
+/* The radio rows on the resolve form: one line each, label and explanation
+   together, so the destructive option cannot be picked without reading what
+   it does. */
+.choice {
+  padding: 4px 0;
+  text-align: left;
+  font-size: 11px;
+}
+
+/* The verdict itself. Big, because it is the sentence somebody acts on. */
+.verdict {
+  margin: 0 0 6px;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+/* The three readings a signal can have. Colours from the original's own
+   palette: the red is `<font color=red>`, the yellow is the searched-for row
+   on the hiscores, the green is the news category. */
+.botLike {
+  color: #e10505;
+}
+
+.suspicious {
+  color: #ffe139;
+}
+
+.humanLike {
+  color: #04a800;
+}
+
+.insufficient {
+  color: #9db8c3;
+}
+
+/* What a signal measures, and the false positive under it: small, because it
+   is there to be read once and then skipped. */
+.detail {
+  padding-top: 2px;
+  font-size: 10px;
+  color: #b0b0b0;
+}
+
+/* The decoder's flags, and the family tallies. */
+.flags {
+  margin: 4px 0 0;
+  padding-left: 18px;
+  text-align: left;
+  font-size: 11px;
+}
+
+.flags li {
+  padding-bottom: 3px;
+}
+
+/* An item list is the engine's own JSON and can be long; it wraps rather than
+   stretching the table. */
+.items {
+  overflow-wrap: anywhere;
+  max-width: 260px;
+}
+
+/* The two drawings. The timeline is as wide as the panel; the click plot keeps
+   the applet's own 765x503 shape so a position on it means something. */
+.timeline {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 4px 0 10px;
+}
+
+.plot {
+  display: block;
+  width: 100%;
+  max-width: 500px;
+  height: auto;
+  margin: 0 auto;
+  background: #000;
+}

@@ -9,6 +9,7 @@ import {
   coordLabel,
   reportReasonLabel,
   reporterLabel,
+  resolutionLabel,
   worldLabel,
 } from "@/lib/staff/format";
 import type { ReportRow } from "@/lib/staff/queries";
@@ -67,13 +68,17 @@ export default function StaffReports({
                 <th>Offender</th>
                 <th>Rule</th>
                 <th>Where</th>
+                <th>Evidence</th>
+                <th>State</th>
               </tr>
             </thead>
             <tbody>
               {reports.map((report) => (
                 <tr key={report.id}>
                   <td className={styles.when}>
-                    {formatWhen(report.reportedAt)}
+                    <a className={frame.link} href={`/staff/reports/${report.id}`}>
+                      {formatWhen(report.reportedAt)}
+                    </a>
                   </td>
                   <td>{worldLabel(report.world)}</td>
                   <td className={staff.name}>
@@ -91,6 +96,16 @@ export default function StaffReports({
                   </td>
                   <td>{reportReasonLabel(report.reason)}</td>
                   <td className={staff.name}>{coordLabel(report.coord)}</td>
+                  <td className={report.hasEvidence ? staff.humanLike : ""}>
+                    {report.hasEvidence ? "kept" : "none"}
+                  </td>
+                  <td
+                    className={
+                      report.resolution === null ? staff.suspicious : ""
+                    }
+                  >
+                    {resolutionLabel(report.resolution)}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -102,6 +117,12 @@ export default function StaffReports({
           A report carries no text: the 2004 client sends an offender and a rule
           number, and that is all there is. Rows from before the Message Centre
           existed have no reporter and no world, and read as unknown.
+        </p>
+        <p className={account.note}>
+          The date opens the report. <b>Evidence</b> is the input capture and
+          the copied chat the world kept for it: macro and bug-abuse reports get
+          one, everything else does not, and a report resolved as dismissed has
+          had its evidence deleted. Nothing here is kept longer than thirty days.
         </p>
       </Panel>
     </>
