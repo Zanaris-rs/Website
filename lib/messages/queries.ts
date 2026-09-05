@@ -278,6 +278,21 @@ export function parseThread(rows: readonly unknown[]): Thread | null {
 }
 
 /**
+ * A row id out of a URL segment.
+ *
+ * `null` for anything that is not a plain positive decimal integer, which the
+ * routes turn into a 400 rather than passing on: the columns are `SERIAL`, so
+ * `1e3`, `0x10`, ` 4 ` and `4.0` are all names for a row that could exist but
+ * are not how anything on this site ever links to one. `Number()` would accept
+ * every one of them, and `parseInt` would read `"4abc"` as 4.
+ */
+export function parseId(raw: string | undefined | null): number | null {
+  if (typeof raw !== "string" || !/^[1-9][0-9]{0,9}$/.test(raw)) return null;
+  const id = Number(raw);
+  return Number.isSafeInteger(id) ? id : null;
+}
+
+/**
  * The unread count, clamped at zero.
  *
  * A count that failed to parse is `0` and not an error: this number decorates

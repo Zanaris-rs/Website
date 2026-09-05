@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   messageStatement,
   messagesStatement,
+  parseId,
   parseMessageDetail,
   parseMessageSummary,
   parseThread,
@@ -103,6 +104,40 @@ describe("the statements", () => {
     ]) {
       expect(Object.keys(statement).sort()).toEqual(["text", "values"]);
     }
+  });
+});
+
+describe("parseId", () => {
+  it("takes a plain positive integer", () => {
+    expect(parseId("1")).toBe(1);
+    expect(parseId("4096")).toBe(4096);
+  });
+
+  it("refuses every other spelling of a number", () => {
+    // All of these name a row that could exist, and none of them is how the
+    // site ever links to one. `Number()` accepts the lot; `parseInt` reads
+    // "4abc" as 4.
+    for (const bad of [
+      "",
+      "0",
+      "-1",
+      "4.0",
+      "1e3",
+      "0x10",
+      " 4",
+      "4 ",
+      "+4",
+      "4abc",
+      "01",
+      undefined,
+      null,
+    ]) {
+      expect(parseId(bad), String(bad)).toBeNull();
+    }
+  });
+
+  it("refuses an id too long to be a serial", () => {
+    expect(parseId("99999999999999999999")).toBeNull();
   });
 });
 
