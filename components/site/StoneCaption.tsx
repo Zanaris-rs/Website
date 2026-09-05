@@ -28,9 +28,14 @@ export default function StoneCaption({
   const stone = variant === "red" ? frame.stoneRed : frame.stone;
 
   return (
-    <span className={styles.caption} style={{ width, height }}>
+    <span className={styles.caption} style={{ width }}>
       <span
         className={`${stone} ${styles.captionInner} ${glow ? frame.glow : ""}`}
+        // A minimum rather than a fixed height: the 2004 captions are one or
+        // two words, ours run to "Create Account (New User)", and a caption
+        // that clips its own label is worse than one a few pixels tall. The
+        // 4px is the black surround this box sits in.
+        style={{ minHeight: height - 4 }}
       >
         {children}
       </span>
