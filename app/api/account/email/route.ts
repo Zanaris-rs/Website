@@ -11,7 +11,7 @@ import {
   reauthStatusFor,
 } from "@/lib/account/login";
 import { assertSameOrigin } from "@/lib/account/origin";
-import { isBcryptSalt } from "@/lib/account/salt";
+import { isBcryptHash, isBcryptSalt } from "@/lib/account/salt";
 import { readSession } from "@/lib/account/session-server";
 import { PASSWORD_MAX_TYPED } from "@/lib/account/validation";
 import { isConfigured, query } from "@/lib/db";
@@ -87,6 +87,16 @@ export async function POST(request: NextRequest) {
     }
 
     const current = await hashPasswordWithSalt(currentPassword, stored);
+
+    // `accounts.change_email` refuses anything that is not 60 characters,
+    // which would come back as `bad_credentials` and read to the owner as a
+    // mistyped password. It would not be: it would be this side broken, and it
+    // should say so rather than blame the typing. The login, password and
+    // notice routes all make the same check.
+    if (!isBcryptHash(current)) {
+      console.error("[email] computed candidate is not a bcrypt hash");
+      return fail("unavailable", 503);
+    }
 
     const statement = changeEmailStatement(
       session.u,
