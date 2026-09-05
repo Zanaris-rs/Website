@@ -1,10 +1,11 @@
 /*
  * The world list in 2004 dress: a plain table inside the page's black panel,
- * white text, green links, no rounded corners and no gradients. The component
- * itself is unchanged — this file is the whole restyle.
+ * white text, no rounded corners and no gradients. The component itself is
+ * unchanged — this file is the whole restyle.
  *
- * No breakpoints: the layout viewport is pinned to 600px in `app/layout.tsx`,
- * so the 490px table always fits and a phone scales the page instead.
+ * The table wants about 420px for its four columns. On a narrower screen it
+ * scrolls sideways inside `.scroller` rather than crushing its columns or
+ * widening the page.
  */
 
 .scroller {
@@ -13,8 +14,8 @@
 }
 
 .table {
-  width: 490px;
-  max-width: 100%;
+  width: 100%;
+  min-width: 420px;
   margin: 0 auto;
   border-collapse: collapse;
   text-align: left;
@@ -30,7 +31,7 @@
 
 .table thead th {
   font-weight: bold;
-  border-bottom: 1px solid #382418;
+  border-bottom: 1px solid var(--panel-border);
 }
 
 .name {
@@ -43,7 +44,7 @@
 }
 
 .offline {
-  color: #e10505;
+  color: var(--warning);
   white-space: nowrap;
 }
 
@@ -54,12 +55,13 @@
 }
 
 .link {
-  color: #90c040;
+  color: var(--link);
   text-decoration: none;
   white-space: nowrap;
 }
 
 .link:hover {
+  color: var(--link-hover);
   text-decoration: underline;
 }
 
@@ -71,5 +73,5 @@
 }
 
 .unavailable {
-  color: #e10505;
+  color: var(--warning);
 }

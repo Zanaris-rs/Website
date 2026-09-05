@@ -23,9 +23,9 @@ of somebody else's work with no connection to Jagex Ltd.
 Built with Next.js 16 (App Router, TypeScript) and hosted on **Vercel**. It is
 not a static export: the hiscores, registration and account routes run
 server-side and talk to Supabase Postgres. Everything under `/account`
-additionally reads a signed session cookie, so it renders per request. The rest
-prerenders, and `/title` is regenerated every fifteen seconds for the player
-count.
+additionally reads a signed session cookie, so it renders per request, and so
+does `/title`, which reads the cookie to decide whether to show staff their
+inbox link; its world polls are cached for fifteen seconds. The rest prerenders.
 
 ## Running it
 
@@ -765,9 +765,11 @@ everything" as an unset `TURNSTILE_SECRET_KEY`. If previews have to be able to
 log in, add `*.vercel.app` to `ALLOWED_TURNSTILE_HOSTNAMES` there as well.
 
 Almost everything is prerendered at build time. `/title` is the exception: it
-is regenerated every fifteen seconds (`export const revalidate = 15`) because
-of the live player count, which is the only thing on the site that changes on
-its own. `public/worlds.json` is read at build time, so a world added by the
+renders per request (`export const revalidate = 0`), because it reads the
+session cookie to decide whether to show the Staff Inbox tile. The world polls
+behind the live player count are cached for fifteen seconds per fetch, so
+however many people load the page, the worlds are asked once in that window.
+`public/worlds.json` is read at build time, so a world added by the
 deploy script appears in `/title`'s count on the next deploy — `/serverlist`
 fetches the file in the browser and picks it up immediately.
 
@@ -933,12 +935,12 @@ The script never overwrites: a file that is already there is reported as
 `keep`. That is what protects the seven graphics this repo shipped before, whose
 bytes differ from the history copies and which the chrome was built against.
 
-The wordmark is ours: `public/img/title/logo.svg`, three stacked `<text>`
-layers in a serif stack with a gold gradient, 312x100. It is still **live
-`<text>`, not outlined paths** — no vector editor is installed here.
-`textLength` pins its width so it cannot outgrow the 312x100 box on a machine
-without Georgia; outlining it to paths is optional polish that would also fix
-the letterforms there.
+The wordmark is ours and is not a picture at all: `components/site/Wordmark.tsx`
+sets the site's name in Cinzel Decorative, self-hosted at build time by
+`next/font/google` (no request goes to Google from a visitor's browser), and
+`Wordmark.module.css` engraves it — a dark, thick-stroked copy offset beneath a
+silver gradient face. Being live text, it scales with the screen and reads as
+the page's heading. `app/icon.svg` is the matching one-letter favicon.
 
 `public/img/` is the original 2004 site graphics as served by
 [Lost City](https://2004.lostcity.rs/), a preservation project.

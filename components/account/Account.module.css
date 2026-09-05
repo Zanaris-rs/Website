@@ -2,10 +2,10 @@
  * The account centre and the three forms that hang off it.
  *
  * The originals' account pages are the same furniture as everything else: a
- * 250px title box, a black panel with a thin brown border, and a two-column
- * `Username:` / field table inside it. Nothing here reflows — the layout
- * viewport is pinned to 600px in `app/layout.tsx` — so the widths are fixed
- * numbers, as they are in `Site.module.css`.
+ * 250px title box, a black panel with a thin border, and a two-column
+ * `Username:` / field table inside it. The boxes are their 2004 widths when
+ * the frame allows and the frame's width when it does not; the one table
+ * scrolls sideways on a phone rather than widening the page.
  */
 
 /* --- forms --- */
@@ -13,8 +13,7 @@
 /* Narrower than a content panel: a login box that runs the full 500px looks
    like a page, not a box. The original's is about this wide. */
 .form {
-  width: 340px;
-  max-width: 100%;
+  width: min(340px, 100%);
   margin: 0 auto;
   text-align: left;
 }
@@ -101,7 +100,14 @@
   padding: 8px 0 0;
 }
 
-/* The recent-logins table. Borderless, like the hiscores' own. */
+/* The recent-logins table. Borderless, like the hiscores' own. Three columns
+   with an unbreakable address in one of them want more than a phone has, so
+   the table sits in a strip that scrolls sideways. */
+.scroller {
+  width: 100%;
+  overflow-x: auto;
+}
+
 .logins {
   width: 100%;
   border-collapse: collapse;
@@ -112,7 +118,7 @@
   color: #ffe139;
   font-weight: normal;
   padding: 2px 8px 2px 0;
-  border-bottom: 1px solid #382418;
+  border-bottom: 1px solid var(--panel-border);
 }
 
 .logins td {

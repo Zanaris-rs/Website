@@ -1,0 +1,44 @@
+/*
+ * The wordmark: live text in Cinzel Decorative, drawn as engraved silver.
+ * Three layers make the bevel — a dark, thick-stroked copy underneath and
+ * offset down for the extrusion, its drop shadow, and the gradient face on
+ * top with a hairline dark stroke. Live text rather than a picture so that it
+ * scales with the screen and reads to a screen reader as the site's name.
+ */
+
+.wordmark {
+  position: relative;
+  display: inline-block;
+  margin: 0;
+  line-height: 1;
+  white-space: nowrap;
+  letter-spacing: 2px;
+  font-size: clamp(2.6rem, 9vw, 3.75rem);
+  font-weight: 900;
+}
+
+.base {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: translateY(4px);
+  color: #17181a;
+  -webkit-text-stroke: 6px #17181a;
+  filter: drop-shadow(0 4px 3px rgba(0, 0, 0, 0.9));
+}
+
+.face {
+  position: relative;
+  background: linear-gradient(
+    180deg,
+    #f6f6f6 0%,
+    #d5d9de 35%,
+    #8a9098 62%,
+    #b4bac1 78%,
+    #e9ecef 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-stroke: 1px #2a2d31;
+}

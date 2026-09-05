@@ -95,6 +95,7 @@ export default function AccountCentre({
           {logins.length === 0 ? (
             <p>This account has never logged in to the game.</p>
           ) : (
+            <div className={styles.scroller}>
             <table className={styles.logins}>
               <thead>
                 <tr>
@@ -113,6 +114,7 @@ export default function AccountCentre({
                 ))}
               </tbody>
             </table>
+            </div>
           )}
 
           <p className={styles.note}>

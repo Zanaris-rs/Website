@@ -8,10 +8,10 @@
  * `components/account/Account.module.css`, which is already this site's form
  * stylesheet (`.form`, `.fields`, `.actions`, `.submit`, `.error`, `.note`).
  *
- * Nothing here reflows: the layout viewport is pinned to 600px in
- * `app/layout.tsx`, so the widths are fixed numbers like everywhere else.
- * `#382418` is the panel border colour from `Frame.module.css` and is used as
- * the rule between rows; `#ffe139` is the original's yellow.
+ * The lists and threads wrap to whatever width the frame gives them. The two
+ * tables (the inbox, the reports) do not: they sit in a strip that scrolls
+ * sideways on a phone. `--panel-border` is the rule between rows; `#ffe139`
+ * is the original's yellow.
  */
 
 /* --- the message and ticket lists --- */
@@ -25,7 +25,7 @@
 
 .item {
   padding: 6px 2px;
-  border-bottom: 1px solid #382418;
+  border-bottom: 1px solid var(--panel-border);
 }
 
 .item:last-child {
@@ -63,7 +63,7 @@
   font-size: 12px;
   padding-top: 3px;
   /* The SQL already cut this at 160 characters; this stops a single long
-     unbroken word from widening the panel past the 600px viewport. */
+     unbroken word from widening the panel past the frame. */
   overflow-wrap: anywhere;
 }
 
@@ -83,7 +83,7 @@
 .messageHead {
   text-align: left;
   padding-bottom: 8px;
-  border-bottom: 1px solid #382418;
+  border-bottom: 1px solid var(--panel-border);
 }
 
 /*
@@ -106,7 +106,7 @@
 
 .message {
   padding: 8px 0;
-  border-bottom: 1px solid #382418;
+  border-bottom: 1px solid var(--panel-border);
 }
 
 .message:last-child {
@@ -167,8 +167,14 @@
 
 /* --- tables (the staff inbox and the reports list) --- */
 
+.scroller {
+  width: 100%;
+  overflow-x: auto;
+}
+
 .table {
   width: 100%;
+  min-width: 440px;
   border-collapse: collapse;
   text-align: left;
   font-size: 12px;
@@ -178,7 +184,7 @@
   color: #ffe139;
   font-weight: normal;
   padding: 2px 8px 2px 0;
-  border-bottom: 1px solid #382418;
+  border-bottom: 1px solid var(--panel-border);
   white-space: nowrap;
 }
 

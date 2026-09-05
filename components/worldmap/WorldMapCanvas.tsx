@@ -51,6 +51,7 @@ export default function WorldMapCanvas() {
       ) : null}
       <canvas
         id="canvas"
+        className={styles.canvas}
         width={635}
         height={503}
         style={{ imageRendering: "pixelated" }}

@@ -57,6 +57,7 @@ export default function StaffReports({
         {reports.length === 0 ? (
           <p className={styles.empty}>No reports in this window.</p>
         ) : (
+          <div className={styles.scroller}>
           <table className={`${styles.table} ${staff.tight}`}>
             <thead>
               <tr>
@@ -94,6 +95,7 @@ export default function StaffReports({
               ))}
             </tbody>
           </table>
+          </div>
         )}
 
         <p className={account.note}>
