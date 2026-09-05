@@ -32,22 +32,3 @@ export const JAGEX_URL = "https://www.jagex.com/";
 
 /** Shown on `/rules`; bump it whenever the wording there changes. */
 export const RULES_UPDATED = "5th September 2026";
-
-/**
- * The way to reach a human that is **not** the Message Centre — a Discord
- * invite, a forum thread, an address.
- *
- * `/messages` is the sentinel for "there isn't one yet". The Message Centre is
- * a real two-way inbox now, so a player who is signed in already has somewhere
- * to write; what this constant is for is the second channel, for somebody who
- * cannot sign in or would rather not. The owner has not supplied one.
- *
- * Its consumer is `components/messages/MessageCentre.tsx`, which prints
- * "Prefer another channel? …" only while the `href` is something other than
- * `/messages` — a page that linked to itself would be a circle. Fill this in
- * and the line appears; nothing else needs touching.
- */
-export const STAFF_CONTACT = {
-  label: "the Message Centre",
-  href: "/messages",
-};
