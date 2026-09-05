@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { submitState } from "./submit";
+import { LOGIN_LABELS, REGISTER_LABELS, submitState } from "./submit";
 
 describe("submitState", () => {
   it("waits for the first token", () => {
@@ -43,5 +43,49 @@ describe("submitState", () => {
     expect(
       submitState({ configured: false, token: null, submitting: false }),
     ).toEqual({ disabled: true, label: "Create account" });
+  });
+});
+
+describe("submitState with the login labels", () => {
+  it("says Login, and Logging in... while it is", () => {
+    expect(
+      submitState({
+        configured: true,
+        token: "t",
+        submitting: false,
+        labels: LOGIN_LABELS,
+      }),
+    ).toEqual({ disabled: false, label: "Login" });
+
+    expect(
+      submitState({
+        configured: true,
+        token: "t",
+        submitting: true,
+        labels: LOGIN_LABELS,
+      }),
+    ).toEqual({ disabled: true, label: "Logging in..." });
+  });
+
+  it("still waits for a token, with the same wording either form", () => {
+    const register = submitState({
+      configured: true,
+      token: null,
+      submitting: false,
+    });
+    const login = submitState({
+      configured: true,
+      token: null,
+      submitting: false,
+      labels: LOGIN_LABELS,
+    });
+    expect(login).toEqual(register);
+    expect(login.disabled).toBe(true);
+  });
+
+  it("defaults to the register wording when no labels are given", () => {
+    expect(
+      submitState({ configured: true, token: "t", submitting: false }).label,
+    ).toBe(REGISTER_LABELS.idle);
   });
 });

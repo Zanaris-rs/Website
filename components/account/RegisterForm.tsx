@@ -191,6 +191,11 @@ export default function RegisterForm() {
           Log in with that name and the password you just chose.
         </p>
         <p className={styles.success}>
+          <a className={frame.link} href="/account/login">
+            Log in to your account centre
+          </a>
+        </p>
+        <p className={styles.success}>
           <a className={frame.link} href="/serverlist">
             Choose a world and play
           </a>

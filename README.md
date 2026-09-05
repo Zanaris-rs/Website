@@ -16,12 +16,16 @@ of somebody else's work with no connection to Jagex Ltd.
 | `/serverlist` | the world list: region, members or free, a live player count, and links into the client at high or low detail |
 | `/hiscores` | rankings for Overall and each of the nineteen skills, plus `/hiscores/player/<username>` |
 | `/register` | the **only** way to create an account, behind Cloudflare Turnstile and the database's own rate limits |
+| `/account/login` | the login box: a bcrypt salt handshake, so the site never sees a password hash |
+| `/account` | the account centre: status, recent game logins, and the two things the owner can change |
 | `/messages` | a placeholder for the Message Centre, until it is built |
 
 Built with Next.js 16 (App Router, TypeScript) and hosted on **Vercel**. It is
-not a static export: the hiscores and registration routes run server-side and
-talk to Supabase Postgres. Everything else prerenders, and `/title` is
-regenerated every fifteen seconds for the player count.
+not a static export: the hiscores, registration and account routes run
+server-side and talk to Supabase Postgres. Everything under `/account`
+additionally reads a signed session cookie, so it renders per request. The rest
+prerenders, and `/title` is regenerated every fifteen seconds for the player
+count.
 
 ## Running it
 
@@ -54,15 +58,19 @@ project settings, and nothing else is needed.
 | `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | *optional* — client half of the same widget. Site keys are public, so the live one is the shipped default (`lib/account/site-key.ts`); set this only to point the form at a different widget |
 | `ALLOWED_TURNSTILE_HOSTNAMES` | *optional* — comma-separated hostnames a Turnstile challenge may have been solved on. Unset means the built-in list; an entry may start `*.` to match subdomains |
 | `SITE_URL` | the site's own origin, e.g. `https://zanaris.rs` — `metadataBase` in `app/layout.tsx`, so relative metadata URLs resolve against the real host instead of Next's `localhost:3000` guess. Unset or malformed falls back to `https://zanaris.rs`. |
+| `SESSION_SECRET` | the key the website session cookie is signed with — **unset (or under 32 characters) means nobody can log in**, by design |
 | `DATABASE_SSL_CA` | *optional* override for the vendored Supabase CA — see below |
 
 Two details in `DATABASE_URL` are load-bearing:
 
 - **The role must be `website`, not `postgres`.** `postgres` owns every table
   and bypasses RLS, so a bug in a route handler could read password hashes or
-  set `staffmodlevel`. `website` has `SELECT` on two views and `EXECUTE` on two
-  functions, and nothing else. `npm run db:check` fails if the role can read
-  `public.account`, which is what catches this.
+  set `staffmodlevel`. `website` has `SELECT` on two views and `EXECUTE` on
+  eight `accounts.*` functions, and nothing else — no table privilege at all.
+  `npm run db:check` fails if the role can read `public.account`,
+  `public.login_attempt`, `public.session` or `public.account_login`, or if it
+  can execute `accounts.throttled` / `accounts.record_failure`, which is what
+  catches this.
 - **The port must be `6543`, not `5432`.** `5432` is session mode, one
   dedicated connection per client; serverless scales to many instances and
   would exhaust the free pooler budget. `6543` multiplexes — which is why
@@ -105,11 +113,32 @@ For local development, Cloudflare publishes
 [test keys](https://developers.cloudflare.com/turnstile/troubleshooting/testing/):
 `1x00000000000000000000AA` / `1x0000000000000000000000000000000AA` always pass,
 and `2x0000000000000000000000000000000AA` always fails, which is the useful one
-for checking the rejection path. They are **local dev only; never in
-production** — an always-pass key is not a gate, it is the shape of one, and it
-is why `.env.example` ships both Turnstile variables blank with the test keys
-only in a comment. Nothing that can be pasted straight into a production
-environment should be able to open the gate by accident.
+for checking the rejection path.
+
+**The test keys cannot get past this codebase, and that is not a bug.** Their
+`siteverify` reply is a canned one:
+
+```json
+{ "success": true, "hostname": "example.com",
+  "metadata": { "result_with_testing_key": true } }
+```
+
+It reports `example.com` and carries **no `action` field at all**, so both of
+the checks above reject it. Setting `ALLOWED_TURNSTILE_HOSTNAMES=example.com`
+fixes the hostname half; nothing fixes the action half, because there is
+deliberately no way to switch that check off. So `/register` and
+`/account/login` answer `400 turnstile` locally under the test keys, and the
+only way to drive either form end to end on a developer machine is with the
+real widget's keys — which means the owner adding `localhost` to the widget's
+allowed domains. Everything behind the gate (the salt handshake, the session
+cookie, the rate limits, the two change routes) is reachable without it: only
+`login` and `register` carry a Turnstile check.
+
+The test keys are **local dev only; never in production** — an always-pass key
+is not a gate, it is the shape of one, and it is why `.env.example` ships both
+Turnstile variables blank with the test keys only in a comment. Nothing that
+can be pasted straight into a production environment should be able to open the
+gate by accident.
 
 The live widget exists, and its site key ships in `lib/account/site-key.ts`.
 **`TURNSTILE_SECRET_KEY` in the Vercel project is the one thing that opens the
@@ -244,6 +273,157 @@ that. Get it wrong and every web-created account is unloggable, failing
 `lib/account/bcrypt-fixture.json` holds a hash generated by each side and
 `lib/account/hash.test.ts` verifies both.
 
+## Login and the account centre
+
+`/account/login` signs a player in; `/account` shows the account, its status
+and its recent game logins; `/account/password` and `/account/email` change
+the two things the owner can change. All four are dynamic, `no-store`, and
+inside the same 2004 chrome as everything else.
+
+### The salt handshake
+
+The website never receives a password hash, and a plaintext password never
+reaches Postgres. Both halves of that are deliberate, and both alternatives
+were considered and rejected:
+
+- **Send the plaintext to a SQL function and compare it there.** Simplest, and
+  wrong: the password would be in the statement, so it would be in Supabase's
+  query logs, in `pg_stat_statements`, and in any error the pooler reports. A
+  password that has been written to a log is a password that has leaked.
+- **Give the `website` role a view over `account.password` and compare in
+  Node.** Then a leaked `DATABASE_URL` is a dump of every password hash. The
+  whole point of the least-privilege role is that it cannot do this.
+
+What ships is neither:
+
+1. `accounts.password_salt(name)` returns the **29-character bcrypt prefix** of
+   the stored hash — the algorithm, the cost and the salt. A salt is public by
+   construction; it sits in the clear in front of every bcrypt hash ever made.
+2. The site computes `bcrypt(lower(password), salt)` with `bcrypt-ts`, whose
+   `hash(pw, salt)` accepts a salt string. That is exactly what `compare` does
+   internally, which is what makes this possible at all.
+3. `accounts.login(name, candidate, ip)` compares the 60 characters in the
+   database and answers `ok` / `bad_credentials` / `rate_limited`.
+
+So the site sees a salt and a candidate it computed itself, and the database
+sees a hash. Neither side sees a password it did not already have.
+
+**An unknown username gets a fake salt.** `fakeSalt` (`lib/account/salt.ts`) is
+an HMAC-SHA256 of the name under `SESSION_SECRET`, encoded in bcrypt's own
+base64 alphabet and labelled `$2b$10$`. Without it the endpoint would be a
+username oracle by timing alone: a real name costs one bcrypt at cost 10
+(~60 ms) and a made-up one costs nothing. With it both cost the same and both
+answer `bad_credentials`. It is keyed by the secret so the set of fake salts
+cannot be precomputed, and deterministic in the name so a repeated probe cannot
+be told from a real account by watching the answer change.
+
+A stored password that is not bcrypt-shaped — a hand-edited row — takes the
+fake path too, and logs.
+
+### The session cookie
+
+`zanaris_session`, `HttpOnly; Secure` (production only); `SameSite=Lax;
+Path=/; Max-Age=604800`, and **no `Domain`**, so it is host-only. There is no
+session table: the cookie is a base64url JSON payload and an HMAC-SHA256 of it.
+
+```json
+{ "v": 1, "u": "bob_smith", "sv": "3f2a…", "iat": 1788000000, "exp": 1788604800 }
+```
+
+- `u` is the canonical username. **`staffmodlevel` is never in the cookie**;
+  `/account` re-reads it from `accounts.profile` on every request, so a forged
+  or stale cookie cannot promote anybody.
+- `sv` is the first 16 hex characters of `sha256(current bcrypt salt)`.
+  Changing a password changes the salt, so every cookie minted under the old
+  one stops matching and `/account` bounces it to the login form. That is the
+  only revocation a stateless session has, and it is the one that matters: the
+  password change signs every *other* device out and re-mints the caller's own
+  cookie so they stay in.
+- `exp` is enforced here, not just by the browser's `Max-Age`, and a payload
+  claiming a span longer than seven days is refused outright.
+
+Signatures are compared with `timingSafeEqual`. Every failure — no cookie, a
+forged one, an expired one, a wrong payload version — is the same `null`.
+
+**`SESSION_SECRET` unset means the whole feature is off.** `/api/account/login`
+answers `503 unavailable` and every account page redirects to the login form.
+There is no default and no fallback, because a signing key with a default is a
+signing key anyone can forge against. Rotating it logs everybody out at once,
+which is the emergency stop if one leaks.
+
+What it does *not* do is revoke a cookie somebody has already captured:
+stateless sessions cannot be recalled. `HttpOnly` and the seven-day cap bound
+that, and swapping in a database of live sessions later means changing
+`lib/account/session-server.ts` and nothing else.
+
+### CSRF
+
+Two locks. `SameSite=Lax` keeps the cookie off a cross-site POST, so such a
+request arrives unauthenticated. On top of that every mutating route checks the
+`Origin` header against `x-forwarded-host ?? host` and answers `403 origin` on
+a mismatch — **including when `Origin` is missing or the literal `null`**. A
+browser always sends one on a POST; a request without one is not a browser, and
+this site has no non-browser clients.
+
+Logout is a POST for the same reason: a GET that signs you out is a logout
+CSRF, doable with an `<img src>` on any page the reader visits.
+
+### Rate limits
+
+They live in SQL, in `accounts.throttled`, and count **failures only**: 10 per
+username and 20 per IP per 15 minutes, shared by login, change-password and
+change-email. A successful login costs nothing, so a player who mistypes twice
+and then gets it right has spent two of ten, not three.
+
+`website` is deliberately **not** granted `accounts.throttled` or
+`accounts.record_failure`, and has no privilege on `login_attempt`: the site
+can neither read the counter nor clear it. `accounts.reap()` sweeps rows older
+than an hour, hourly, under pg_cron.
+
+Ten failures lock a username out of *website* login for fifteen minutes. Game
+login is unaffected. The error copy says exactly that: "Too many attempts. Wait
+15 minutes."
+
+### Bans, mutes and what the site still lets you do
+
+**A banned or muted account can still log in to the website**, and the account
+centre shows the restriction rather than hiding it. This is the point: somebody
+who cannot play is precisely who needs to read why, and who Part 3's Message
+Centre exists for. Only live restrictions are shown — an expired ban is not a
+ban, and the row keeps its date forever.
+
+### Recent logins
+
+`accounts.recent_logins` returns the last ten rows of `public.session` for the
+account, with the world and the IP address the game saw. They are the owner's
+own addresses, shown unmasked, which is what makes "that login is not me"
+answerable. The page says what to do about it: change the password, which also
+signs every other device out.
+
+### Applying a migration to Supabase
+
+Migrations live in the **engine** repo (`engine/prisma/postgres/migrations`)
+because that is where the schema is owned; the website only ever calls the
+functions they create. Prisma is never run against this database. The
+procedure, from `Server/ec2-setup`:
+
+```sh
+PGSSLMODE=verify-full PGSSLROOTCERT=ec2-setup/supabase-ca.crt \
+  psql "postgresql://postgres.<ref>@aws-0-us-east-1.pooler.supabase.com:5432/postgres" \
+  -v ON_ERROR_STOP=1 -f engine/prisma/postgres/migrations/<name>/migration.sql
+```
+
+as `postgres` over the **session** pooler on 5432 (DDL wants one backend), with
+the password from `fleet.secrets.sh` and never on the command line. Then insert
+the `_prisma_migrations` row with the sha256 of the file, check `\df accounts.*`
+and that `select jobname from cron.job` still lists `reap`, and record it in
+`ec2-setup/LOG.md`.
+
+`npm run db:check` is the website's half of the proof, run with the `website`
+URL: it asserts the four tables are refused, that the eight granted functions
+are executable and the two withheld ones are not, and that `password_salt` and
+`profile` answer emptily for a name nobody has.
+
 ## Hiscores
 
 Ranking is the game's own: `value DESC, date ASC, account_id ASC`, rank from
@@ -338,6 +518,52 @@ stale-while-revalidate=600` on success and `no-store` on an error.
 Otherwise 400 with an `error` code from the table above, 409 `username_taken`,
 429 `rate_limited`, or 503 `unavailable`. Always `Cache-Control: no-store`.
 
+### `POST /api/account/login`
+
+```json
+{ "username": "Bob Smith", "password": "hunter22", "turnstileToken": "..." }
+```
+
+200 `{ "ok": true, "username": "bob_smith" }` and a `Set-Cookie` for
+`zanaris_session`. Otherwise:
+
+| Status | `error` | When |
+| --- | --- | --- |
+| 400 | `bad_request` | the body is not JSON |
+| 400 | `turnstile` | the anti-bot check did not pass, or carried the wrong action |
+| 400 | `username_format`, `username_unencodable` | the name cannot be a name |
+| 401 | `bad_credentials` | wrong name **or** wrong password — one answer for both |
+| 403 | `origin` | the `Origin` header is missing, `null`, or another site |
+| 429 | `rate_limited` | 10 failures for the name, or 20 for the IP, in 15 minutes |
+| 503 | `unavailable` | `SESSION_SECRET` or `DATABASE_URL` unset, or the call failed |
+
+### `POST /api/account/logout`
+
+No body. 200 `{ "ok": true }` with the cookie cleared, or 403 `origin`. It
+succeeds whether or not there was a cookie.
+
+### `POST /api/account/password`
+
+```json
+{ "currentPassword": "hunter22", "newPassword": "hunter33" }
+```
+
+200 `{ "ok": true }`, and a fresh `zanaris_session` for the caller — every
+other device is signed out. Otherwise 401 `session_expired`, 403 `origin`, 403
+`bad_credentials`, 400 `password_short` / `password_long` /
+`password_charset` / `password_same`, 429 `rate_limited`, 503 `unavailable`.
+
+### `POST /api/account/email`
+
+```json
+{ "currentPassword": "hunter22", "email": "bob@example.com" }
+```
+
+200 `{ "ok": true, "email": "bob@example.com" }` — the stored, lower-cased
+form. Otherwise 401 `session_expired`, 403 `origin`, 403 `bad_credentials`,
+400 `email_format` / `email_disposable` / `email_no_mx`, 429 `rate_limited`,
+503 `unavailable`. The session is **not** re-minted: the salt has not moved.
+
 ## Deployment
 
 Vercel, project `Zanaris-rs/Website`, functions pinned to `iad1` by
@@ -350,9 +576,16 @@ The worlds themselves are not here — they stay on the hub under
 **`www.zanaris.rs` 308s to the apex** (`redirects()` in `next.config.ts`,
 matched on the `host` header). Both hostnames served the site directly, which
 gives every page two URLs — a nuisance for canonical links, and a real problem
-for the host-only session cookie the account login adds: a login on the apex
-would be invisible on `www`, and a single link would silently sign the reader
-out.
+for the host-only session cookie: a login on the apex would be invisible on
+`www`, and a single link would silently sign the reader out.
+
+**`SESSION_SECRET` has to be set on Vercel, separately for Production and
+Preview**, and to *different* values: a preview deployment is not a place to
+mint production sessions. Generate each with `openssl rand -hex 32`. Until it
+is set, the deployment's login route answers 503 and its account pages
+redirect — the correct resting state, and the same shape of "looks fine, refuses
+everything" as an unset `TURNSTILE_SECRET_KEY`. If previews have to be able to
+log in, add `*.vercel.app` to `ALLOWED_TURNSTILE_HOSTNAMES` there as well.
 
 Almost everything is prerendered at build time. `/title` is the exception: it
 is regenerated every fifteen seconds (`export const revalidate = 15`) because
@@ -375,16 +608,21 @@ fetches the file in the browser and picks it up immediately.
 | `app/hiscores/page.tsx` | `/hiscores` |
 | `app/hiscores/player/[username]/page.tsx` | one player's hiscores |
 | `app/register/page.tsx` | account registration |
+| `app/account/login/page.tsx` | the login box |
+| `app/account/page.tsx` | the account centre |
+| `app/account/password/page.tsx`, `app/account/email/page.tsx` | the two change forms |
 | `app/messages/page.tsx` | the Message Centre placeholder |
 | `app/api/hiscores/route.ts` | the table API |
 | `app/api/hiscores/player/[username]/route.ts` | the personal API |
 | `app/api/account/register/route.ts` | registration, Node runtime, `no-store` |
+| `app/api/account/login/route.ts`, `logout`, `password`, `email` | the salt handshake, the cookie, and the two compare-and-set changes |
 | `components/site/Frame.tsx` | the 2004 page chrome every page is inside |
 | `components/site/Tile.tsx` | the one component allowed a bare `<img>` |
 | `components/site/` | `TitleBox`, `Panel`, `StonePanel`, `StoneCaption`, `StoneButton`, `MenuTile`, `PageNav`, `Disclaimer` |
 | `components/news/`, `components/rules/`, `components/worldmap/` | the list and post views, the rule card, the map canvas |
 | `components/hiscores/` | the table, the personal page, the shared header |
 | `components/account/RegisterForm.tsx` | the form, the Turnstile widget, the warnings |
+| `components/account/` | `LoginForm`, `AccountCentre`, `LogoutButton`, `ChangePasswordForm`, `ChangeEmailForm` |
 | `components/WorldTable.tsx` | the world list itself |
 | `lib/site.ts` | the site name, the revision, the credit line, the URLs |
 | `lib/news/` | frontmatter and filename parsing, categories, pagination, dates, Markdown |
@@ -395,6 +633,9 @@ fetches the file in the browser and picks it up immediately.
 | `lib/supabase-ca.ts`, `lib/supabase-root-2021.crt` | Supabase's root CA, so TLS is verified |
 | `lib/hiscores/` | categories, formatting, params, SQL, response shapes |
 | `lib/account/` | validation, email, IP grouping, Turnstile, bcrypt, the register call |
+| `lib/account/salt.ts`, `session.ts` | the salt handshake and the signed cookie — both pure, both tested |
+| `lib/account/session-server.ts`, `profile-server.ts` | the halves that need a request: read/require/set/clear, and "is this cookie still good" |
+| `lib/account/origin.ts`, `login.ts`, `profile.ts` | the CSRF check, the four SQL calls, the account-centre wording |
 | `content/news/` | the news posts |
 | `scripts/db-check.mts` | `npm run db:check` |
 | `scripts/vendor-2004-assets.sh` | `npm run assets:vendor` |
