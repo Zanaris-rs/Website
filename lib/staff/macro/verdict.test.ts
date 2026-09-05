@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { decodeStream } from "./decode";
+import { MARKER_FLOOD_CAP, base64ToBytes, decodeStream } from "./decode";
 import { measure } from "./metrics";
 import {
   buildCapture,
@@ -136,6 +136,59 @@ describe("the focus rule", () => {
     expect(metrics.unfocusedClicks).toBe(2);
     expect(verdict.verdict).toBe("macro");
     expect(verdict.reason).toMatch(/focus/);
+  });
+
+  it("is withheld when the capture lost records, and holds the verdict", () => {
+    // The same stream as above — focus lost, and the clicks keep coming — with
+    // one difference: the ring hit its flood cap between the two, so records
+    // were thrown away. One of them may well have been the "focus regained"
+    // the client sent when the player clicked back into the window, and a
+    // decoder cannot tell that from a window nobody returned to.
+    const rows = buildCapture({
+      samples: Array.from({ length: 400 }, (_, i) => ({
+        at: i * 50,
+        x: 300 + (i % 40),
+        y: 200 + ((i * 7) % 40),
+      })),
+      clicks: [
+        { at: 4000, x: 310, y: 210 },
+        { at: 6000, x: 320, y: 240 },
+      ],
+      focus: [{ at: 3000, focus: 0 }],
+      markers: [{ at: 3500, reason: MARKER_FLOOD_CAP }],
+    });
+
+    const { verdict, stream, metrics } = judge(rows);
+    expect(stream.flags).toContain("flooded");
+
+    // The clicks are still counted and still shown: what changes is that they
+    // no longer decide anything.
+    expect(metrics.unfocusedClicks).toBe(2);
+    expect(verdict.focusWithheld).toBe("a flood cap");
+    expect(verdict.verdict).not.toBe("macro");
+
+    const focus = verdict.families.find((f) => f.family === "focus");
+    expect(focus?.evaluated).toBe(false);
+    expect(focus?.botLike).toBe(0);
+    for (const signal of verdict.signals) {
+      if (signal.family === "focus") expect(signal.counted).toBe(false);
+    }
+  });
+
+  it("holds a truncated capture at Review however mechanical it reads", () => {
+    // A macro caught in the act, in a capture whose last record ran off the
+    // end of the bytes. Every timing and cursor signal still convicts; the
+    // verdict does not, because half a session is not a session.
+    const rows = fixedPeriodStream();
+    const last = rows[rows.length - 1];
+    const bytes = base64ToBytes(last.data);
+    const cut = { ...last, data: btoa(String.fromCharCode(...bytes.slice(0, -1))) };
+
+    const { verdict, stream } = judge([...rows.slice(0, -1), cut]);
+    expect(stream.flags).toContain("truncated");
+    expect(verdict.focusWithheld).toBe("a truncated record");
+    expect(verdict.verdict).toBe("review");
+    expect(verdict.reason).toMatch(/Held at Review/);
   });
 
   it("assumes the applet had focus until the client says otherwise", () => {

@@ -7,7 +7,7 @@ import { toDisplayName } from "@/lib/base37";
 import { formatWhen } from "@/lib/messages/format";
 import type { InputStream } from "@/lib/staff/macro/decode";
 import type { Metrics } from "@/lib/staff/macro/metrics";
-import type { Adjudication, Level } from "@/lib/staff/macro/verdict";
+import type { Adjudication, Family, Level } from "@/lib/staff/macro/verdict";
 import {
   chatKindLabel,
   coordLabel,
@@ -76,6 +76,26 @@ function millis(iso: string | null): number | null {
 /** "1 line", "2 lines" — a page that says "1 lines" reads as a machine wrote it. */
 function plural(n: number, one: string, many = `${one}s`): string {
   return `${n} ${n === 1 ? one : many}`;
+}
+
+/**
+ * Why a family was left out, in that family's own words.
+ *
+ * There is more than one way to be withheld and they are not the same
+ * sentence: the cursor signals are excluded because the samples behind them
+ * were never taken, and the focus signal because the records that carry it may
+ * have been thrown away. Printing the spatial reason against the focus row —
+ * or, worse, printing `null` — would tell a moderator something untrue about
+ * evidence they are about to act on.
+ */
+function withheldLine(adjudication: Adjudication, family: Family): string {
+  if (family === "spatial" && adjudication.spatialWithheld !== null) {
+    return `not judged — ${adjudication.spatialWithheld} (a signal from samples nobody took is not evidence)`;
+  }
+  if (family === "focus" && adjudication.focusWithheld !== null) {
+    return `not judged — ${adjudication.focusWithheld} took records out of this capture, and focus is a state carried between records`;
+  }
+  return "not judged — this capture cannot answer for it";
 }
 
 /** "1 hour 5 minutes", for a window nobody wants to subtract by hand. */
@@ -307,7 +327,7 @@ export default function StaffReportDetail({
                   <b>{FAMILY_LABELS[family.family]}</b>:{" "}
                   {family.evaluated
                     ? `${family.botLike} bot-like, ${family.suspicious} suspicious, ${family.measured} measured`
-                    : `not judged — ${adjudication.spatialWithheld} (a signal from samples nobody took is not evidence)`}
+                    : withheldLine(adjudication, family.family)}
                 </li>
               ))}
             </ul>

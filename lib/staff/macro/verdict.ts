@@ -24,15 +24,24 @@ import {
  * | Human-like | everything else |
  * | Not enough data | nothing could be measured |
  *
- * Two things hold the verdict back on purpose. A **touch-like** stream — taps
+ * Three things hold the verdict back on purpose. A **touch-like** stream — taps
  * with nothing between them, landing all over the screen, at a human's
  * irregular pace — never exceeds Review, because a phone has no cursor to
  * measure and a macro that looked exactly like one would be indistinguishable.
- * And the spatial family is **not evaluated at all** for a Java client (whose
+ * The spatial family is **not evaluated at all** for a Java client (whose
  * packets carry at most one move record each) or a throttled tab (whose mouse
  * sampler is not running at 50 ms), because a signal computed from samples
  * that were never taken is not evidence — it is an artefact, and it would
  * always point the same way.
+ *
+ * And the focus family is withheld — and the whole verdict capped at Review —
+ * for a capture with a **hole in it**: one the flood cap truncated, or one
+ * whose last record ran off the end of the data. Focus is a *state*, carried
+ * from one record to the next, and the client only ever reports the change.
+ * A capture that lost the "focus regained" record reads every click after it
+ * as a click into a window nobody was looking at, which is the one signal that
+ * convicts on its own. Losing a record must not manufacture the evidence, and
+ * a record of the session with a gap in it is not a record to ban on.
  *
  * Every signal carries the false positive that makes it a signal rather than a
  * proof: real players do repeat themselves, and the honest version of this
@@ -107,6 +116,8 @@ export type Adjudication = {
   readonly touchLike: boolean;
   /** Why the spatial family was left out, when it was. */
   readonly spatialWithheld: "java client" | "throttled tab" | null;
+  /** Why the focus family was left out, when it was. */
+  readonly focusWithheld: "a flood cap" | "a truncated record" | null;
 };
 
 export const VERDICT_HEADLINES: Record<Verdict, string> = {
@@ -170,6 +181,17 @@ export function adjudicate(
     ? ("java client" as const)
     : flags.has("throttled")
       ? ("throttled tab" as const)
+      : null;
+
+  // A capture with a hole in it cannot be read for focus. `flooded` means the
+  // ring threw records away to keep up; `truncated` means the last record ran
+  // off the end of the bytes. Either can have swallowed the "focus regained"
+  // record, and the decoder has no way to tell that from a window nobody came
+  // back to — so it stops asking.
+  const focusWithheld = flags.has("flooded")
+    ? ("a flood cap" as const)
+    : flags.has("truncated")
+      ? ("a truncated record" as const)
       : null;
 
   const timing: Signal[] = [
@@ -313,7 +335,7 @@ export function adjudicate(
       detail: `Clicks the client reported while the applet did not have focus. ${plural(metrics.focusChanges, "focus change")} in the capture.`,
       falsePositive:
         "The applet reports its own focus, not the desktop's: a notification that steals focus and gives it back can land one click on the wrong side of the line. One is a coincidence. A session of them is a program clicking a window nobody is looking at.",
-      counted: true,
+      counted: focusWithheld === null,
     },
   ];
 
@@ -337,7 +359,7 @@ export function adjudicate(
   const families: FamilyTally[] = [
     tally("timing", true),
     tally("spatial", spatialWithheld === null),
-    tally("focus", true),
+    tally("focus", focusWithheld === null),
   ];
 
   const timingTally = families[0];
@@ -404,6 +426,14 @@ export function adjudicate(
     reason = `${reason} Held at Review: the stream has no cursor between clicks, which is what a touchscreen looks like, and no cursor is no evidence.`;
   }
 
+  // The same brake, for the same reason, on a capture that is missing records:
+  // what is on the page is a *part* of the session, and the part that is gone
+  // is exactly where a "focus regained" record would have been.
+  if (focusWithheld !== null && verdict === "macro") {
+    verdict = "review";
+    reason = `${reason} Held at Review: ${focusWithheld} took records out of this capture, so the applet's focus cannot be followed through it and what is left is part of a session rather than the whole of one.`;
+  }
+
   return {
     verdict,
     headline: VERDICT_HEADLINES[verdict],
@@ -412,5 +442,6 @@ export function adjudicate(
     families,
     touchLike,
     spatialWithheld,
+    focusWithheld,
   };
 }

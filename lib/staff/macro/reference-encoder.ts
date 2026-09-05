@@ -20,9 +20,10 @@ import {
  * rule — and `InputRing.ts`'s framing around them, so a stream can be written
  * as `(t, x, y, button, focus)` and read back as events.
  *
- * Two things it deliberately does not do: it never drops a move packet or
- * trips the flood cap (those are markers, and the fixture already pins them),
- * and it writes a time anchor by wall clock rather than by the world's tick
+ * Two things it deliberately does not do: it never decides on its own to drop
+ * a move packet or trip the flood cap — those are markers, and a test that
+ * wants one says where it goes — and it writes a time anchor by wall clock
+ * rather than by the world's tick
  * counter. The engine's anchor is "ticks since this chunk began", which for a
  * test is the same number.
  */
@@ -222,12 +223,21 @@ export type ScriptClick = {
   button?: number;
 };
 export type ScriptFocus = { at: number; focus: number };
+/** A marker the engine writes when it had to throw something away. */
+export type ScriptMarker = { at: number; reason: number };
 
 export type Script = {
   /** Where the mouse was, one entry per client sample. */
   samples?: readonly ScriptSample[];
   clicks?: readonly ScriptClick[];
   focus?: readonly ScriptFocus[];
+  /**
+   * Markers, placed by hand. The encoder never trips one itself — it does not
+   * drop a move packet and it does not fill the ring — so a test that needs to
+   * see what a capture with a hole in it does to a verdict says where the hole
+   * is.
+   */
+  markers?: readonly ScriptMarker[];
   /** Epoch ms of the first packet. */
   startedAt?: number;
   client?: string;
@@ -318,6 +328,10 @@ export function buildCapture(script: Script): InputChunkSource[] {
   while (focusIndex < focus.length) {
     const event = focus[focusIndex++];
     packets.push({ at: event.at, record: { kind: "focus", focus: event.focus } });
+  }
+
+  for (const marker of script.markers ?? []) {
+    packets.push({ at: marker.at, record: { kind: "marker", reason: marker.reason } });
   }
 
   packets.sort((a, b) => a.at - b.at);
