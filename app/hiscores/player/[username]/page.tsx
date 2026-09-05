@@ -18,7 +18,7 @@ export async function generateMetadata({
   } catch {}
   const name = toDisplayName(decoded);
   return {
-    title: `${name} | Zanaris Hiscores`,
+    title: `${name} — Hiscores`,
     description: `Zanaris hiscores for ${name}.`,
   };
 }

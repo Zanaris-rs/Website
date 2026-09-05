@@ -1,7 +1,6 @@
 /*
  * The 2004 page chrome, ported from Lost City's inline stylesheet and table
- * layout. Scoped to the hiscores and register pages: the title and serverlist
- * screens keep the modern look in `app/globals.css`.
+ * layout. Every page on the site is inside it.
  *
  * The original is a 600px table sandwich — three edge tiles on top, a tiling
  * background in the middle, two tall tiles and a strip on the bottom. Widths
@@ -115,5 +114,91 @@
 
 a.highlight:hover {
   color: #ff0;
+  text-decoration: underline;
+}
+
+/* `.b2` in the original: the red bezel, used for the two "do this now" stone
+   buttons (Play Game, Create Account, I Understand). */
+.stoneRed {
+  border-style: outset;
+  border-width: 3pt;
+  border-color: #570700;
+  background-color: #570700;
+  background-image: url("/img/title/shinystonered.jpg");
+  padding: 4px;
+}
+
+/* Hovering a stone that is inside a link lights it up, the way the original's
+   `onmouseover` image swap did. Opt-in, because the hiscores search boxes are
+   `.stone` too and are not buttons. */
+.glow:hover {
+  background-image: url("/img/title/ssgreybright.png");
+}
+
+.stoneRed.glow:hover {
+  background-image: url("/img/title/ssredbright.jpg");
+}
+
+/* The link colours from the original's one-line stylesheet, used for the news
+   categories and for the coloured lines in the disclaimer and the rules.
+   They are `text-decoration: none` until hovered, on links and plain text
+   alike (a category name in a table is not a link, but must match one). */
+.white,
+.red,
+.lblue,
+.dblue,
+.yellow,
+.green,
+.purple,
+.pink,
+.orange {
+  text-decoration: none;
+}
+
+.white {
+  color: #fff;
+}
+
+.red {
+  color: #e10505;
+}
+
+.lblue {
+  color: #9db8c3;
+}
+
+.dblue {
+  color: #0d6083;
+}
+
+.yellow {
+  color: #ffe139;
+}
+
+.green {
+  color: #04a800;
+}
+
+.purple {
+  color: #c503fd;
+}
+
+.pink {
+  color: #faa8aa;
+}
+
+.orange {
+  color: #ffbb22;
+}
+
+a.white:hover,
+a.red:hover,
+a.lblue:hover,
+a.dblue:hover,
+a.yellow:hover,
+a.green:hover,
+a.purple:hover,
+a.pink:hover,
+a.orange:hover {
   text-decoration: underline;
 }

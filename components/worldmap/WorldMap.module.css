@@ -1,0 +1,18 @@
+/* The applet is a fixed 635x503, which is wider than the 600px page column and
+   much wider than a phone. It gets its own sideways scroll rather than making
+   the whole page scroll. */
+
+.wrapper {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  padding: 4px 0 10px;
+  line-height: 0;
+  text-align: center;
+}
+
+.failed {
+  line-height: normal;
+  padding: 8px 0;
+  color: #e10505;
+}

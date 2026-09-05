@@ -6,7 +6,7 @@
  *
  * - `/worlds.json`, written at the site root by the deploy script:
  *   `[{ "id": 1, "name": "World 1", "region": "US-East",
- *       "members": true, "url": "https://w1.04.retired.invalid" }]`
+ *       "members": true, "url": "https://w1.04.zanaris.rs" }]`
  * - `<world origin>/world.json`, served by each game world:
  *   `{ "id": 1, "members": true, "players": 3, "maxPlayers": 150 }`
  */

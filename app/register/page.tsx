@@ -4,7 +4,7 @@ import RegisterForm from "@/components/account/RegisterForm";
 import Frame from "@/components/site/Frame";
 
 export const metadata: Metadata = {
-  title: "Create account | Zanaris",
+  title: "Create account",
   description: "Create an account to play on Zanaris.",
 };
 

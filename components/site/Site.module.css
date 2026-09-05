@@ -1,0 +1,283 @@
+/*
+ * The 2004 furniture the pages are built from: title boxes, panels, the stone
+ * frame round each block of the title screen, the stone captions and buttons,
+ * the menu tiles and the prev/next page navigation.
+ *
+ * All of it is a translation of nested `<table>` markup into flex and grid.
+ * The pixel numbers are the originals' declared widths and heights — 250 for a
+ * title box, 500 for a panel, 100x45 for a caption, 77x120 for a menu tile —
+ * because those numbers are the design.
+ *
+ * There are no breakpoints anywhere in this file, on purpose: the layout
+ * viewport is pinned to 600px in `app/layout.tsx`, so every reader gets the
+ * same 600px page and a phone scales it rather than reflowing it.
+ */
+
+/* --- title box: `<table width=250 bgcolor=black cellpadding=4>` --- */
+
+.titleBox {
+  width: 250px;
+  max-width: 100%;
+  margin: 1em auto;
+  text-align: center;
+}
+
+/* --- 500px content panel --- */
+
+.panelBox {
+  width: 500px;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.panelCenter {
+  text-align: center;
+}
+
+.panelLeft {
+  text-align: left;
+}
+
+/* --- the 9-slice stone frame ---
+   Corners are 6x6 GIFs, the top and bottom edges 18x6 tiles repeated across,
+   the sides 6x25 tiles repeated down. The interior is plain black. */
+
+.stonePanel {
+  display: grid;
+  grid-template-columns: 6px 1fr 6px;
+  grid-template-rows: 6px auto 6px;
+  width: 500px;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.cornerTopLeft {
+  background: url("/img/title/fm_topleft.gif");
+}
+
+.cornerTopRight {
+  background: url("/img/title/fm_topright.gif");
+}
+
+.cornerBottomLeft {
+  background: url("/img/title/fm_bottomleft.gif");
+}
+
+.cornerBottomRight {
+  background: url("/img/title/fm_bottomright.gif");
+}
+
+.edgeTop {
+  background: url("/img/title/fm_top2.gif") repeat-x;
+}
+
+.edgeBottom {
+  background: url("/img/title/fm_bottom2.gif") repeat-x;
+}
+
+.edgeLeft {
+  background: url("/img/title/fm_left.gif") repeat-y;
+}
+
+.edgeRight {
+  background: url("/img/title/fm_right.gif") repeat-y;
+}
+
+.stoneInterior {
+  background: #000;
+  padding: 7px;
+  text-align: center;
+}
+
+.stoneTitle {
+  font-weight: bold;
+  padding-bottom: 4px;
+}
+
+/* --- stone caption: `<table bgcolor=black cellpadding=2>` round a bezel --- */
+
+.caption {
+  display: inline-block;
+  max-width: 100%;
+  background: #000;
+  padding: 2px;
+  vertical-align: top;
+}
+
+/* The bezel fills the caption box and centres its label. The doubled class is
+   deliberate: `.stone` and `.stoneRed` come from Frame.module.css, and CSS
+   module files have no guaranteed order between them, so the override needs a
+   specificity that does not depend on which stylesheet lands first. */
+.captionInner.captionInner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  font-weight: bold;
+  text-align: center;
+  color: #fff;
+  line-height: 1.1;
+  /* "Advertising/Website" is one unbreakable token to a browser and would
+     otherwise hang out of its 100px stone. The original hard-coded a <br>. */
+  overflow-wrap: anywhere;
+}
+
+/* --- menu tiles --- */
+
+/* Two tiles per row at 500px, one per row on a phone. */
+.tileRow {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px 10px;
+  padding-top: 8px;
+}
+
+.tileWide {
+  display: flex;
+  align-items: flex-start;
+  width: 230px;
+  max-width: 100%;
+  text-align: left;
+}
+
+.tileImage {
+  width: 100px;
+  flex: none;
+  text-align: center;
+  line-height: 0;
+}
+
+.tileBody {
+  width: 120px;
+  flex: none;
+}
+
+.tileCompact {
+  width: 160px;
+  max-width: 100%;
+  text-align: center;
+}
+
+.tileCompactImage {
+  line-height: 0;
+  padding: 4px 0;
+}
+
+.tileBlurb {
+  padding-top: 2px;
+}
+
+/* --- prev/next page navigation round a title box --- */
+
+.pageNav {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 40px;
+}
+
+.navSlot {
+  width: 88px;
+  flex: none;
+  text-align: center;
+}
+
+/* Same doubled-class trick as `.captionInner`: `.stone` ships 4px of padding
+   for the hiscores search boxes, and the arrow sits flush in its bezel. */
+.navButton.navButton {
+  display: inline-block;
+  padding: 1px;
+  line-height: 0;
+}
+
+.navCenter {
+  flex: 1 1 250px;
+  min-width: 0;
+}
+
+/* The nav's own title box already carries the vertical rhythm. */
+.navCenter > * {
+  margin-top: 0;
+}
+
+/* --- disclaimer --- */
+
+/* The original's `<hr>`, which inherited the page's brown border colour. */
+.rule {
+  border: none;
+  border-top: 1px solid #382418;
+  margin: 10px 0;
+}
+
+.buttons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 6px 0 2px;
+}
+
+.lead {
+  padding: 4px 0 8px;
+}
+
+/* --- title screen --- */
+
+.logo {
+  padding: 4px 0 2px;
+  line-height: 0;
+}
+
+.playing {
+  font-size: 14px;
+  color: #fff;
+  padding-bottom: 12px;
+}
+
+/* Stacked stone panels, one per section. */
+.sections {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 8px;
+}
+
+/* Latest News: the scroll tile on the left, the five posts on the right. */
+.newsBlock {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 8px;
+  text-align: left;
+}
+
+.newsTile {
+  width: 100px;
+  flex: none;
+  text-align: center;
+  line-height: 0;
+}
+
+.newsRows {
+  flex: 1 1 350px;
+  min-width: 0;
+  border-collapse: collapse;
+}
+
+.newsRows td {
+  padding: 1px 0;
+  vertical-align: top;
+}
+
+.newsDate {
+  text-align: right;
+  white-space: nowrap;
+  padding-left: 8px;
+}
+
+.newsFooter {
+  padding-top: 8px;
+}

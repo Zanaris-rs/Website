@@ -6,7 +6,7 @@ import HiscoresTable from "@/components/hiscores/HiscoresTable";
 import Frame from "@/components/site/Frame";
 
 export const metadata: Metadata = {
-  title: "Hiscores | Zanaris",
+  title: "Hiscores",
   description: "Zanaris hiscores: rankings for Overall and every skill.",
 };
 
