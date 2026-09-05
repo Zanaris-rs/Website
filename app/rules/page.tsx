@@ -81,7 +81,12 @@ export default function Rules() {
 
         <p>
           All of these are very serious and breaking any of them may result in a
-          permanent ban.
+          permanent ban. Every ban and mute we issue is published on the{" "}
+          <a href="/bans" className={frame.link}>
+            ban record
+          </a>
+          , permanently, with the date it was issued and the date it ends — so
+          you can see for yourself how these rules are enforced.
         </p>
 
         <p>

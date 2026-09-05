@@ -138,8 +138,11 @@
   justify-items: center;
 }
 
-/* A lone third tile sits centred beneath the pair. */
-.tileGrid > :nth-child(3):last-child {
+/* A tile left on its own at the end of the two-column grid spans both
+   columns, so it is centred under the pair above it rather than hanging off
+   the left edge. Odd rather than `:nth-child(3)`: Game Rules & Resources has
+   five tiles now, and the fifth is as alone as a third would be. */
+.tileGrid > :nth-child(odd):last-child {
   grid-column: 1 / -1;
 }
 
