@@ -31,14 +31,20 @@ export default function TitleBox({
             Main menu
           </a>
         ) : null}
-        {links.map((link, index) => (
-          <span key={link.href}>
-            {link.br ? <br /> : index === 0 && !menu ? null : " - "}
-            <a href={link.href} className={frame.link}>
-              {link.text}
-            </a>
-          </span>
-        ))}
+        {links.map((link, index) => {
+          // Nothing separates the first link from what is above it when there
+          // is no Main menu line: not a dash, and not a <br> either, which
+          // would otherwise open the box with a blank line.
+          const first = index === 0 && !menu;
+          return (
+            <span key={link.href}>
+              {first ? null : link.br ? <br /> : " - "}
+              <a href={link.href} className={frame.link}>
+                {link.text}
+              </a>
+            </span>
+          );
+        })}
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import type { Colour } from "@/components/site/colour";
+import type { Colour } from "@/lib/colour";
 
 /**
  * The six news categories, in the order the filter line lists them.

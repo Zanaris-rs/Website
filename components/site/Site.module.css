@@ -7,6 +7,10 @@
  * The pixel numbers are the originals' declared widths and heights — 250 for a
  * title box, 500 for a panel, 100x45 for a caption, 77x120 for a menu tile —
  * because those numbers are the design.
+ *
+ * There are no breakpoints anywhere in this file, on purpose: the layout
+ * viewport is pinned to 600px in `app/layout.tsx`, so every reader gets the
+ * same 600px page and a phone scales it rather than reflowing it.
  */
 
 /* --- title box: `<table width=250 bgcolor=black cellpadding=4>` --- */
@@ -195,18 +199,6 @@
 /* The nav's own title box already carries the vertical rhythm. */
 .navCenter > * {
   margin-top: 0;
-}
-
-/* On a phone the two 88px arrow slots and a 250px box do not fit side by
-   side; drop the gap rather than let the row scroll. */
-@media (max-width: 30rem) {
-  .pageNav {
-    gap: 8px;
-  }
-
-  .navSlot {
-    width: 76px;
-  }
 }
 
 /* --- disclaimer --- */

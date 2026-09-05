@@ -9,7 +9,8 @@
   Georgia.
 
   Kept as live <text> rather than outlined paths: no vector editor is installed
-  here. Outlining is optional polish — see README, "The logo".
+  here. This file is the source; outlining it to paths is optional polish, and
+  would only change how the wordmark renders where Georgia is missing.
 -->
 <svg xmlns="http://www.w3.org/2000/svg" width="312" height="100" viewBox="0 0 312 100" role="img" aria-label="Zanaris">
   <title>Zanaris</title>

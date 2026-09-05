@@ -500,11 +500,11 @@ The script never overwrites: a file that is already there is reported as
 bytes differ from the history copies and which the chrome was built against.
 
 The wordmark is ours: `public/img/title/logo.svg`, three stacked `<text>`
-layers in a serif stack with a gold gradient, 312x100.
-`public/img/title/logo.source.svg` is the same file kept as the editable
-source — outlining the text to paths is optional polish for a machine with a
-vector editor on it, and would only change how the wordmark renders where
-Georgia is missing.
+layers in a serif stack with a gold gradient, 312x100. It is still **live
+`<text>`, not outlined paths** — no vector editor is installed here.
+`textLength` pins its width so it cannot outgrow the 312x100 box on a machine
+without Georgia; outlining it to paths is optional polish that would also fix
+the letterforms there.
 
 `public/img/` is the original 2004 site graphics as served by
 [Lost City](https://2004.lostcity.rs/), a preservation project.

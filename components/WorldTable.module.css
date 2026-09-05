@@ -2,6 +2,9 @@
  * The world list in 2004 dress: a plain table inside the page's black panel,
  * white text, green links, no rounded corners and no gradients. The component
  * itself is unchanged — this file is the whole restyle.
+ *
+ * No breakpoints: the layout viewport is pinned to 600px in `app/layout.tsx`,
+ * so the 490px table always fits and a phone scales the page instead.
  */
 
 .scroller {
@@ -69,13 +72,4 @@
 
 .unavailable {
   color: #e10505;
-}
-
-/* Phone widths: stack the two client links so a row fits without the table
-   scrolling sideways. */
-@media (max-width: 30rem) {
-  .links {
-    flex-direction: column;
-    gap: 1px;
-  }
 }
