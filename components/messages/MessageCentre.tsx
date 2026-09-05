@@ -12,6 +12,7 @@ import {
   unreadLabel,
 } from "@/lib/messages/format";
 import type { MessageSummary, TicketSummary } from "@/lib/messages/queries";
+import { STAFF_CONTACT } from "@/lib/site";
 
 import styles from "./Messages.module.css";
 
@@ -135,6 +136,22 @@ export default function MessageCentre({
       </Panel>
 
       <Panel align="left">
+        {/* The other way to reach a human, when there is one. `/messages` is
+            the constant's "no other channel yet" sentinel — pointing this page
+            at itself would be a circle — so the line appears the moment
+            `lib/site.ts` names a Discord invite or a forum thread, and not
+            before. This is where that link belongs: the placeholder this page
+            replaced carried the same conditional. */}
+        {STAFF_CONTACT.href === "/messages" ? null : (
+          <p className={account.note}>
+            Prefer another channel?{" "}
+            <a className={frame.link} href={STAFF_CONTACT.href}>
+              {STAFF_CONTACT.label}
+            </a>
+            .
+          </p>
+        )}
+
         <p className={account.note}>
           Remember: staff will never ask for your password, and nothing sent
           from here will ever ask you to type it into another site.

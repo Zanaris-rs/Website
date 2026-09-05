@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  MAX_ROW_ID,
   messageStatement,
   messagesStatement,
   parseId,
@@ -134,6 +135,15 @@ describe("parseId", () => {
     ]) {
       expect(parseId(bad), String(bad)).toBeNull();
     }
+  });
+
+  it("stops at the top of int4, which is where SERIAL stops", () => {
+    // One past this is not a lookup that misses: `integer` cannot hold it, so
+    // Postgres raises 22003 before the function body runs and the route
+    // answers 503 `unavailable` for what is really a 404.
+    expect(parseId("2147483647")).toBe(MAX_ROW_ID);
+    expect(parseId("2147483648")).toBeNull();
+    expect(parseId("9999999999")).toBeNull();
   });
 
   it("refuses an id too long to be a serial", () => {

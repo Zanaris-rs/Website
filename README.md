@@ -664,11 +664,14 @@ form. Otherwise 401 `session_expired`, 403 `origin`, 403 `bad_credentials`,
 
 ### The Message Centre routes
 
-All of them are Node-runtime, `Cache-Control: no-store`, and answer 401
-`session_expired` without a valid `zanaris_session`. The three `POST`s check
-`Origin` and answer 403 `origin`. Field errors — `subject_empty`,
-`subject_long`, `subject_charset`, `body_empty`, `body_long`, `body_charset` —
-are 400s and each has a sentence of its own in `lib/messages/format.ts`.
+Every route in this section and the staff one below is Node-runtime,
+`Cache-Control: no-store`, and answers 401 `session_expired` without a valid
+`zanaris_session`. The four `POST`s — `/api/tickets`,
+`/api/tickets/<id>/reply`, `/api/staff/tickets/<id>/reply` and
+`/api/staff/notice` — check `Origin` and answer 403 `origin`. Field errors —
+`subject_empty`, `subject_long`, `subject_charset`, `body_empty`, `body_long`,
+`body_charset` — are 400s, and each has a sentence of its own in
+`lib/messages/format.ts`.
 
 | Route | Body | Success |
 | --- | --- | --- |

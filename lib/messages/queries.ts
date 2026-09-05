@@ -285,11 +285,20 @@ export function parseThread(rows: readonly unknown[]): Thread | null {
  * `1e3`, `0x10`, ` 4 ` and `4.0` are all names for a row that could exist but
  * are not how anything on this site ever links to one. `Number()` would accept
  * every one of them, and `parseInt` would read `"4abc"` as 4.
+ *
+ * The upper bound is `int4`'s, and it is not decoration: `SERIAL` is an
+ * `integer`, so `accounts.message($1, 2147483648)` is not a lookup that misses
+ * — it is `22003 numeric_value_out_of_range` raised before the function body
+ * runs, which this repo's routes would surface as a 503 `unavailable`. A row id
+ * one past the end of the type is a row that cannot exist, and "not found" is
+ * the honest answer.
  */
+export const MAX_ROW_ID = 2147483647;
+
 export function parseId(raw: string | undefined | null): number | null {
   if (typeof raw !== "string" || !/^[1-9][0-9]{0,9}$/.test(raw)) return null;
   const id = Number(raw);
-  return Number.isSafeInteger(id) ? id : null;
+  return id <= MAX_ROW_ID ? id : null;
 }
 
 /**
