@@ -2,6 +2,7 @@ import { hash } from "bcrypt-ts";
 import { describe, expect, it } from "vitest";
 
 import fixture from "./bcrypt-fixture.json";
+import { hashPassword, hashPasswordWithSalt } from "./hash";
 import {
   BCRYPT_HASH_LENGTH,
   BCRYPT_SALT_LENGTH,
@@ -106,5 +107,55 @@ describe("sessionVersion", () => {
     const a = saltOf(fixture.hashes[0].hash) as string;
     const b = fakeSalt(SECRET, "someone else");
     expect(sessionVersion(a)).not.toBe(sessionVersion(b));
+  });
+});
+
+/**
+ * The routes guard on `isBcryptHash(candidate)` before handing anything to
+ * `accounts.login` or `accounts.change_password`. That guard is only worth
+ * having if it accepts every hash the real hashing path produces — otherwise
+ * it would turn a correct password into a 503.
+ */
+describe("isBcryptHash, as the routes use it", () => {
+  it("accepts a candidate built from a real stored salt", async () => {
+    for (const entry of fixture.hashes) {
+      const salt = saltOf(entry.hash) as string;
+      const candidate = await hashPasswordWithSalt(fixture.password, salt);
+      expect(isBcryptHash(candidate)).toBe(true);
+      expect(candidate).toHaveLength(BCRYPT_HASH_LENGTH);
+    }
+  });
+
+  it("accepts a candidate built from a fake salt", async () => {
+    // The unknown-username path has to reach the database looking exactly like
+    // the real one, or the guard would leak which names exist by answering 503
+    // for some and 401 for others.
+    const candidate = await hashPasswordWithSalt(
+      "whatever they typed",
+      fakeSalt(SECRET, "nosuchplayer"),
+    );
+    expect(isBcryptHash(candidate)).toBe(true);
+  });
+
+  it("accepts a freshly generated hash, which is what a new password is", async () => {
+    expect(isBcryptHash(await hashPassword("hunter22"))).toBe(true);
+  });
+
+  it("rejects the things that would otherwise reach the SQL call", () => {
+    for (const bad of [
+      "",
+      "not a hash",
+      // A salt is not a hash: 29 characters, not 60.
+      fakeSalt(SECRET, "nosuchplayer"),
+      // Right length, wrong alphabet.
+      "$2b$10$" + "+".repeat(53),
+      // Right shape, one character short.
+      fixture.hashes[0].hash.slice(0, 59),
+      fixture.hashes[0].hash + "x",
+      null,
+      undefined,
+    ]) {
+      expect(isBcryptHash(bad)).toBe(false);
+    }
   });
 });

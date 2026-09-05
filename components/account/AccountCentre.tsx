@@ -140,13 +140,6 @@ export default function AccountCentre({
                 <span className={frame.yellow}> ({unread} unread)</span>
               ) : null}
             </li>
-            {profile.staffModLevel > 0 ? (
-              <li>
-                <a className={frame.link} href="/staff">
-                  Staff tools
-                </a>
-              </li>
-            ) : null}
             <li>
               <a className={frame.link} href="/serverlist">
                 Choose a world and play

@@ -10,7 +10,12 @@ import {
   reauthStatusFor,
 } from "@/lib/account/login";
 import { assertSameOrigin } from "@/lib/account/origin";
-import { isBcryptSalt, saltOf, sessionVersion } from "@/lib/account/salt";
+import {
+  isBcryptHash,
+  isBcryptSalt,
+  saltOf,
+  sessionVersion,
+} from "@/lib/account/salt";
 import { readSession, setSessionCookie } from "@/lib/account/session-server";
 import {
   PASSWORD_MAX_TYPED,
@@ -104,6 +109,15 @@ export async function POST(request: NextRequest) {
     const current = await hashPasswordWithSalt(currentPassword, stored);
     const newHash = await hashPassword(next.value);
 
+    // Both have to be real bcrypt strings before they go near the CAS. A
+    // malformed `current` would answer `bad_credentials` and read as a wrong
+    // password; a malformed `newHash` is refused by the function's own shape
+    // guard and would surface as an exception. Neither is the player's fault.
+    if (!isBcryptHash(current) || !isBcryptHash(newHash)) {
+      console.error("[password] computed hash is not a bcrypt hash");
+      return fail("unavailable", 503);
+    }
+
     const statement = changePasswordStatement(
       session.u,
       current,
@@ -123,8 +137,21 @@ export async function POST(request: NextRequest) {
 
     // Re-mint at the new salt. `hashPassword` generated it, so it is in the
     // hash we just stored; every other device's cookie now mismatches.
+    //
+    // The password *has* now changed, so a 503 here is a lie about the write —
+    // but the alternative is a 200 whose caller is holding a cookie that no
+    // longer verifies, i.e. a form that says "done" and then bounces them to
+    // the login screen with no idea which password is live. The 503 sends them
+    // to the login form, where the new password works. Neither branch below is
+    // reachable in practice: `hashPassword` always yields a 60-character hash,
+    // and the secret was already proved present by `readSession`.
     const newSalt = saltOf(newHash);
-    if (newSalt && !(await setSessionCookie(session.u, sessionVersion(newSalt)))) {
+    if (!newSalt) {
+      console.error("[password] stored a hash with no readable salt");
+      return fail("unavailable", 503);
+    }
+    if (!(await setSessionCookie(session.u, sessionVersion(newSalt)))) {
+      console.error("[password] could not re-mint the session cookie");
       return fail("unavailable", 503);
     }
 

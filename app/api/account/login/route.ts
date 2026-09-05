@@ -10,7 +10,12 @@ import {
   passwordSaltStatement,
 } from "@/lib/account/login";
 import { assertSameOrigin } from "@/lib/account/origin";
-import { fakeSalt, isBcryptSalt, sessionVersion } from "@/lib/account/salt";
+import {
+  fakeSalt,
+  isBcryptHash,
+  isBcryptSalt,
+  sessionVersion,
+} from "@/lib/account/salt";
 import {
   currentSessionSecret,
   setSessionCookie,
@@ -144,6 +149,15 @@ export async function POST(request: NextRequest) {
       : fakeSalt(secret, username.value);
 
     const candidate = await hashPasswordWithSalt(password, salt);
+
+    // `accounts.login` refuses anything that is not 60 characters, so a
+    // malformed candidate would come back as `bad_credentials` and read to the
+    // player as a wrong password. It is not: it is this side being broken, and
+    // it should say so rather than blame the typing.
+    if (!isBcryptHash(candidate)) {
+      console.error("[login] computed candidate is not a bcrypt hash");
+      return fail("unavailable", 503);
+    }
 
     const statement = loginStatement(username.value, candidate, ip ?? "");
     const rows = await query<{ result: unknown }>(
