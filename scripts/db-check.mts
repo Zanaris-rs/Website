@@ -235,9 +235,11 @@ async function main(): Promise<void> {
  * **Nothing here writes a row**, and again that is a property of the functions
  * rather than of this script: all three writes check `accounts.is_staff` first
  * and return `forbidden` before they look at the candidate hash, the report id
- * or the punishment id. In particular `staff_report_resolve` cannot delete
- * evidence from here, which is the one call in this file that could do real
- * damage if it did anything at all.
+ * or the punishment id — and before any of them reaches a rate-limit bucket,
+ * so running this does not spend a moderator's twenty notes an hour either.
+ * In particular `staff_report_resolve` cannot delete evidence from here, which
+ * is the one call in this file that could do real damage if it did anything
+ * at all.
  *
  * The reads exist for the `RETURNS TABLE` shapes. `lib/staff/queries.ts` reads
  * `data_base64`, `same_ip_as_reporter`, `counterpart_items` and a dozen other

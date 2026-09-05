@@ -650,7 +650,17 @@ pipeline in `verdict.test.ts` with the verdict a moderator should get.
 `POST /api/staff/reports/<id>/resolve` re-types the moderator's password
 through the same salt handshake `/staff/notice` uses, because one of the three
 resolutions is destructive: **`dismissed` deletes the evidence** for that
-report's uuid, immediately and permanently. `POST
+report's uuid, immediately and permanently.
+
+A uuid is a *capture*, not a report. The world captures a player once per
+fifteen minutes and every report filed against them inside that window points
+at the same one, so six people reporting one macroer produce six report rows
+and one copy of the evidence — and dismissing any of them deletes it for all
+six. The form says so under the choice, because the duplicate is the report
+that looks safest to clear out first and is exactly the one that takes the real
+report's evidence with it.
+
+`POST
 /api/staff/punishments/<id>/lift` re-types one because it clears
 `account.banned_until` or `muted_until` *and* stamps `punishment.lifted_at` in
 one statement — the two drifting apart is the failure it replaces, where a

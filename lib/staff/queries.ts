@@ -619,16 +619,29 @@ export function parseStaffNoticeResult(raw: unknown): StaffNoticeResult {
 export type StaffResolveResult = StaffNoticeResult;
 export type StaffLiftResult = StaffNoticeResult;
 
-/** No password, so no `bad_credentials` and no bucket to be limited in. */
+/**
+ * No password, so no `bad_credentials` — but it **is** limited, twenty per
+ * actor per hour, and that is not the same limit as the password verbs'.
+ *
+ * Theirs counts wrong passwords; this one counts *notes*, because the note is
+ * a line of text on a page anybody can read and the cost of writing one is
+ * nothing. A rate limit is the only thing standing between a compromised
+ * moderator account and a hundred sentences on `/bans`.
+ *
+ * `statusFor` already maps `rate_limited` to 429, so a route that calls this
+ * gets the right status without saying so.
+ */
 export type StaffPunishmentNoteResult =
   | "ok"
   | "forbidden"
+  | "rate_limited"
   | "not_found"
   | "invalid";
 
 const NOTE_RESULTS: ReadonlySet<string> = new Set([
   "ok",
   "forbidden",
+  "rate_limited",
   "not_found",
   "invalid",
 ]);

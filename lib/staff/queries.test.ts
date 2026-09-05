@@ -586,11 +586,21 @@ describe("the evidence result parsers", () => {
   });
 
   it("know the note has no password and so no bad_credentials", () => {
-    for (const result of ["ok", "forbidden", "not_found", "invalid"]) {
+    for (const result of [
+      "ok",
+      "forbidden",
+      "rate_limited",
+      "not_found",
+      "invalid",
+    ]) {
       expect(parseStaffPunishmentNoteResult(result)).toBe(result);
     }
-    expect(() => parseStaffPunishmentNoteResult("bad_credentials")).toThrow();
-    expect(() => parseStaffPunishmentNoteResult("rate_limited")).toThrow();
+    // It takes no password, so there is nothing to mistype — but it is limited
+    // all the same, at twenty an hour, because the thing it writes is a line
+    // on a page anybody can read.
+    expect(() => parseStaffPunishmentNoteResult("bad_credentials")).toThrow(
+      /accounts\.staff_punishment_note returned/,
+    );
   });
 
   it("throw on anything else, naming the function that said it", () => {

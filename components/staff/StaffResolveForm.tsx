@@ -41,9 +41,23 @@ const MESSAGES: Record<string, string> = {
 const EXPLAIN: Record<Resolution, string> = {
   actioned: "The report was right and something was done about it.",
   dismissed:
-    "The report was wrong or unfounded. This deletes the input capture and the copied chat for it, now and permanently.",
+    "The report was wrong or unfounded. This deletes the input capture and the copied chat, now and permanently.",
   watch: "Not proven either way. Keep the evidence and look again later.",
 };
+
+/**
+ * The thing a moderator has to know before they pick "dismissed", and the one
+ * they have no way of working out from this page.
+ *
+ * The world captures a player **once per fifteen minutes**, and every report
+ * filed against them inside that window points at the same capture. Six people
+ * reporting one macroer produce six report rows and one copy of the evidence.
+ * So dismissing any one of them deletes the evidence behind all six — and the
+ * duplicate, the one that looks safest to clear out first, is exactly the one
+ * that takes the real report's evidence with it.
+ */
+const DISMISS_WARNING =
+  "One capture covers every report filed against this player inside the same fifteen minutes, so dismissing this one deletes the evidence for all of them — including the report you meant to keep. Dismiss the duplicates last, or resolve them as watched.";
 
 type State =
   | { kind: "editing" }
@@ -97,7 +111,7 @@ export default function StaffResolveForm({ reportId }: { reportId: number }) {
       <p className={account.success}>
         <b>Resolved as {resolutionLabel(state.resolution).toLowerCase()}.</b>{" "}
         {state.resolution === "dismissed"
-          ? "The input capture and the copied chat for this report have been deleted."
+          ? "The input capture and the copied chat have been deleted, for this report and for every other report that shared the capture."
           : "The evidence stays until it is thirty days old."}{" "}
         <a className={account.note} href="/staff/reports">
           Back to the reports list
@@ -120,6 +134,15 @@ export default function StaffResolveForm({ reportId }: { reportId: number }) {
             />{" "}
             <b>{resolutionLabel(option)}</b> — {EXPLAIN[option]}
           </label>
+          {option === "dismissed" ? (
+            <div
+              className={
+                resolution === "dismissed" ? styles.warning : styles.detail
+              }
+            >
+              {DISMISS_WARNING}
+            </div>
+          ) : null}
         </div>
       ))}
 

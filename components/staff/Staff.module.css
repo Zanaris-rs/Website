@@ -122,3 +122,12 @@
 .empty {
   padding: 8px 0;
 }
+
+/* The sentence under "Dismissed" once it is the choice: the same small print
+   as the rest of the form until it is about to happen, and then the colour the
+   rules page uses for a warning. */
+.warning {
+  padding-top: 2px;
+  font-size: 10px;
+  color: #e10505;
+}
