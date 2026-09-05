@@ -61,3 +61,31 @@ export function requestHost(headers: HeaderSource): string | null {
 export function assertSameOrigin(headers: HeaderSource): boolean {
   return sameOrigin(headers.get("origin"), requestHost(headers));
 }
+
+/**
+ * The same question for the two GETs that write, asked of `Sec-Fetch-Site`
+ * instead of `Origin`.
+ *
+ * `Origin` is no help here: browsers omit it on a GET, so there would be
+ * nothing to compare. `Sec-Fetch-Site` is sent on every request by every
+ * current browser, cannot be set by script, and says exactly what is needed —
+ * where the request came from relative to us.
+ *
+ * `accounts.message` and `accounts.ticket_thread` mark what they return as
+ * read, so a link on another site, followed by a signed-in reader, silently
+ * marks one of their messages read: `SameSite=Lax` sends the cookie on a
+ * top-level GET navigation, which is what makes the request work at all. The
+ * damage is cosmetic — the in-game "you have unread messages" alert stops
+ * mentioning that one — but a GET that writes should not be reachable from
+ * somebody else's page, and this is the cheapest way to say so.
+ *
+ * **Only `same-origin` passes.** `cross-site` and `same-site` are the attack;
+ * `none` is a direct address-bar visit or a bookmark, which is not how these
+ * are used — the pages read the database themselves and these routes exist for
+ * `fetch`. A browser too old to send the header at all gets a 403 rather than
+ * a pass, which is the fail-closed direction and costs nothing the site
+ * itself uses.
+ */
+export function assertSameOriginFetch(headers: HeaderSource): boolean {
+  return headers.get("sec-fetch-site") === "same-origin";
+}

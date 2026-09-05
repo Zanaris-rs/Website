@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { assertSameOrigin, requestHost, sameOrigin } from "./origin";
+import {
+  assertSameOrigin,
+  assertSameOriginFetch,
+  requestHost,
+  sameOrigin,
+} from "./origin";
 
 function headers(entries: Record<string, string>) {
   return new Headers(entries);
@@ -97,6 +102,42 @@ describe("assertSameOrigin", () => {
 
   it("fails a POST with no Origin at all", () => {
     expect(assertSameOrigin(headers({ "x-forwarded-host": "zanaris.rs" }))).toBe(
+      false,
+    );
+  });
+});
+
+describe("assertSameOriginFetch", () => {
+  it("passes a fetch from one of our own pages", () => {
+    expect(assertSameOriginFetch(headers({ "sec-fetch-site": "same-origin" }))).toBe(
+      true,
+    );
+  });
+
+  it("fails the cross-site link that would mark a message read", () => {
+    // A link on somebody else's page, followed by a signed-in reader: Lax
+    // sends the cookie on a top-level GET, and `accounts.message` writes.
+    expect(assertSameOriginFetch(headers({ "sec-fetch-site": "cross-site" }))).toBe(
+      false,
+    );
+    // www.zanaris.rs is a subdomain, so a link from one would say `same-site`.
+    // It 308s to the apex and the cookie is host-only; it is not us either.
+    expect(assertSameOriginFetch(headers({ "sec-fetch-site": "same-site" }))).toBe(
+      false,
+    );
+  });
+
+  it("fails a direct address-bar visit, which says `none`", () => {
+    // Not a loss: the pages read the database themselves, and these routes
+    // exist for fetch. Answering 403 keeps the rule one word long.
+    expect(assertSameOriginFetch(headers({ "sec-fetch-site": "none" }))).toBe(false);
+  });
+
+  it("fails a request with no Sec-Fetch-Site at all", () => {
+    // A browser too old to send it, or a client that is not a browser. Fail
+    // closed: nothing the site itself does is missing this header.
+    expect(assertSameOriginFetch(headers({}))).toBe(false);
+    expect(assertSameOriginFetch(headers({ "sec-fetch-site": "SAME-ORIGIN" }))).toBe(
       false,
     );
   });

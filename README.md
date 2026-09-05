@@ -475,6 +475,28 @@ marked read and an in-game unread count that never goes down.
 to the player, and a moderator opening a ticket must not clear the notice
 telling the player a reply is waiting.
 
+**A GET that writes is reachable cross-site, and the cookie is `SameSite=Lax`.**
+Lax withholds the cookie from a cross-site POST but *sends* it on a top-level
+GET navigation, so a link on somebody else's page — `<a
+href="https://zanaris.rs/api/messages/41">` — followed by a signed-in reader
+marks message 41 read. Nothing is disclosed (the response goes to the reader,
+not to the other site) and nothing is destroyed; what it costs is the in-game
+"you have unread messages" alert for that one message. Cosmetic, and still a
+write somebody else's page can cause.
+
+So the two API GETs, `GET /api/messages/<id>` and `GET /api/tickets/<id>`,
+require **`Sec-Fetch-Site: same-origin`** and answer 403 `origin` otherwise.
+`Origin` is no use on a GET — browsers do not send one — but every current
+browser sends `Sec-Fetch-Site`, and script cannot forge it. Only `same-origin`
+passes: `cross-site` and `same-site` are the case above, and `none` (a direct
+address-bar visit) is refused too, because these routes exist for `fetch` and
+nothing the site does arrives that way.
+
+The **pages** are deliberately left alone. `/messages/<id>` and
+`/messages/tickets/<id>` are navigation targets — a bookmark, a link in a
+notice, the back button — and gating those on `Sec-Fetch-Site` would break the
+ordinary ways somebody arrives at their own message to fix a cosmetic problem.
+
 ### The staff side
 
 `/staff` (with `?status=open|closed|all`), `/staff/tickets/<id>`,
@@ -666,7 +688,9 @@ form. Otherwise 401 `session_expired`, 403 `origin`, 403 `bad_credentials`,
 
 Every route in this section and the staff one below is Node-runtime,
 `Cache-Control: no-store`, and answers 401 `session_expired` without a valid
-`zanaris_session`. The four `POST`s — `/api/tickets`,
+`zanaris_session` — where *valid* means the account still exists and its salt
+fingerprint still matches, re-read from `accounts.profile` on the request
+(`requireLiveSession`), so a password change signs these routes out too. The four `POST`s — `/api/tickets`,
 `/api/tickets/<id>/reply`, `/api/staff/tickets/<id>/reply` and
 `/api/staff/notice` — check `Origin` and answer 403 `origin`. Field errors —
 `subject_empty`, `subject_long`, `subject_charset`, `body_empty`, `body_long`,
@@ -687,6 +711,9 @@ Beyond the field errors: 404 `not_found` for a message or ticket that is not
 this account's (indistinguishable from one that does not exist, on purpose),
 409 `closed` for a reply to a closed ticket, 429 `rate_limited` for the sixth
 ticket in a day or the twenty-first reply in an hour, 503 `unavailable`.
+
+The two **GETs that mark something read** add 403 `origin` of their own, on
+`Sec-Fetch-Site` rather than on `Origin` — see "Two GETs that write" above.
 
 ### The staff routes
 

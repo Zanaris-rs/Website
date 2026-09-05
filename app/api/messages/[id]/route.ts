@@ -3,6 +3,7 @@ import {
   parseId,
   parseMessageDetail,
 } from "@/lib/messages/queries";
+import { assertSameOriginFetch } from "@/lib/account/origin";
 import { requireLiveSession } from "@/lib/account/session-server";
 import { isConfigured, query } from "@/lib/db";
 
@@ -19,7 +20,10 @@ import { isConfigured, query } from "@/lib/db";
  *
  * The cookie is checked against the database first (`requireLiveSession`):
  * this GET writes, and a revoked cookie must not be able to mark anything
- * read.
+ * read. Then `Sec-Fetch-Site` has to say `same-origin`, or this answers 403
+ * `origin`: `SameSite=Lax` sends the cookie on a top-level GET, so without
+ * that check a link on another site would mark a reader's message read as
+ * they followed it.
  *
  * A message belonging to somebody else and a message that does not exist are
  * the same 404. The function resolves the username to an account id and
@@ -36,12 +40,17 @@ function fail(error: string, status: number): Response {
 }
 
 export async function GET(
-  _request: Request,
+  request: Request,
   context: RouteContext<"/api/messages/[id]">,
 ) {
   const live = await requireLiveSession();
   if (live.status !== "ok") {
     return fail(live.refusal.error, live.refusal.status);
+  }
+
+  if (!assertSameOriginFetch(request.headers)) {
+    console.warn("[messages] refused: cross-site read");
+    return fail("origin", 403);
   }
 
   const { id: raw } = await context.params;
