@@ -22,6 +22,17 @@ export const PASSWORD_MIN = 8;
 export const PASSWORD_MAX = 20;
 
 /**
+ * The most a *login* form will even look at.
+ *
+ * Logging in must not apply the 8-20 registration rule: an account made before
+ * that rule existed, or by staff, may hold a password outside it and still has
+ * to open. This is only a bound on how much text is worth running bcrypt over
+ * — bcrypt itself stops at 72 bytes — so that a multi-megabyte body cannot be
+ * used to make the server work.
+ */
+export const PASSWORD_MAX_TYPED = 128;
+
+/**
  * Reserved outright. `mod_` is handled separately as a prefix, since that is
  * the shape the real impersonations take (`mod_ash`, `mod_gerhard`).
  */
