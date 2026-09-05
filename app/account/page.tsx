@@ -12,6 +12,7 @@ import {
   recentLoginsStatement,
 } from "@/lib/account/profile";
 import { requireSession } from "@/lib/account/session-server";
+import { parseUnread, unreadStatement } from "@/lib/messages/queries";
 import { query } from "@/lib/db";
 
 export const metadata: Metadata = {
@@ -73,9 +74,26 @@ export default async function Account() {
     console.error("[account] recent logins read failed", error);
   }
 
+  // The same nicety, and the same treatment: `accounts.unread` is the
+  // cross-repo contract count — the number the game's welcome screen shows —
+  // and it decorates one link. `undefined` when the read fails prints no count
+  // rather than a "0" the page cannot stand behind.
+  let unread: number | undefined;
+  try {
+    const wanted = unreadStatement(session.u);
+    const rows = await query<{ unread: unknown }>(wanted.text, wanted.values);
+    unread = parseUnread(rows[0]?.unread);
+  } catch (error) {
+    console.error("[account] unread read failed", error);
+  }
+
   return (
     <Frame>
-      <AccountCentre profile={loaded.profile} logins={logins} />
+      <AccountCentre
+        profile={loaded.profile}
+        logins={logins}
+        unread={unread}
+      />
     </Frame>
   );
 }

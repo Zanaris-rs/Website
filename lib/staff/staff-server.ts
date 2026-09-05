@@ -4,6 +4,8 @@ import { loadAccount } from "@/lib/account/profile-server";
 import type { Profile } from "@/lib/account/profile";
 import type { Session } from "@/lib/account/session";
 
+import { STAFF_MOD_LEVEL, isStaff } from "./level";
+
 /**
  * "Is the account behind this cookie staff, right now?"
  *
@@ -26,12 +28,7 @@ import type { Session } from "@/lib/account/session";
  * wrong.
  */
 
-/**
- * Level 2 and above. The engine's own ladder is 0 player, 1 helper, 2
- * moderator, 3 admin; the hiscores views already hide `staffmodlevel > 1`,
- * which is the same line drawn from the other side.
- */
-export const STAFF_MOD_LEVEL = 2;
+export { STAFF_MOD_LEVEL, isStaff };
 
 export type StaffLoad =
   | { readonly status: "ok"; readonly profile: Profile }
@@ -41,10 +38,6 @@ export type StaffLoad =
   | { readonly status: "forbidden" }
   /** No database, or the read failed. */
   | { readonly status: "unavailable" };
-
-export function isStaff(profile: Profile): boolean {
-  return profile.staffModLevel >= STAFF_MOD_LEVEL;
-}
 
 export async function loadStaff(session: Session): Promise<StaffLoad> {
   const loaded = await loadAccount(session);
