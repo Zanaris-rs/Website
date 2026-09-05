@@ -870,6 +870,8 @@ request; a signed-in account without it gets 403 `forbidden`.
 | `POST /api/staff/tickets/<id>/reply` | `{ body, close? }` | `{ ok: true, closed }` |
 | `POST /api/staff/notice` | `{ username, subject, body, password }` | `{ ok: true, username }` |
 | `GET /api/staff/reports?since=<ISO>` | | `{ reports: [...] }` |
+| `POST /api/staff/reports/<id>/resolve` | `{ resolution, note?, password }` | `{ ok: true, resolution }` |
+| `POST /api/staff/punishments/<id>/lift` | `{ note?, password }` | `{ ok: true }` |
 
 `status` and `since` are parsed, not passed through: an unrecognised status
 would match no row and read as a quiet day, and an unparseable `since` shows
@@ -881,6 +883,18 @@ a `staff_action` audit row. `close` is the only way to write on an
 already-closed ticket. `POST /api/staff/notice` adds 403 `bad_credentials` for
 a wrong re-typed password (403, not 401: the caller *is* signed in), 404
 `not_found` for a recipient nobody is, and 429 `rate_limited`.
+
+The two `POST`s at the bottom of the table check `Origin`, answer 403
+`bad_credentials` on a wrong re-typed password like `/api/staff/notice` does,
+and 404 `not_found` for an id that is nobody's report or nobody's punishment.
+`resolution` is `actioned`, `dismissed` or `watch`; anything else is 400
+`invalid`. The note is optional on both and validated like a message body
+(`body_empty`, `body_charset`), with 400 `body_long` past `STAFF_NOTE_MAX` on a
+resolve and 400 `note_long` past `PUBLIC_NOTE_MAX` on a lift — the resolve note
+is staff-only, the lift note goes on the public record. **`dismissed` deletes
+the evidence** for that report's uuid, and a uuid is a capture rather than a
+report, so it deletes it for every report filed inside the same window; see
+"Resolving, and lifting" above.
 
 ## Deployment
 

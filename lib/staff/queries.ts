@@ -459,8 +459,8 @@ export function parseReportDetail(row: unknown): ReportDetail | null {
     resolution: parseResolution(r.resolution),
     resolvedBy: asString(r.resolved_by),
     staffNote: asString(r.staff_note),
-    banPunishmentId: asNumber(r.ban_punishment_id) ?? asNumber(r.ban_id),
-    mutePunishmentId: asNumber(r.mute_punishment_id) ?? asNumber(r.mute_id),
+    banPunishmentId: asNumber(r.ban_punishment_id),
+    mutePunishmentId: asNumber(r.mute_punishment_id),
   };
 }
 

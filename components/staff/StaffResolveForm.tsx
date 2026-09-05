@@ -186,8 +186,8 @@ export default function StaffResolveForm({ reportId }: { reportId: number }) {
 
       <p className={account.note}>
         The database compares the password against your own stored hash, the
-        same way the notice form does; the site never sees it. Every resolution
-        is written to the audit log with your name on it.
+        same way the notice form does; the site never sees your stored hash.
+        Every resolution is written to the audit log with your name on it.
       </p>
     </form>
   );

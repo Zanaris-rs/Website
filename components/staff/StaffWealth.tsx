@@ -107,7 +107,13 @@ export default function StaffWealth({
                       {event.counterpart === ""
                         ? "—"
                         : event.counterpartItems === ""
-                          ? event.counterpart
+                          ? // There was another party and the engine kept no
+                            // item list for them. What it did keep is their
+                            // session uuid, which is not a name, is not
+                            // resolvable on this page, and is the identifier
+                            // the rest of the site is careful never to print.
+                            // "not recorded" is the whole of what is known.
+                            "not recorded"
                           : event.counterpartItems}
                     </td>
                   </tr>

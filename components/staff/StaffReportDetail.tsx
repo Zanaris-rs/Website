@@ -131,6 +131,14 @@ export default function StaffReportDetail({
   const banned = report.offenderBannedUntil !== null;
   const muted = report.offenderMutedUntil !== null;
 
+  const standing: string[] = [];
+  if (banned) {
+    standing.push(`Banned, ${punishmentUntilLabel(report.offenderBannedUntil)}`);
+  }
+  if (muted) {
+    standing.push(`Muted, ${punishmentUntilLabel(report.offenderMutedUntil)}`);
+  }
+
   // `staff_report_input` is capped at 200 rows and the report row counts what
   // the database holds, so a very long live tail arrives short. Everything
   // below — the verdict included — is computed from what came back, and a
@@ -199,11 +207,12 @@ export default function StaffReportDetail({
             <tr>
               <th>Standing</th>
               <td>
-                {banned
-                  ? `Banned, ${punishmentUntilLabel(report.offenderBannedUntil)}`
-                  : muted
-                    ? `Muted, ${punishmentUntilLabel(report.offenderMutedUntil)}`
-                    : "No ban or mute"}
+                {/* Both, when both are in force. A ban and a mute are separate
+                    columns on the account and a player can be under either or
+                    both; showing only the ban hid the mute from the moderator
+                    deciding what to do next, and the lift form below offers
+                    one for each. */}
+                {standing.length === 0 ? "No ban or mute" : standing.join(" · ")}
                 {report.offenderLogins24h === null
                   ? null
                   : ` · ${report.offenderLogins24h} logins in 24 hours`}
