@@ -113,7 +113,26 @@ For local development, Cloudflare publishes
 [test keys](https://developers.cloudflare.com/turnstile/troubleshooting/testing/):
 `1x00000000000000000000AA` / `1x0000000000000000000000000000000AA` always pass,
 and `2x0000000000000000000000000000000AA` always fails, which is the useful one
-for checking the rejection path. They are **local dev only; never in
+for checking the rejection path.
+
+**The test keys cannot get past this codebase, and that is not a bug.** Their
+`siteverify` reply is a canned one:
+
+```json
+{ "success": true, "hostname": "example.com",
+  "metadata": { "result_with_testing_key": true } }
+```
+
+It reports `example.com` and carries **no `action` field at all**, so both of
+the checks above reject it. Setting `ALLOWED_TURNSTILE_HOSTNAMES=example.com`
+fixes the hostname half; nothing fixes the action half, because there is
+deliberately no way to switch that check off. So `/register` and
+`/account/login` answer `400 turnstile` locally under the test keys, and the
+only way to drive either form end to end on a developer machine is with the
+real widget's keys — which means the owner adding `localhost` to the widget's
+allowed domains. Everything behind the gate (the salt handshake, the session
+cookie, the rate limits, the two change routes) is reachable without it: only
+`login` and `register` carry a Turnstile check. They are **local dev only; never in
 production** — an always-pass key is not a gate, it is the shape of one, and it
 is why `.env.example` ships both Turnstile variables blank with the test keys
 only in a comment. Nothing that can be pasted straight into a production
