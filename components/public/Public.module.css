@@ -1,0 +1,147 @@
+/*
+ * The two public transparency pages: the ban record and the economy census.
+ *
+ * Both are tables of numbers inside the 500px black panel, so they borrow the
+ * news list's table shape rather than inventing one — 1px vertical padding,
+ * 4px horizontal, headings bold and everything else normal weight. What is new
+ * here is the chart, which is an inline SVG drawn at whatever width the panel
+ * gives it, and the "day" blocks under it.
+ *
+ * No breakpoints: the layout viewport is pinned to 600px in `app/layout.tsx`,
+ * so every reader gets the same page and a phone scales it.
+ */
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.table th,
+.table td {
+  padding: 1px 4px;
+  vertical-align: top;
+  font-weight: normal;
+  text-align: left;
+}
+
+.table thead th {
+  font-weight: bold;
+}
+
+/* A date column: never wraps, and is as narrow as its widest date. */
+.when {
+  white-space: nowrap;
+}
+
+.figure {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.name {
+  width: 40%;
+}
+
+/* The optional one-line note, on its own row under the punishment it explains
+   and indented past the name column so it reads as a continuation. */
+.note {
+  padding: 0 4px 3px 16px;
+  font-style: italic;
+}
+
+.empty {
+  padding: 10px 4px;
+  text-align: center;
+}
+
+.intro {
+  padding-bottom: 2px;
+}
+
+.intro p:first-child {
+  margin-top: 0;
+}
+
+.intro p:last-child {
+  margin-bottom: 0;
+}
+
+/* --- the census --- */
+
+/* The totals above the charts: a big number with its label under it. */
+.totals {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 24px;
+  padding: 4px 0 8px;
+}
+
+.total {
+  min-width: 120px;
+  text-align: center;
+}
+
+.totalValue {
+  font-size: 18px;
+  font-weight: bold;
+  color: #fff;
+}
+
+.totalLabel {
+  font-size: 11px;
+}
+
+.chart {
+  padding: 6px 0 2px;
+}
+
+.chartTitle {
+  font-weight: bold;
+  padding-bottom: 2px;
+}
+
+/* The SVG fills the panel and keeps its aspect; `display: block` kills the
+   inline-element baseline gap under it. */
+.chartCanvas {
+  display: block;
+  width: 100%;
+  height: 60px;
+  border: 1px solid #382418;
+  background: #000;
+}
+
+/* The scale, printed rather than drawn: two axis labels in a 500px panel
+   would be four more things to align and would say less. */
+.chartScale {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  padding-top: 1px;
+}
+
+/* One day of "entered / left the game". */
+.day {
+  padding: 4px 0 0;
+}
+
+.dayHeading {
+  font-weight: bold;
+  padding-bottom: 1px;
+}
+
+.dayList {
+  margin: 0;
+  padding: 0 0 2px 16px;
+}
+
+.caveat {
+  font-size: 11px;
+  padding-top: 8px;
+}
+
+.caveat ul {
+  margin: 2px 0 0;
+  padding-left: 16px;
+}
