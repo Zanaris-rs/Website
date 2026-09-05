@@ -406,6 +406,18 @@ describe("bytes nobody meant to send", () => {
     }
   });
 
+  it("cannot be written in the first place: the encoder refuses a long payload", () => {
+    // The length is a `p1`, and the ring drops anything longer with marker 1.
+    // An encoder that masked it would write a length the decoder believes and
+    // a payload it cannot find the end of.
+    expect(() =>
+      encodeChunk([{ kind: "move", payload: new Uint8Array(256) }]),
+    ).toThrow(/at most 255 bytes/);
+    expect(() =>
+      encodeChunk([{ kind: "move", payload: new Uint8Array(255) }]),
+    ).not.toThrow();
+  });
+
   it("reads an empty chunk as an empty stream", () => {
     expect(decodeChunk(new Uint8Array(0)).events).toEqual([]);
     expect(base64ToBytes("")).toEqual(new Uint8Array(0));

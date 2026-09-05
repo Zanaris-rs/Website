@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { formatWhen } from "@/lib/messages/format";
 import { ORIGINAL_RULES } from "@/lib/rules/original";
 
 import {
@@ -146,7 +147,17 @@ describe("the evidence vocabulary", () => {
   });
 
   it("says permanent, which is not the same as unknown", () => {
+    // A ban with no end date is the one case where a missing value is the most
+    // important thing on the row, and "until null" would read as a bug.
     expect(punishmentUntilLabel(null)).toBe("permanent");
-    expect(punishmentUntilLabel("12 Sep 2026")).toBe("until 12 Sep 2026");
+  });
+
+  it("dates a ban with the same formatter every other staff date uses", () => {
+    expect(punishmentUntilLabel("2026-09-12T12:00:00.000Z")).toBe(
+      `until ${formatWhen("2026-09-12T12:00:00.000Z")}`,
+    );
+    expect(punishmentUntilLabel("2026-09-12T12:00:00.000Z")).toContain(
+      "12 September 2026",
+    );
   });
 });

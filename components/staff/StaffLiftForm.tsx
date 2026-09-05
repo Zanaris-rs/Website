@@ -23,6 +23,7 @@ const MESSAGES: Record<string, string> = {
   forbidden: "Your account is not staff.",
   not_found: "That punishment is gone, or has already been lifted.",
   invalid: "That note is not something the record can hold.",
+  body_charset: "A note must be plain text.",
   note_long: `A public note can be at most ${PUBLIC_NOTE_MAX} characters.`,
   rate_limited: "Too many wrong passwords. Wait, then try again.",
   session_expired: "You are signed out. Log in again.",

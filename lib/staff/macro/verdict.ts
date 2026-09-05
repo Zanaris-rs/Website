@@ -380,19 +380,19 @@ export function adjudicate(
       "Nothing in this capture could be measured: too few clicks, or no input at all. That is a verdict, not a pass — it means look at the chat and the wealth events instead.";
   } else if (focusTally.botLike > 0) {
     verdict = "macro";
-    reason = `${metrics.unfocusedClicks} click${metrics.unfocusedClicks === 1 ? "" : "s"} arrived while the applet did not have focus. A person cannot click a window they are not looking at.`;
+    reason = `${plural(metrics.unfocusedClicks, "click")} arrived while the applet did not have focus. A person cannot click a window they are not looking at.`;
   } else if (timingTally.botLike >= 2 && spatialTally.botLike >= 1) {
     verdict = "macro";
-    reason = `The timing is mechanical on ${timingTally.botLike} signals and the cursor on ${spatialTally.botLike}. Two families agreeing is what separates a macro from a player in a rhythm.`;
+    reason = `The timing is mechanical on ${plural(timingTally.botLike, "signal")} and the cursor on ${spatialTally.botLike}. Two families agreeing is what separates a macro from a player in a rhythm.`;
   } else if (botLike >= 3) {
     verdict = "macro";
-    reason = `Bot-like on ${botLike} signals across ${families.filter((family) => family.botLike > 0).length} families.`;
+    reason = `Bot-like on ${plural(botLike, "signal")} across ${plural(families.filter((family) => family.botLike > 0).length, "family", "families")}.`;
   } else if (botLike >= 1) {
     verdict = "review";
     reason = `One family reads as mechanical and the others do not, which is as often a repetitive player as a script. Watch them, or capture again.`;
   } else if (suspicious >= 3) {
     verdict = "review";
-    reason = `Nothing here is conclusive, but ${suspicious} signals sit between a person and a program.`;
+    reason = `Nothing here is conclusive, but ${plural(suspicious, "signal")} sit between a person and a program.`;
   } else {
     verdict = "human";
     reason =

@@ -1,5 +1,6 @@
 import {
   CLICK_DELTA_MAX,
+  MOVE_PAYLOAD_LIMIT,
   MARKER_LIVE_TAIL_BEGINS,
   MOVE_DELTA_MAX,
   SAMPLE_MS,
@@ -139,7 +140,16 @@ export function encodeChunk(records: readonly ChunkRecord[]): Uint8Array {
         );
         break;
       case "move":
-        out.push(4, record.payload.length & 0xff, ...record.payload);
+        // The length is a `p1`, and the ring drops a longer payload with
+        // marker 1 rather than framing it. Masking here would write a length
+        // the decoder believes and a payload it cannot find the end of, and
+        // the test that caught it would be an unrelated one.
+        if (record.payload.length > MOVE_PAYLOAD_LIMIT) {
+          throw new Error(
+            `a move payload is at most ${MOVE_PAYLOAD_LIMIT} bytes; got ${record.payload.length}`,
+          );
+        }
+        out.push(4, record.payload.length, ...record.payload);
         break;
       case "anchor":
         out.push(5, (record.ticks >> 8) & 0xff, record.ticks & 0xff);

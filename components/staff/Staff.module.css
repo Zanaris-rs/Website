@@ -114,3 +114,11 @@
   margin: 0 auto;
   background: #000;
 }
+
+/* The one place a staff panel says "there is nothing here" without a table
+   under it. Same rule as `Messages.module.css`'s `.empty`, which the tables
+   use: this file cannot borrow it, because a CSS module's class names are
+   local to the module that declares them. */
+.empty {
+  padding: 8px 0;
+}

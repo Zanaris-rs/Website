@@ -186,6 +186,11 @@ describe("the Java client", () => {
     expect(verdict.verdict).toBe("macro");
     const spatial = verdict.families.find((f) => f.family === "spatial");
     expect(spatial?.evaluated).toBe(false);
+
+    // The one route to the verdict that counts families out loud, and the one
+    // that can count exactly one of them.
+    expect(verdict.reason).toContain("across 1 family");
+    expect(verdict.reason).not.toContain("1 families");
   });
 });
 

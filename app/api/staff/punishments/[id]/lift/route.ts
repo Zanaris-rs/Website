@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 
 import { assertSameOrigin } from "@/lib/account/origin";
 import { readSession } from "@/lib/account/session-server";
+import { validateBody } from "@/lib/messages/format";
 import { parseId, statusFor } from "@/lib/messages/queries";
 import { candidateHash } from "@/lib/staff/actor-server";
 import { PUBLIC_NOTE_MAX } from "@/lib/staff/format";
@@ -73,9 +74,19 @@ export async function POST(
   const id = parseId(raw);
   if (id === null) return fail("not_found", 404);
 
-  // The note goes on a public page, so it is one line and it is short.
-  const note = asString(payload.note).replace(/\s+/g, " ").trim();
-  if (note.length > PUBLIC_NOTE_MAX) return fail("note_long", 400);
+  // The note goes on a public page, so it is one line and it is short — and
+  // it goes through the same plain-text check every other thing a moderator
+  // writes does. A note is the one field on this route somebody types, and a
+  // page anybody can read is the last place a bidirectional override or a NUL
+  // should be able to reach.
+  const typed = asString(payload.note).replace(/\s+/g, " ").trim();
+  let note = "";
+  if (typed !== "") {
+    const validated = validateBody(typed);
+    if (!validated.ok) return fail(validated.error, 400);
+    if (validated.value.length > PUBLIC_NOTE_MAX) return fail("note_long", 400);
+    note = validated.value;
+  }
 
   if (!isConfigured()) return fail("unavailable", 503);
 

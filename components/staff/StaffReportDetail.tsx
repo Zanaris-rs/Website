@@ -11,6 +11,7 @@ import type { Adjudication, Level } from "@/lib/staff/macro/verdict";
 import {
   chatKindLabel,
   coordLabel,
+  punishmentUntilLabel,
   reportReasonLabel,
   reporterLabel,
   resolutionLabel,
@@ -110,6 +111,16 @@ export default function StaffReportDetail({
   const banned = report.offenderBannedUntil !== null;
   const muted = report.offenderMutedUntil !== null;
 
+  // `staff_report_input` is capped at 200 rows and the report row counts what
+  // the database holds, so a very long live tail arrives short. Everything
+  // below — the verdict included — is computed from what came back, and a
+  // partial capture must never be presented as the whole of it.
+  const partial = input.length < report.inputChunks;
+  const chunks = partial
+    ? `${input.length} of ${plural(report.inputChunks, "chunk")}`
+    : plural(input.length, "chunk");
+  const where = `${stream.ringChunks} from the ring, ${stream.liveChunks} live${partial ? ", the rest not loaded" : ""}`;
+
   return (
     <>
       <TitleBox
@@ -169,9 +180,9 @@ export default function StaffReportDetail({
               <th>Standing</th>
               <td>
                 {banned
-                  ? `Banned until ${formatWhen(report.offenderBannedUntil)}`
+                  ? `Banned, ${punishmentUntilLabel(report.offenderBannedUntil)}`
                   : muted
-                    ? `Muted until ${formatWhen(report.offenderMutedUntil)}`
+                    ? `Muted, ${punishmentUntilLabel(report.offenderMutedUntil)}`
                     : "No ban or mute"}
                 {report.offenderLogins24h === null
                   ? null
@@ -242,7 +253,7 @@ export default function StaffReportDetail({
                   ? report.uuid === ""
                     ? "None. This report predates evidence capture."
                     : "None kept. Either the offender was on another world, or the evidence has been deleted."
-                  : `${plural(input.length, "chunk")} (${stream.ringChunks} from the ring, ${stream.liveChunks} live), ${plural(metrics.clicks, "click")} and ${plural(metrics.moveSamples, "cursor sample")} over ${duration(metrics.durationMs)}`}
+                  : `${chunks} (${where}), ${plural(metrics.clicks, "click")} and ${plural(metrics.moveSamples, "cursor sample")} over ${duration(metrics.durationMs)}`}
               </td>
             </tr>
             <tr>
@@ -275,6 +286,13 @@ export default function StaffReportDetail({
             <div className={account.heading}>
               <b>Verdict</b>
             </div>
+
+            {partial ? (
+              <p className={account.error}>
+                Only {input.length} of the {report.inputChunks} captured chunks
+                were loaded. This verdict is about the part that was.
+              </p>
+            ) : null}
 
             <p
               className={`${styles.verdict} ${VERDICT_CLASS[adjudication.verdict] ?? ""}`}
@@ -481,8 +499,8 @@ export default function StaffReportDetail({
           <p className={account.note}>
             This account is under a punishment with no row in the public record
             — one issued before the record existed. It can only be lifted in
-            the database, and `punishment.lifted_at` must be set by hand when it
-            is.
+            the database, and <code>punishment.lifted_at</code> must be set by
+            hand when it is.
           </p>
         </Panel>
       ) : null}

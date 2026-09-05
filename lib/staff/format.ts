@@ -1,3 +1,4 @@
+import { formatWhen } from "@/lib/messages/format";
 import { ORIGINAL_RULES } from "@/lib/rules/original";
 
 /**
@@ -134,11 +135,16 @@ export function chatKindLabel(kind: string): string {
 /**
  * A ban or mute end date, as a sentence.
  *
- * A `null` `until` on a live punishment is permanent, which is not the same as
- * unknown and must not read like it.
+ * A `null` `until` on a live punishment is **permanent**, which is not the
+ * same as unknown and must not read like it — an offender whose ban has no end
+ * date is the one case where a missing value is the most important thing on
+ * the row.
+ *
+ * The date goes through `formatWhen`, so this cannot drift from every other
+ * date on the staff pages.
  */
 export function punishmentUntilLabel(until: string | null): string {
-  return until === null ? "permanent" : `until ${until}`;
+  return until === null ? "permanent" : `until ${formatWhen(until)}`;
 }
 
 /**

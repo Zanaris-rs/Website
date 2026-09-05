@@ -86,6 +86,8 @@ export const SCREEN_WIDTH = contract.client.screen_width;
 export const SCREEN_HEIGHT = contract.client.screen_height;
 /** `pos` when the cursor is outside the applet. */
 export const OFFSCREEN_POS = contract.client.offscreen_pos;
+/** The longest move payload the engine's one-byte length field can frame. */
+export const MOVE_PAYLOAD_LIMIT = contract.limits.move_payload_bytes;
 /** A click delta saturates here: "at least this long since the last click". */
 export const CLICK_DELTA_MAX = contract.client.click_delta_max;
 export const MOVE_DELTA_MAX = contract.client.move_delta_max;
