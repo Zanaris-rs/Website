@@ -52,7 +52,8 @@ export default function StaffInbox({
         links={[
           { href: "/staff/notice", text: "Send a notice" },
           { href: "/staff/reports", text: "Reports" },
-          { href: "/account", text: "Account Centre", br: true },
+          { href: "/staff/wealth", text: "Wealth", br: true },
+          { href: "/account", text: "Account Centre" },
         ]}
       />
 

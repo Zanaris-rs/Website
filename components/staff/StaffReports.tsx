@@ -45,6 +45,7 @@ export default function StaffReports({
         links={[
           { href: "/staff", text: "Staff inbox" },
           { href: "/staff/notice", text: "Send a notice" },
+          { href: "/staff/wealth", text: "Wealth" },
         ]}
       />
 
