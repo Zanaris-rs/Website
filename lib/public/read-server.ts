@@ -72,10 +72,14 @@ export function loadPunishments(
 
 export type Economy = {
   readonly snapshots: readonly Snapshot[];
-  readonly flows: readonly Flow[];
-  readonly spawns: readonly StaffSpawn[];
-  /** True when the flow or spawn read failed while the census read did not. */
-  readonly partial: boolean;
+  /**
+   * `null` when the read failed, which is **not** the same as an empty list.
+   * "Nothing entered or left the game" and "we could not find out" are
+   * different sentences, and a page that prints the first when it means the
+   * second is telling the reader something untrue about the economy.
+   */
+  readonly flows: readonly Flow[] | null;
+  readonly spawns: readonly StaffSpawn[] | null;
 };
 
 /**
@@ -85,8 +89,8 @@ export type Economy = {
  * in series would be three times the latency for no benefit. The failures are
  * kept apart, though: the snapshots are the page, so losing them is losing the
  * page, while the flows and the staff spawns are blocks *on* it — one of them
- * failing should cost that block and not the totals above it. `partial` is how
- * the page knows to say so.
+ * failing should cost that block and not the totals above it — and the block
+ * says "could not be read", never "nothing happened".
  */
 export async function loadEconomy(
   days: number = ECONOMY_DAYS,
@@ -103,9 +107,8 @@ export async function loadEconomy(
     status: "ok",
     data: {
       snapshots: snapshots.data,
-      flows: flows.status === "ok" ? flows.data : [],
-      spawns: spawns.status === "ok" ? spawns.data : [],
-      partial: flows.status !== "ok" || spawns.status !== "ok",
+      flows: flows.status === "ok" ? flows.data : null,
+      spawns: spawns.status === "ok" ? spawns.data : null,
     },
   };
 }

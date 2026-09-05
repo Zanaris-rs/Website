@@ -59,9 +59,12 @@ function change(value: number | null): ReactNode {
  * is nobody's.
  */
 export default function Economy({ economy }: { economy: EconomyData }) {
-  const { snapshots, spawns, partial } = economy;
+  const { snapshots, spawns } = economy;
   const latest = latestSnapshot(snapshots);
-  const days = dailyFlows(economy.flows);
+  // `null` all the way through rather than an empty list: the block below has
+  // a different sentence for "could not be read" than for "nothing moved".
+  const days = economy.flows === null ? null : dailyFlows(economy.flows);
+  const partial = economy.flows === null || spawns === null;
 
   const coins = (snapshot: Snapshot) => snapshot.coins;
   const players = (snapshot: Snapshot) => snapshot.players;
@@ -159,8 +162,10 @@ export default function Economy({ economy }: { economy: EconomyData }) {
       </Panel>
 
       <Panel align="left">
-        <div className={styles.chartTitle}>Entered and left the game</div>
-        {days.length === 0 ? (
+        <div className={styles.blockTitle}>Entered and left the game</div>
+        {days === null ? (
+          <div className={styles.empty}>This could not be read just now.</div>
+        ) : days.length === 0 ? (
           <div className={styles.empty}>
             Nothing tracked has entered or left the game in the last{" "}
             {ECONOMY_DAYS} days.
@@ -188,17 +193,18 @@ export default function Economy({ economy }: { economy: EconomyData }) {
       </Panel>
 
       <Panel>
+        <div className={styles.blockTitle}>Added by staff</div>
         <table className={styles.table}>
           <thead>
             <tr>
-              <th className={styles.when}>Added by staff</th>
+              <th className={styles.when}>When</th>
               <th>Item</th>
               <th className={styles.figure}>Number</th>
               <th className={styles.figure}>World</th>
             </tr>
           </thead>
           <tbody>
-            {spawns.map((spawn, index) => (
+            {(spawns ?? []).map((spawn, index) => (
               <tr key={`${spawn.createdAt}-${spawn.itemId}-${index}`}>
                 <td className={styles.when}>
                   {formatShortWhen(spawn.createdAt)}
@@ -208,10 +214,12 @@ export default function Economy({ economy }: { economy: EconomyData }) {
                 <td className={styles.figure}>{spawn.world ?? "—"}</td>
               </tr>
             ))}
-            {spawns.length === 0 ? (
+            {spawns === null || spawns.length === 0 ? (
               <tr>
                 <td colSpan={4} className={styles.empty}>
-                  Staff have created nothing in the last {ECONOMY_DAYS} days.
+                  {spawns === null
+                    ? "This could not be read just now."
+                    : `Staff have created nothing in the last ${ECONOMY_DAYS} days.`}
                 </td>
               </tr>
             ) : null}
@@ -223,9 +231,9 @@ export default function Economy({ economy }: { economy: EconomyData }) {
         <div className={styles.caveat}>
           {partial ? (
             <p>
-              Part of this page could not be read just now, so a block above may
-              be showing less than it should. It will right itself on the next
-              refresh.
+              A block above could not be read just now and says so where it
+              would otherwise list something. It will right itself on the next
+              refresh; nothing is missing from the totals.
             </p>
           ) : null}
           <p>What the count does and does not include:</p>
