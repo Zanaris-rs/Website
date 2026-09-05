@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Vendored, not ours: `public/js/mapview.js` is a minified bundle of the
+    // game client's map applet, and `.cache/` is the clone it is built from.
+    "public/**",
+    ".cache/**",
   ]),
 ]);
 
