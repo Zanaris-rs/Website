@@ -11,6 +11,13 @@ import { INVALID_NAME, toSafeName } from "@/lib/base37";
 /** What the register form's field accepts before canonicalisation. */
 export const USERNAME_PATTERN = /^[A-Za-z0-9_ ]{1,12}$/;
 
+/**
+ * What a name looks like *after* canonicalisation, which is what the database
+ * holds and what the session cookie carries: base37 emits nothing but
+ * lower-case letters, digits and underscores.
+ */
+export const CANONICAL_USERNAME_PATTERN = /^[a-z0-9_]{1,12}$/;
+
 export const PASSWORD_MIN = 8;
 export const PASSWORD_MAX = 20;
 
