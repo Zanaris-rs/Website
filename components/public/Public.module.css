@@ -40,7 +40,13 @@
 }
 
 .name {
-  width: 40%;
+  width: 34%;
+}
+
+/* "A moderator" is two words the browser will happily break in a 500px table
+   with two date columns in it. It is one fact, so it stays on one line. */
+.issuer {
+  white-space: nowrap;
 }
 
 /* The optional one-line note, on its own row under the punishment it explains
@@ -52,6 +58,12 @@
 
 .empty {
   padding: 10px 4px;
+  text-align: center;
+}
+
+/* `.table td` sets `text-align: left` for every cell and outranks a bare
+   class, so a "nothing here yet" cell has to say it again to be centred. */
+.table .empty {
   text-align: center;
 }
 
@@ -97,6 +109,11 @@
   padding: 6px 0 2px;
 }
 
+/* "Counted 5 September 2026, 11:00 UTC" under the last chart's own scale. */
+.counted {
+  padding-top: 4px;
+}
+
 .chartTitle {
   font-weight: bold;
   padding-bottom: 2px;
@@ -110,6 +127,35 @@
   height: 60px;
   border: 1px solid #382418;
   background: #000;
+}
+
+/* The line itself. `non-scaling-stroke` is what lets the box be stretched to
+   the panel's width with `preserveAspectRatio="none"` without the stroke
+   being stretched with it into a wedge. */
+.line {
+  fill: none;
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+
+/* The same shape closed to the baseline, faint, so a flat line still reads as
+   a quantity rather than as a scratch on the panel. */
+.area {
+  stroke: none;
+  opacity: 0.15;
+}
+
+/* Two of the original's nine link colours, as a stroke and a fill. They are
+   repeated here rather than imported because `Frame.module.css` paints text
+   with them and an SVG needs `stroke`/`fill`. */
+.yellow {
+  stroke: #ffe139;
+  fill: #ffe139;
+}
+
+.lblue {
+  stroke: #9db8c3;
+  fill: #9db8c3;
 }
 
 /* The scale, printed rather than drawn: two axis labels in a 500px panel

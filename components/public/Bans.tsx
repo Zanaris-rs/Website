@@ -77,7 +77,7 @@ export default function Bans({ page }: { page: PunishmentPage }) {
               <th>Type</th>
               <th className={styles.when}>Issued</th>
               <th className={styles.when}>Ends</th>
-              <th>Issued by</th>
+              <th className={styles.issuer}>Issued by</th>
             </tr>
           </thead>
           <tbody>
@@ -95,7 +95,9 @@ export default function Bans({ page }: { page: PunishmentPage }) {
                   >
                     {endsLabel(punishment)}
                   </td>
-                  <td>{issuerLabel(punishment.automated)}</td>
+                  <td className={styles.issuer}>
+                    {issuerLabel(punishment.automated)}
+                  </td>
                 </tr>,
                 punishment.note === "" ? null : (
                   <tr key={`${punishment.username}-${index}-note`}>
