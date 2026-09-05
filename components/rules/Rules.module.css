@@ -1,0 +1,61 @@
+/* The twelve rule cards, two to a row at 500px and one to a row on a phone. */
+
+.grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  padding: 8px 0;
+}
+
+.card {
+  width: 240px;
+  max-width: 100%;
+}
+
+.cardInner {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  text-align: left;
+  height: 100%;
+}
+
+.cardArt {
+  width: 104px;
+  flex: none;
+  text-align: center;
+}
+
+.cardImage {
+  padding-top: 6px;
+  line-height: 0;
+}
+
+.cardText {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.cardParagraph {
+  margin: 0 0 0.6em;
+}
+
+.cardParagraph:last-child {
+  margin-bottom: 0;
+}
+
+.intro {
+  padding-bottom: 4px;
+}
+
+/* The /rules clarifications: a lead-in in bold, then the detail. */
+.clarifications {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.clarifications li {
+  padding: 0 0 0.7em;
+}

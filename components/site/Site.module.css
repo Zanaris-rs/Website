@@ -113,6 +113,9 @@
   text-align: center;
   color: #fff;
   line-height: 1.1;
+  /* "Advertising/Website" is one unbreakable token to a browser and would
+     otherwise hang out of its 100px stone. The original hard-coded a <br>. */
+  overflow-wrap: anywhere;
 }
 
 /* --- menu tiles --- */
