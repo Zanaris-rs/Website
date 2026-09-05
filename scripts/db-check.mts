@@ -4,12 +4,16 @@
  *
  * It runs `select 1`, counts the two hiscores views, and then proves the shape
  * of the least-privilege role: refused on every table it must never read
- * (`account`, `login_attempt`, `session`, `account_login`), `EXECUTE` on the
- * eight `accounts.*` functions it needs and **not** on `throttled` or
- * `record_failure` — the rate limiter's own machinery, which a site that could
- * call it could reset. Those checks are the ones worth having: a URL that
- * connects as `postgres` looks identical to a correct one right up until
- * something reads a password hash.
+ * (`account`, `login_attempt`, `session`, `account_login`, and the Message
+ * Centre's own five), `EXECUTE` on the twenty `accounts.*` functions it needs
+ * and **not** on `throttled`, `record_failure` or `is_staff` — the rate
+ * limiter's own machinery and the staff check, none of which is an API. Those
+ * checks are the ones worth having: a URL that connects as `postgres` looks
+ * identical to a correct one right up until something reads a password hash.
+ *
+ * It then calls every function once against a username nobody has. None of
+ * them writes a row — see `checkMessageCentre` — and a `RETURNS TABLE` shape
+ * that had drifted from what `lib/` builds fails here rather than on a page.
  *
  * Run with the repo's script wrapper, not bare `node`:
  *
@@ -79,6 +83,15 @@ async function main(): Promise<void> {
     "public.login_attempt",
     "public.session",
     "public.account_login",
+    // 3_message_centre's four tables plus `report`, on the same terms: RLS on
+    // with no policies, and no grant to `website`. Everything the site can do
+    // with a message, a ticket or a report goes through a SECURITY DEFINER
+    // function that keys off the username in the signed cookie.
+    "public.account_message",
+    "public.ticket",
+    "public.ticket_message",
+    "public.staff_action",
+    "public.report",
   ]) {
     try {
       await query(`select 1 from ${table} limit 1`);
@@ -103,10 +116,28 @@ async function main(): Promise<void> {
     "accounts.recent_logins(text, text, int)",
     "accounts.register(text, text, text, text, text, text, text)",
     "accounts.reap()",
+    // 3_message_centre.
+    "accounts.unread(text)",
+    "accounts.messages(text)",
+    "accounts.message(text, int)",
+    "accounts.tickets(text)",
+    "accounts.ticket_thread(text, int)",
+    "accounts.ticket_open(text, text, text, text)",
+    "accounts.ticket_reply(text, int, text)",
+    "accounts.staff_inbox(text, text)",
+    "accounts.staff_thread(text, int)",
+    "accounts.staff_reply(text, int, text, boolean)",
+    "accounts.staff_notice(text, text, text, text, text)",
+    "accounts.staff_reports(text, timestamptz)",
   ];
   const withheld = [
     "accounts.throttled(text, text)",
     "accounts.record_failure(text, text)",
+    // The staff check itself. It is a helper the staff functions call while
+    // running as the definer, not an API: a site that could call it would gain
+    // nothing, but a site that could call it is a site somebody granted it to
+    // by accident, and the whole point of these two lists is to notice that.
+    "accounts.is_staff(text)",
   ];
 
   for (const [list, expected] of [
@@ -152,6 +183,121 @@ async function main(): Promise<void> {
   } else {
     console.error("FAIL: profile returned a row for a name nobody has.");
     process.exitCode = 1;
+  }
+
+  await checkMessageCentre();
+}
+
+/**
+ * One call per function in `3_message_centre`, all of them against
+ * `__db_check__` — a username nobody has.
+ *
+ * **Nothing here writes a row**, including the four functions whose job is to
+ * write, and that is a property of the functions rather than of this script:
+ * `ticket_open` and `ticket_reply` resolve the username to an account id
+ * before they do anything else and return `invalid`/`not_found` when there
+ * isn't one, and `staff_reply` and `staff_notice` check `accounts.is_staff`
+ * first and return `forbidden`. `staff_notice` in particular returns before it
+ * reaches `record_failure`, so this does not spend a rate-limit token either.
+ *
+ * The value of running them at all is that a `RETURNS TABLE` shape or an
+ * argument type that drifted from what `lib/` builds would fail *here*, on a
+ * script anybody can run, rather than on a page in front of a player.
+ */
+async function checkMessageCentre(): Promise<void> {
+  const [{ unread }] = await query<{ unread: number }>(
+    "select accounts.unread($1) as unread",
+    ["__db_check__"],
+  );
+  if (unread === 0) {
+    console.log("accounts.unread('__db_check__'): 0 (expected)");
+  } else {
+    console.error(`FAIL: unread returned ${unread} for a name nobody has.`);
+    process.exitCode = 1;
+  }
+
+  // The reads. Each must answer with no rows rather than erroring: a name
+  // nobody has is not an error anywhere in this API.
+  const reads: [string, string, readonly unknown[]][] = [
+    ["messages", "select * from accounts.messages($1)", ["__db_check__"]],
+    ["message", "select * from accounts.message($1, $2)", ["__db_check__", 1]],
+    ["tickets", "select * from accounts.tickets($1)", ["__db_check__"]],
+    [
+      "ticket_thread",
+      "select * from accounts.ticket_thread($1, $2)",
+      ["__db_check__", 1],
+    ],
+    [
+      "staff_inbox",
+      "select * from accounts.staff_inbox($1, $2)",
+      ["__db_check__", "open"],
+    ],
+    [
+      "staff_thread",
+      "select * from accounts.staff_thread($1, $2)",
+      ["__db_check__", 1],
+    ],
+    [
+      "staff_reports",
+      "select * from accounts.staff_reports($1, $2)",
+      ["__db_check__", null],
+    ],
+  ];
+
+  for (const [name, text, values] of reads) {
+    const rows = await query(text, values);
+    if (rows.length === 0) {
+      console.log(`accounts.${name}('__db_check__', …): 0 rows (expected)`);
+    } else {
+      console.error(
+        `FAIL: ${name} returned ${rows.length} rows for a name nobody has.`,
+      );
+      process.exitCode = 1;
+    }
+  }
+
+  // The writes, each refused before it writes anything, and each refused for
+  // its own reason.
+  const writes: [string, string, readonly unknown[], string][] = [
+    [
+      "ticket_open",
+      "select accounts.ticket_open($1, $2, $3, $4) as result",
+      ["__db_check__", "bug", "db:check", "db:check"],
+      "invalid",
+    ],
+    [
+      "ticket_reply",
+      "select accounts.ticket_reply($1, $2, $3) as result",
+      ["__db_check__", 1, "db:check"],
+      "not_found",
+    ],
+    [
+      "staff_reply",
+      "select accounts.staff_reply($1, $2, $3, $4) as result",
+      ["__db_check__", 1, "db:check", false],
+      "forbidden",
+    ],
+    [
+      "staff_notice",
+      "select accounts.staff_notice($1, $2, $3, $4, $5) as result",
+      // A 60-character string in the hash slot: the function checks
+      // `is_staff` before it looks at the hash at all, so this never gets
+      // compared, but passing something shaped wrong would prove less.
+      ["__db_check__", `$2b$10$${"x".repeat(53)}`, "__db_check__", "s", "b"],
+      "forbidden",
+    ],
+  ];
+
+  for (const [name, text, values, expected] of writes) {
+    const [row] = await query<{ result: string }>(text, values);
+    if (row?.result === expected) {
+      console.log(`accounts.${name}('__db_check__', …): ${expected} (expected)`);
+    } else {
+      console.error(
+        `FAIL: ${name} answered ${JSON.stringify(row?.result)}; expected ${expected}.`,
+      );
+      process.exitCode = 1;
+    }
   }
 }
 

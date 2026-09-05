@@ -388,8 +388,8 @@ login is unaffected. The error copy says exactly that: "Too many attempts. Wait
 
 **A banned or muted account can still log in to the website**, and the account
 centre shows the restriction rather than hiding it. This is the point: somebody
-who cannot play is precisely who needs to read why, and who Part 3's Message
-Centre exists for. Only live restrictions are shown — an expired ban is not a
+who cannot play is precisely who needs to read why, and who the Message Centre
+exists for. Only live restrictions are shown — an expired ban is not a
 ban, and the row keeps its date forever.
 
 ### Recent logins
@@ -420,9 +420,107 @@ and that `select jobname from cron.job` still lists `reap`, and record it in
 `ec2-setup/LOG.md`.
 
 `npm run db:check` is the website's half of the proof, run with the `website`
-URL: it asserts the four tables are refused, that the eight granted functions
-are executable and the two withheld ones are not, and that `password_salt` and
-`profile` answer emptily for a name nobody has.
+URL: it asserts that the nine tables are refused, that the twenty granted
+functions are executable and the three withheld ones are not, and then calls
+every one of those functions once against a username nobody has. None of those
+calls writes a row -- `ticket_open` and `ticket_reply` resolve the username
+before anything else and answer `invalid`/`not_found`, `staff_reply` and
+`staff_notice` check `is_staff` first and answer `forbidden` -- so it is safe
+to run against production, and a `RETURNS TABLE` shape that had drifted from
+what `lib/` builds fails there rather than on a page.
+
+## The Message Centre and the staff inbox
+
+Everything addressed to an account arrives in one place: the welcome message
+written when the account is registered, notices a moderator sends, the ban and
+mute notices the **engine** writes when a staff member uses `::ban` or
+`::mute`, and staff replies to tickets. `/messages` lists them unread first;
+`/messages/<id>` opens one; `/messages/new` opens a ticket; and
+`/messages/tickets/<id>` is the thread, with a reply box while it is open.
+
+### One unread rule, in three places
+
+```sql
+count(*) from account_message where account_id = $1 and read_at is null
+```
+
+The engine's login server counts exactly that over Kysely and sends the number
+to the client's welcome screen ("you have 1 unread message"). `accounts.unread`
+counts exactly that after resolving a username. This site counts it for the
+Account Centre link and derives it from the rows on `/messages`. If the three
+ever drift, a player sees a number in game that the site cannot explain and
+**nothing anywhere throws** — so the rule is pinned in
+`lib/account/message-centre-contract.json`, a byte-for-byte copy of the
+engine's `test/fixtures/message-centre-contract.json`, and
+`lib/account/contract.test.ts` writes every value in it out by hand so that
+re-copying the fixture fails a test rather than shipping quietly.
+
+The same fixture carries the caps — subject 120, body 4000, 5 tickets per
+account per day, 20 replies per hour, 20 notices per hour — and
+`lib/messages/format.ts` **reads** them from it rather than repeating them. The
+SQL in `3_message_centre` is the authority and would refuse the same inputs on
+its own; what the app-side check adds is a sentence naming the field, which
+`invalid` cannot.
+
+### Two GETs that write
+
+`accounts.message` and `accounts.ticket_thread` mark what they return as read.
+That is deliberate — opening a message *is* reading it, and there is nothing
+else on the page to press — and it is why `/messages/<id>`,
+`/messages/tickets/<id>` and their routes are `force-dynamic` with
+`Cache-Control: no-store`. A cached render would be a message that never gets
+marked read and an in-game unread count that never goes down.
+
+`accounts.staff_thread` marks nothing read, on purpose: the unread flags belong
+to the player, and a moderator opening a ticket must not clear the notice
+telling the player a reply is waiting.
+
+### The staff side
+
+`/staff` (with `?status=open|closed|all`), `/staff/tickets/<id>`,
+`/staff/notice` and `/staff/reports` need `staffmodlevel >= 2`, and it is read
+from `accounts.profile` **on every request**. The session cookie carries a
+username, an issue time and a salt fingerprint and deliberately no level: a
+level in a cookie is one that survives a demotion for seven days and one that
+anybody who could forge a cookie could grant themselves.
+
+That is the second of two locks. Every staff SQL function calls
+`accounts.is_staff(p_actor)` itself — a `WHERE` clause in the three reads, an
+early `RETURN 'forbidden'` in the two writes — so a route that forgot the page
+check would still return nothing and write nothing. The page check decides what
+somebody *sees*; the SQL decides what they can *do*.
+
+A signed-in player who is not staff is **redirected to the login form**, not
+shown a 403. A 403 page confirms the URL is real and that the reader simply
+lacks the level, which is reconnaissance handed out for free; a redirect makes
+`/staff` look the same to them as it does to a stranger.
+
+### The one form that re-types a password
+
+`/staff/notice` writes into somebody else's inbox with a moderator's name on
+it, so it asks for the moderator's password again, through the same salt
+handshake the account centre uses: `accounts.password_salt(actor)` →
+`bcrypt(lower(typed), salt)` → `accounts.staff_notice` compares it against the
+stored hash. A stolen session is not enough, and neither is a leaked
+`DATABASE_URL`.
+
+Its failures ride `accounts.throttled` in a bucket of their own,
+`notice:<actor>`, and not the actor's login bucket: ten fat-fingered notices
+must not also lock a moderator out of signing in.
+
+### Reports
+
+Report Abuse used to be posted to the logger thread, and the logger server is
+disabled on this fleet, so every report was dropped while the player was told
+it had been received. The login server writes the row now and knows both who
+pressed the button and which world they were on, which is why
+`report.reporter_account_id` and `report.world` are nullable and why anything
+older reads as "unknown" on `/staff/reports`.
+
+A report carries no text: the 2004 packet is an offender and a rule number.
+`lib/staff/format.ts` transcribes the two engine encodings the page needs —
+`ReportAbuseReason` (zero-based, onto the twelve rules `/rules` already lists)
+and `CoordGrid.packCoord` — with the engine file named against each.
 
 ## Hiscores
 
@@ -564,6 +662,56 @@ form. Otherwise 401 `session_expired`, 403 `origin`, 403 `bad_credentials`,
 400 `email_format` / `email_disposable` / `email_no_mx`, 429 `rate_limited`,
 503 `unavailable`. The session is **not** re-minted: the salt has not moved.
 
+### The Message Centre routes
+
+Every route in this section and the staff one below is Node-runtime,
+`Cache-Control: no-store`, and answers 401 `session_expired` without a valid
+`zanaris_session`. The four `POST`s — `/api/tickets`,
+`/api/tickets/<id>/reply`, `/api/staff/tickets/<id>/reply` and
+`/api/staff/notice` — check `Origin` and answer 403 `origin`. Field errors —
+`subject_empty`, `subject_long`, `subject_charset`, `body_empty`, `body_long`,
+`body_charset` — are 400s, and each has a sentence of its own in
+`lib/messages/format.ts`.
+
+| Route | Body | Success |
+| --- | --- | --- |
+| `GET /api/messages` | | `{ unread, messages: [...] }`, unread first |
+| `GET /api/messages/<id>` | | `{ message }` **and marks it read** |
+| `GET /api/tickets` | | `{ tickets: [...] }` |
+| `POST /api/tickets` | `{ kind, subject, body }` | `{ ok: true }` |
+| `GET /api/tickets/<id>` | | `{ ticket }` **and marks its replies read** |
+| `POST /api/tickets/<id>/reply` | `{ body }` | `{ ok: true }` |
+
+`kind` is `bug`, `appeal` or `other`; anything else is 400 `kind_invalid`.
+Beyond the field errors: 404 `not_found` for a message or ticket that is not
+this account's (indistinguishable from one that does not exist, on purpose),
+409 `closed` for a reply to a closed ticket, 429 `rate_limited` for the sixth
+ticket in a day or the twenty-first reply in an hour, 503 `unavailable`.
+
+### The staff routes
+
+The same, plus `staffmodlevel >= 2` read from `accounts.profile` on the
+request; a signed-in account without it gets 403 `forbidden`.
+
+| Route | Body | Success |
+| --- | --- | --- |
+| `GET /api/staff/inbox?status=open\|closed\|all` | | `{ status, tickets: [...] }` |
+| `GET /api/staff/tickets/<id>` | | `{ ticket }`, marks nothing read |
+| `POST /api/staff/tickets/<id>/reply` | `{ body, close? }` | `{ ok: true, closed }` |
+| `POST /api/staff/notice` | `{ username, subject, body, password }` | `{ ok: true, username }` |
+| `GET /api/staff/reports?since=<ISO>` | | `{ reports: [...] }` |
+
+`status` and `since` are parsed, not passed through: an unrecognised status
+would match no row and read as a quiet day, and an unparseable `since` shows
+the function's default week rather than a 400.
+
+A staff reply is one call and two rows — the thread message, and the
+`account_message` of kind `reply` that raises the player's unread count — plus
+a `staff_action` audit row. `close` is the only way to write on an
+already-closed ticket. `POST /api/staff/notice` adds 403 `bad_credentials` for
+a wrong re-typed password (403, not 401: the caller *is* signed in), 404
+`not_found` for a recipient nobody is, and 429 `rate_limited`.
+
 ## Deployment
 
 Vercel, project `Zanaris-rs/Website`, functions pinned to `iad1` by
@@ -611,11 +759,20 @@ fetches the file in the browser and picks it up immediately.
 | `app/account/login/page.tsx` | the login box |
 | `app/account/page.tsx` | the account centre |
 | `app/account/password/page.tsx`, `app/account/email/page.tsx` | the two change forms |
-| `app/messages/page.tsx` | the Message Centre placeholder |
+| `app/messages/page.tsx` | the Message Centre: messages and tickets, unread first |
+| `app/messages/[id]/page.tsx` | one message — rendering it marks it read |
+| `app/messages/new/page.tsx` | the ticket form, with the bug-report hint |
+| `app/messages/tickets/[id]/page.tsx` | the player's own thread, with a reply box |
+| `app/staff/page.tsx` | the staff inbox, `?status=open\|closed\|all` |
+| `app/staff/tickets/[id]/page.tsx` | a ticket as staff see it; marks nothing read |
+| `app/staff/notice/page.tsx` | write a notice, re-typing the staff password |
+| `app/staff/reports/page.tsx` | Report Abuse rows, `?since=<ISO>` |
 | `app/api/hiscores/route.ts` | the table API |
 | `app/api/hiscores/player/[username]/route.ts` | the personal API |
 | `app/api/account/register/route.ts` | registration, Node runtime, `no-store` |
 | `app/api/account/login/route.ts`, `logout`, `password`, `email` | the salt handshake, the cookie, and the two compare-and-set changes |
+| `app/api/messages/**`, `app/api/tickets/**` | the player's six calls; two of the GETs mark rows read |
+| `app/api/staff/**` | the inbox, one thread, a reply that can close, a notice, the reports |
 | `components/site/Frame.tsx` | the 2004 page chrome every page is inside |
 | `components/site/Tile.tsx` | the one component allowed a bare `<img>` |
 | `components/site/` | `TitleBox`, `Panel`, `StonePanel`, `StoneCaption`, `StoneButton`, `MenuTile`, `PageNav`, `Disclaimer` |
@@ -623,6 +780,8 @@ fetches the file in the browser and picks it up immediately.
 | `components/hiscores/` | the table, the personal page, the shared header |
 | `components/account/RegisterForm.tsx` | the form, the Turnstile widget, the warnings |
 | `components/account/` | `LoginForm`, `AccountCentre`, `LogoutButton`, `ChangePasswordForm`, `ChangeEmailForm` |
+| `components/messages/` | the inbox, one message, a thread, the reply box, the ticket form |
+| `components/staff/` | the inbox table, the staff thread and reply box, the notice form, the reports table |
 | `components/WorldTable.tsx` | the world list itself |
 | `lib/site.ts` | the site name, the revision, the credit line, the URLs |
 | `lib/news/` | frontmatter and filename parsing, categories, pagination, dates, Markdown |
@@ -636,6 +795,9 @@ fetches the file in the browser and picks it up immediately.
 | `lib/account/salt.ts`, `session.ts` | the salt handshake and the signed cookie — both pure, both tested |
 | `lib/account/session-server.ts`, `profile-server.ts` | the halves that need a request: read/require/set/clear, and "is this cookie still good" |
 | `lib/account/origin.ts`, `login.ts`, `profile.ts` | the CSRF check, the four SQL calls, the account-centre wording |
+| `lib/account/message-centre-contract.json` | the cross-repo Message Centre contract, copied from the engine |
+| `lib/messages/` | the seven player SQL calls and their parsers; the kinds, caps and wording |
+| `lib/staff/` | the five staff SQL calls, the staff level, and the two engine encodings `/staff/reports` decodes |
 | `content/news/` | the news posts |
 | `scripts/db-check.mts` | `npm run db:check` |
 | `scripts/vendor-2004-assets.sh` | `npm run assets:vendor` |
@@ -648,7 +810,9 @@ Everything under `lib/` is pure and unit-tested (`lib/**/*.test.ts`); the route
 handlers and components hold no logic worth testing on their own. Two fixture
 files are cross-repo contracts rather than restatements of the code:
 `lib/base37-fixture.json` was generated by running the engine's `JString.ts`,
-and `lib/account/bcrypt-fixture.json` holds a hash from each repo.
+and `lib/account/bcrypt-fixture.json` holds a hash from each repo. A third,
+`lib/account/message-centre-contract.json`, is a byte-for-byte copy of the
+engine's own fixture and is spelled out by hand in `lib/account/contract.test.ts`.
 
 Styling is plain CSS: `app/globals.css` (black, white 13px Arial, and nothing
 else) and CSS modules alongside each component. There is no design system and

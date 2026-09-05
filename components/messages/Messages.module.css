@@ -1,0 +1,215 @@
+/*
+ * The Message Centre, the ticket threads and the staff inbox.
+ *
+ * The furniture is the same on both sides — a list of rows with a subject, a
+ * date and a preview; a thread of messages; a form with a big text box — so
+ * `components/staff/*` imports this stylesheet rather than growing a second
+ * copy that would drift. The forms themselves reuse
+ * `components/account/Account.module.css`, which is already this site's form
+ * stylesheet (`.form`, `.fields`, `.actions`, `.submit`, `.error`, `.note`).
+ *
+ * Nothing here reflows: the layout viewport is pinned to 600px in
+ * `app/layout.tsx`, so the widths are fixed numbers like everywhere else.
+ * `#382418` is the panel border colour from `Frame.module.css` and is used as
+ * the rule between rows; `#ffe139` is the original's yellow.
+ */
+
+/* --- the message and ticket lists --- */
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+}
+
+.item {
+  padding: 6px 2px;
+  border-bottom: 1px solid #382418;
+}
+
+.item:last-child {
+  border-bottom: none;
+}
+
+/* Subject on the left, date hard right, on one line. */
+.itemHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.subject {
+  font-weight: bold;
+}
+
+/* A date must never wrap: "5 September" on one line and "2026" on the next
+   reads as two dates. */
+.when {
+  font-size: 11px;
+  white-space: nowrap;
+  color: #9db8c3;
+}
+
+/* The kind, the status, the unread count: small print under the subject. */
+.meta {
+  font-size: 11px;
+  color: #9db8c3;
+  padding-top: 2px;
+}
+
+.preview {
+  font-size: 12px;
+  padding-top: 3px;
+  /* The SQL already cut this at 160 characters; this stops a single long
+     unbroken word from widening the panel past the 600px viewport. */
+  overflow-wrap: anywhere;
+}
+
+/* An unread row's marker. Bold and yellow, because this list is read by
+   somebody looking for the one row that is new. */
+.new {
+  color: #ffe139;
+  font-weight: bold;
+}
+
+.empty {
+  padding: 8px 0;
+}
+
+/* --- one message, and one thread --- */
+
+.messageHead {
+  text-align: left;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #382418;
+}
+
+/*
+ * A message body is plain text carrying its own newlines, so it is rendered
+ * inside `white-space: pre-wrap` rather than split into paragraphs: that keeps
+ * a player's blank lines and indentation exactly as they typed them, and keeps
+ * the engine's ban notice — which is assembled with hard line breaks — looking
+ * the way the engine wrote it.
+ */
+.body {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  text-align: left;
+  padding: 8px 0;
+}
+
+.thread {
+  text-align: left;
+}
+
+.message {
+  padding: 8px 0;
+  border-bottom: 1px solid #382418;
+}
+
+.message:last-child {
+  border-bottom: none;
+}
+
+/* Who wrote it and when, above the body. */
+.author {
+  font-size: 11px;
+  color: #9db8c3;
+  padding-bottom: 2px;
+}
+
+/* A staff message is the one a player is looking for in a long thread. */
+.fromStaff {
+  color: #ffe139;
+}
+
+/* --- forms --- */
+
+.textarea {
+  width: 100%;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 13px;
+  /* A bug report is four lines: world, time, what you did, what happened. */
+  min-height: 140px;
+  resize: vertical;
+}
+
+.select {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 13px;
+}
+
+/* The live "3900 characters left" under the body box. */
+.counter {
+  font-size: 11px;
+  color: #9db8c3;
+  text-align: right;
+  padding-top: 2px;
+}
+
+.counterOver {
+  color: #e10505;
+}
+
+/* The "what makes a good bug report" hint on /messages/new. */
+.hint {
+  font-size: 11px;
+  text-align: left;
+  padding: 8px 0 0;
+}
+
+.hint ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+}
+
+/* --- tables (the staff inbox and the reports list) --- */
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 12px;
+}
+
+.table th {
+  color: #ffe139;
+  font-weight: normal;
+  padding: 2px 8px 2px 0;
+  border-bottom: 1px solid #382418;
+  white-space: nowrap;
+}
+
+.table td {
+  padding: 3px 8px 3px 0;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
+/* A row waiting on staff: the only ordering the inbox is really for. */
+.awaiting {
+  color: #ffe139;
+}
+
+/* The filter links above the inbox. */
+.filters {
+  padding-bottom: 8px;
+  text-align: left;
+}
+
+.filterCurrent {
+  color: #ffe139;
+  font-weight: bold;
+}
+
+.actionsRow {
+  padding-top: 10px;
+  text-align: left;
+}
+
+.checkbox {
+  padding-top: 8px;
+  text-align: left;
+}

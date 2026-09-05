@@ -1,0 +1,36 @@
+/*
+ * The handful of things the staff pages need that the Message Centre's own
+ * stylesheet does not have. Everything else — the lists, the thread, the
+ * tables, the big text box — comes from
+ * `components/messages/Messages.module.css`, which both sides share on purpose
+ * so the two views of one ticket cannot drift apart.
+ */
+
+/* A username in a table. It must not wrap: `bob_` on one line and `smith` on
+   the next reads as a different player. */
+.name {
+  white-space: nowrap;
+}
+
+/* The reports table has more columns than the inbox and they are all short, so
+   it gets the smaller type rather than a horizontal scrollbar. */
+.tight {
+  font-size: 11px;
+}
+
+/* The "since" box above the reports list. */
+.since {
+  padding-bottom: 8px;
+  text-align: left;
+  font-size: 11px;
+}
+
+/* The close checkbox sits next to its label rather than in the form's
+   two-column grid: it is one control, and a grid row for it would leave a
+   250px gap. */
+.closeRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-top: 8px;
+}

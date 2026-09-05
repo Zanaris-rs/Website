@@ -11,6 +11,8 @@ import frame from "@/components/site/Frame.module.css";
 import Panel from "@/components/site/Panel";
 import TitleBox from "@/components/site/TitleBox";
 import { colourClass } from "@/components/site/colour";
+import { unreadLabel } from "@/lib/messages/format";
+import { isStaff } from "@/lib/staff/level";
 
 import LogoutButton from "./LogoutButton";
 import styles from "./Account.module.css";
@@ -34,9 +36,10 @@ export default function AccountCentre({
   profile: Profile;
   logins: readonly RecentLogin[];
   /**
-   * Unread messages, once Part 3's Message Centre exists. Undefined until
-   * then, and the link simply carries no count — a "(0)" that could never
-   * change would be worse than nothing.
+   * Unread messages, counted by `accounts.unread` — the cross-repo contract
+   * count, the same number the game's welcome screen shows. `undefined` when
+   * that one read failed, which prints no count at all rather than a "0" the
+   * page cannot stand behind.
    */
   unread?: number;
 }) {
@@ -137,7 +140,7 @@ export default function AccountCentre({
                 Message Centre
               </a>
               {unread !== undefined && unread > 0 ? (
-                <span className={frame.yellow}> ({unread} unread)</span>
+                <span className={frame.yellow}> ({unreadLabel(unread)})</span>
               ) : null}
             </li>
             <li>
@@ -145,6 +148,18 @@ export default function AccountCentre({
                 Choose a world and play
               </a>
             </li>
+            {/* The one link on the site that depends on what an account may
+                do, so it is decided from the profile row read on this request
+                and never from the cookie. Hiding it is only cosmetic: /staff
+                redirects, and every staff SQL function re-reads the level for
+                itself. */}
+            {isStaff(profile) ? (
+              <li>
+                <a className={frame.link} href="/staff">
+                  Staff inbox
+                </a>
+              </li>
+            ) : null}
           </ul>
 
           <LogoutButton />
