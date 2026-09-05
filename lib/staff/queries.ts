@@ -114,6 +114,19 @@ export function staffNoticeStatement(
   };
 }
 
+/**
+ * A `since` from the query string, or `null` for "let the function decide".
+ *
+ * An unparseable date is `null` rather than an error: this is a staff tool
+ * with a text box in it, and a typo should show the default week rather than a
+ * 400 the reader has to decode.
+ */
+export function parseSince(raw: string | null | undefined): Date | null {
+  if (typeof raw !== "string" || raw === "") return null;
+  const when = new Date(raw);
+  return Number.isNaN(when.getTime()) ? null : when;
+}
+
 /** `p_since` null means the last week, which the function decides, not this. */
 export function staffReportsStatement(
   actor: string,

@@ -6,6 +6,7 @@ import {
   parseInboxRow,
   parseInboxStatus,
   parseReportRow,
+  parseSince,
   parseStaffNoticeResult,
   parseStaffReplyResult,
   parseStaffThread,
@@ -121,6 +122,20 @@ describe("parseInboxStatus", () => {
       expect(parseInboxStatus(bad)).toBe(DEFAULT_INBOX_STATUS);
     }
     expect(DEFAULT_INBOX_STATUS).toBe("open");
+  });
+});
+
+describe("parseSince", () => {
+  it("reads an ISO date", () => {
+    expect(parseSince("2026-09-01T00:00:00.000Z")?.toISOString()).toBe(
+      "2026-09-01T00:00:00.000Z",
+    );
+  });
+
+  it("is null for absent or unparseable, so the function's week applies", () => {
+    for (const bad of [null, undefined, "", "yesterday", "2026-13-45"]) {
+      expect(parseSince(bad), String(bad)).toBeNull();
+    }
   });
 });
 
