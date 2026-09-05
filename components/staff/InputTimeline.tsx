@@ -38,11 +38,17 @@ const REPORT = "#e10505";
 const AXIS = "#6b6b6b";
 const UNFOCUSED = "#570700";
 
-function hhmm(at: number): string {
+/**
+ * The axis labels. Seconds appear for a capture short enough that three marks
+ * would otherwise all read as the same minute — a two-minute ring dump is
+ * exactly what a report that arrived quickly looks like.
+ */
+function clock(at: number, withSeconds: boolean): string {
   const when = new Date(at);
   const hours = String(when.getUTCHours()).padStart(2, "0");
   const minutes = String(when.getUTCMinutes()).padStart(2, "0");
-  return `${hours}:${minutes}`;
+  if (!withSeconds) return `${hours}:${minutes}`;
+  return `${hours}:${minutes}:${String(when.getUTCSeconds()).padStart(2, "0")}`;
 }
 
 export default function InputTimeline({
@@ -65,6 +71,7 @@ export default function InputTimeline({
   }
 
   const span = to - from;
+  const seconds = span < 10 * 60_000;
   const x = (at: number) =>
     PAD + ((at - from) / span) * (WIDTH - PAD * 2);
 
@@ -133,7 +140,7 @@ export default function InputTimeline({
         className={styles.timeline}
         viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
         role="img"
-        aria-label={`Input timeline: ${clicks.length} clicks between ${hhmm(from)} and ${hhmm(to)} UTC`}
+        aria-label={`Input timeline: ${clicks.length} clicks between ${clock(from, seconds)} and ${clock(to, seconds)} UTC`}
       >
         {unfocused.map((span_, index) => (
           <rect
@@ -205,7 +212,7 @@ export default function InputTimeline({
             textAnchor={mark.anchor}
             fontFamily="Helvetica, Arial, sans-serif"
           >
-            {hhmm(mark.at)}
+            {clock(mark.at, seconds)}
           </text>
         ))}
 

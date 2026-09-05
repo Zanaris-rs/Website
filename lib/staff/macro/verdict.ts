@@ -134,6 +134,11 @@ function count(value: number | null): string {
   return value === null ? "—" : `${value}`;
 }
 
+/** "1 click", "2 clicks": a table that says "1 clicks" reads as a machine wrote it. */
+function plural(n: number, one: string, many = `${one}s`): string {
+  return `${n} ${n === 1 ? one : many}`;
+}
+
 /** A signal reads high when a big number is the machine-like one. */
 function levelHigh(
   value: number | null,
@@ -210,7 +215,7 @@ export function adjudicate(
       family: "timing",
       level: levelLow(metrics.idleGapCv, THRESHOLDS.idleGapCv),
       value: ratio(metrics.idleGapCv),
-      detail: `Spread of the gaps longer than five seconds. ${metrics.idleGaps} in this capture.`,
+      detail: `Spread of the gaps longer than five seconds. ${plural(metrics.idleGaps, "gap")} in this capture.`,
       falsePositive:
         "A player who pauses for the same reason every time — a bank run, a respawn, a kiln — pauses regularly. Breaks that are identical *and* clicks that are identical is the pair that matters.",
       counted: true,
@@ -224,7 +229,7 @@ export function adjudicate(
       family: "spatial",
       level: levelHigh(metrics.samePixelShare, THRESHOLDS.samePixelShare),
       value: percent(metrics.samePixelShare),
-      detail: `Clicks landing on a pixel another click already used. ${metrics.distinctPositions} distinct positions in ${metrics.clicks} clicks.`,
+      detail: `Clicks landing on a pixel another click already used. ${plural(metrics.distinctPositions, "distinct position")} in ${plural(metrics.clicks, "click")}.`,
       falsePositive:
         "A fixed interface target — the bank's Deposit button, a spell in the book — is honestly the same pixel every time, and a player who never moves the game window will hit it again and again.",
       counted: spatialWithheld === null,
@@ -235,7 +240,7 @@ export function adjudicate(
       family: "spatial",
       level: levelLow(metrics.cellSd, THRESHOLDS.cellSd),
       value: pixels(metrics.cellSd),
-      detail: `How far the clicks inside the most-used 16 px square sit from its centre. ${metrics.cellClicks} clicks in it.`,
+      detail: `How far the clicks inside the most-used 16 px square sit from its centre. ${plural(metrics.cellClicks, "click")} in it.`,
       falsePositive:
         "A small target leaves a person little room to vary, and a steady hand on a trackball is genuinely tight. Zero is the number no hand produces.",
       counted: spatialWithheld === null,
@@ -257,7 +262,7 @@ export function adjudicate(
       family: "spatial",
       level: levelLow(metrics.movesPerClick, THRESHOLDS.movesPerClick),
       value: ratio(metrics.movesPerClick),
-      detail: `How much the mouse moved between clicks. ${metrics.moveSamples} samples in ${metrics.clicks} clicks.`,
+      detail: `How much the mouse moved between clicks. ${plural(metrics.moveSamples, "sample")} in ${plural(metrics.clicks, "click")}.`,
       falsePositive:
         "A touchscreen has no cursor between taps at all, and a player clicking one spot over and over genuinely does not move the mouse. This is the signal the touch cap exists for.",
       counted: spatialWithheld === null,
@@ -305,7 +310,7 @@ export function adjudicate(
             ? "human-like"
             : "insufficient",
       value: count(metrics.unfocusedClicks),
-      detail: `Clicks the client reported while the applet did not have focus. ${metrics.focusChanges} focus changes in the capture.`,
+      detail: `Clicks the client reported while the applet did not have focus. ${plural(metrics.focusChanges, "focus change")} in the capture.`,
       falsePositive:
         "The applet reports its own focus, not the desktop's: a notification that steals focus and gives it back can land one click on the wrong side of the line. One is a coincidence. A session of them is a program clicking a window nobody is looking at.",
       counted: true,

@@ -72,6 +72,11 @@ function millis(iso: string | null): number | null {
   return Number.isNaN(at) ? null : at;
 }
 
+/** "1 line", "2 lines" — a page that says "1 lines" reads as a machine wrote it. */
+function plural(n: number, one: string, many = `${one}s`): string {
+  return `${n} ${n === 1 ? one : many}`;
+}
+
 /** "1 hour 5 minutes", for a window nobody wants to subtract by hand. */
 function duration(ms: number | null): string {
   if (ms === null || ms <= 0) return "—";
@@ -237,7 +242,7 @@ export default function StaffReportDetail({
                   ? report.uuid === ""
                     ? "None. This report predates evidence capture."
                     : "None kept. Either the offender was on another world, or the evidence has been deleted."
-                  : `${input.length} chunks (${stream.ringChunks} from the ring, ${stream.liveChunks} live), ${metrics.clicks} clicks and ${metrics.moveSamples} cursor samples over ${duration(metrics.durationMs)}`}
+                  : `${plural(input.length, "chunk")} (${stream.ringChunks} from the ring, ${stream.liveChunks} live), ${plural(metrics.clicks, "click")} and ${plural(metrics.moveSamples, "cursor sample")} over ${duration(metrics.durationMs)}`}
               </td>
             </tr>
             <tr>
@@ -246,11 +251,11 @@ export default function StaffReportDetail({
             </tr>
             <tr>
               <th>Chat</th>
-              <td>{chat.length} lines kept</td>
+              <td>{plural(chat.length, "line")} kept</td>
             </tr>
             <tr>
               <th>Wealth</th>
-              <td>{wealth.length} events in the window</td>
+              <td>{plural(wealth.length, "event")} in the window</td>
             </tr>
           </tbody>
         </table>
