@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   PASSWORD_MAX,
   PASSWORD_MIN,
+  canonicalizeUsername,
   validatePassword,
   validateUsername,
 } from "./validation";
@@ -116,5 +117,43 @@ describe("validatePassword", () => {
 
   it("does not care about case, because the hash will not", () => {
     expect(validatePassword("HUNTER22")).toMatchObject({ ok: true });
+  });
+});
+
+describe("canonicalizeUsername, the login rule", () => {
+  it("canonicalises exactly like validateUsername", () => {
+    for (const raw of ["Bob Smith", "bob_", "  Zezima  ", "A"]) {
+      expect(canonicalizeUsername(raw)).toEqual(validateUsername(raw));
+    }
+  });
+
+  it("applies the same format and encodability rules", () => {
+    expect(canonicalizeUsername("bob!")).toEqual({
+      ok: false,
+      error: "username_format",
+    });
+    expect(canonicalizeUsername("_")).toEqual({
+      ok: false,
+      error: "username_unencodable",
+    });
+  });
+
+  it("lets the reserved names through, because staff have to log in", () => {
+    // `mod_ash` is a name nobody may register and an account somebody has:
+    // refusing it here would lock the staff out of their own account centre.
+    expect(canonicalizeUsername("mod_ash")).toEqual({
+      ok: true,
+      value: "mod_ash",
+    });
+    expect(validateUsername("mod_ash")).toEqual({
+      ok: false,
+      error: "username_reserved",
+    });
+
+    expect(canonicalizeUsername("Admin")).toEqual({ ok: true, value: "admin" });
+    expect(validateUsername("Admin")).toEqual({
+      ok: false,
+      error: "username_reserved",
+    });
   });
 });

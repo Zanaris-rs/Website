@@ -52,7 +52,7 @@ export type Validated<T, E> =
  * `bob_smith` and `bob_` becomes `bob`, so the caller must show the result
  * before the player commits to it.
  */
-export function validateUsername(
+export function canonicalizeUsername(
   raw: string,
 ): Validated<string, UsernameError> {
   const trimmed = raw.trim();
@@ -66,6 +66,24 @@ export function validateUsername(
     return { ok: false, error: "username_unencodable" };
   }
 
+  return { ok: true, value: username };
+}
+
+/**
+ * Canonicalise **and** refuse the reserved names. This is the registration
+ * rule; logging in uses `canonicalizeUsername` above.
+ *
+ * The split matters: `mod_ash` is a name nobody may create, and also the name
+ * of a real staff account that has to be able to sign in. A single function
+ * doing both jobs locks the staff out of their own account centre.
+ */
+export function validateUsername(
+  raw: string,
+): Validated<string, UsernameError> {
+  const canonical = canonicalizeUsername(raw);
+  if (!canonical.ok) return canonical;
+
+  const username = canonical.value;
   if (RESERVED.has(username) || username.startsWith(RESERVED_PREFIX)) {
     return { ok: false, error: "username_reserved" };
   }
