@@ -105,14 +105,15 @@ async function main(): Promise<void> {
     "public.ticket_message",
     "public.staff_action",
     "public.report",
-    // 4_evidence_and_records' public trio. These are the tables behind /bans
-    // and /economy, and the site reads all three — but only through the
+    // 4_evidence_and_records' public four. These are the tables behind /bans
+    // and /economy, and the site reads all of them — but only through the
     // `public_*` functions, which return the public columns and nothing else.
     // A direct grant here would hand the site `punishment.issued_by_account_id`,
     // which is the one column the whole feature exists to keep private.
     "public.punishment",
     "public.staff_spawn",
     "public.economy_snapshot",
+    "public.economy_flow",
   ]) {
     try {
       await query(`select 1 from ${table} limit 1`);
