@@ -3,7 +3,7 @@ import {
   messagesStatement,
   parseMessageSummary,
 } from "@/lib/messages/queries";
-import { readSession } from "@/lib/account/session-server";
+import { requireLiveSession } from "@/lib/account/session-server";
 import { isConfigured, query } from "@/lib/db";
 
 /**
@@ -21,6 +21,10 @@ import { isConfigured, query } from "@/lib/db";
  *
  * `no-store`, like everything else that reads a cookie: a cached copy is one
  * player's inbox served to the next.
+ *
+ * The cookie is checked against the database rather than just verified, so a
+ * password changed on another device closes this inbox too — see
+ * `requireLiveSession`.
  */
 
 export const runtime = "nodejs";
@@ -32,13 +36,15 @@ function fail(error: string, status: number): Response {
 }
 
 export async function GET() {
-  const session = await readSession();
-  if (!session) return fail("session_expired", 401);
+  const live = await requireLiveSession();
+  if (live.status !== "ok") {
+    return fail(live.refusal.error, live.refusal.status);
+  }
 
   if (!isConfigured()) return fail("unavailable", 503);
 
   try {
-    const statement = messagesStatement(session.u);
+    const statement = messagesStatement(live.profile.username);
     const rows = await query<Record<string, unknown>>(
       statement.text,
       statement.values,

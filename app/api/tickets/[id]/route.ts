@@ -1,4 +1,4 @@
-import { readSession } from "@/lib/account/session-server";
+import { requireLiveSession } from "@/lib/account/session-server";
 import {
   parseId,
   parseThread,
@@ -13,6 +13,10 @@ import { isConfigured, query } from "@/lib/db";
  * `accounts.ticket_thread` marks that ticket's `reply` notices read as the
  * thread is opened, so the unread count the game shows goes down when the
  * player actually reads the reply and not before.
+ *
+ * Which is also why the cookie is checked against the database first
+ * (`requireLiveSession`) rather than merely verified: a cookie revoked by a
+ * password change must not be able to clear anybody's unread flags.
  *
  * A ticket that is not this account's returns no rows, exactly as one that
  * does not exist does — so this answers 404 without ever telling a caller
@@ -31,8 +35,10 @@ export async function GET(
   _request: Request,
   context: RouteContext<"/api/tickets/[id]">,
 ) {
-  const session = await readSession();
-  if (!session) return fail("session_expired", 401);
+  const live = await requireLiveSession();
+  if (live.status !== "ok") {
+    return fail(live.refusal.error, live.refusal.status);
+  }
 
   const { id: raw } = await context.params;
   const id = parseId(raw);
@@ -41,7 +47,7 @@ export async function GET(
   if (!isConfigured()) return fail("unavailable", 503);
 
   try {
-    const statement = ticketThreadStatement(session.u, id);
+    const statement = ticketThreadStatement(live.profile.username, id);
     const rows = await query<Record<string, unknown>>(
       statement.text,
       statement.values,

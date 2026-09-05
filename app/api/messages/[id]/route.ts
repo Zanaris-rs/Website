@@ -3,7 +3,7 @@ import {
   parseId,
   parseMessageDetail,
 } from "@/lib/messages/queries";
-import { readSession } from "@/lib/account/session-server";
+import { requireLiveSession } from "@/lib/account/session-server";
 import { isConfigured, query } from "@/lib/db";
 
 /**
@@ -16,6 +16,10 @@ import { isConfigured, query } from "@/lib/db";
  * this route is `no-store` and why it must never become cacheable: a cached
  * copy would be a message that never gets marked read, and a player whose
  * in-game unread count never goes down.
+ *
+ * The cookie is checked against the database first (`requireLiveSession`):
+ * this GET writes, and a revoked cookie must not be able to mark anything
+ * read.
  *
  * A message belonging to somebody else and a message that does not exist are
  * the same 404. The function resolves the username to an account id and
@@ -35,8 +39,10 @@ export async function GET(
   _request: Request,
   context: RouteContext<"/api/messages/[id]">,
 ) {
-  const session = await readSession();
-  if (!session) return fail("session_expired", 401);
+  const live = await requireLiveSession();
+  if (live.status !== "ok") {
+    return fail(live.refusal.error, live.refusal.status);
+  }
 
   const { id: raw } = await context.params;
   const id = parseId(raw);
@@ -45,7 +51,7 @@ export async function GET(
   if (!isConfigured()) return fail("unavailable", 503);
 
   try {
-    const statement = messageStatement(session.u, id);
+    const statement = messageStatement(live.profile.username, id);
     const rows = await query<Record<string, unknown>>(
       statement.text,
       statement.values,

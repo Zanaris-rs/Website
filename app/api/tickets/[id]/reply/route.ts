@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 
 import { assertSameOrigin } from "@/lib/account/origin";
-import { readSession } from "@/lib/account/session-server";
+import { requireLiveSession } from "@/lib/account/session-server";
 import { validateBody } from "@/lib/messages/format";
 import {
   parseId,
@@ -27,6 +27,9 @@ import { isConfigured, query } from "@/lib/db";
  *   `from_staff = false` rows only.
  * - `invalid` (400) — an empty or over-long body, which the check here has
  *   almost always caught first with a sentence that names the field.
+ *
+ * Before any of them, `requireLiveSession` re-reads the account: a cookie
+ * minted before a password change cannot write into a ticket.
  */
 
 export const runtime = "nodejs";
@@ -50,8 +53,10 @@ export async function POST(
     return fail("bad_request", 400);
   }
 
-  const session = await readSession();
-  if (!session) return fail("session_expired", 401);
+  const live = await requireLiveSession();
+  if (live.status !== "ok") {
+    return fail(live.refusal.error, live.refusal.status);
+  }
 
   if (!assertSameOrigin(request.headers)) {
     console.warn("[tickets] refused: cross-origin reply");
@@ -70,7 +75,11 @@ export async function POST(
   if (!isConfigured()) return fail("unavailable", 503);
 
   try {
-    const statement = ticketReplyStatement(session.u, id, text.value);
+    const statement = ticketReplyStatement(
+      live.profile.username,
+      id,
+      text.value,
+    );
     const rows = await query<{ result: unknown }>(
       statement.text,
       statement.values,
