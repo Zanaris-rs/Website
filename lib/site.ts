@@ -36,8 +36,13 @@ export const RULES_UPDATED = "5th September 2026";
 /**
  * Where a player is sent to reach a human.
  *
- * TODO: the owner has not supplied a contact link (Discord invite, email or
- * forum thread). Until then this points at the Message Centre, which Part 3
- * turns into a real two-way inbox.
+ * The Message Centre, and no longer a placeholder for one: a signed-in player
+ * can open a ticket there and a moderator answers it from `/staff`, so this is
+ * a real address rather than a page that says "soon". If the owner ever
+ * supplies a Discord invite or a forum thread as well, this is the constant
+ * that moves and every page follows it.
  */
-export const STAFF_CONTACT = { label: "the staff", href: "/messages" };
+export const STAFF_CONTACT = {
+  label: "the Message Centre",
+  href: "/messages",
+};
