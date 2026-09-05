@@ -50,6 +50,40 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      // Nothing signed in may be framed. `SameSite=Lax` keeps the session
+      // cookie out of a frame on *another* site, but not out of one on a
+      // sibling host: `www.zanaris.rs` and the `*.04.zanaris.rs` worlds are
+      // same-site, so a page there framing `https://zanaris.rs/account` gets
+      // the cookie sent with it. That is a signed-in account centre inside
+      // somebody else's layout, which is one invisible frame away from a
+      // reader pressing "Change email", or a moderator pressing a staff
+      // control, without seeing what they pressed. Neither Lax nor the Origin
+      // check on the POST prevents the click; this does.
+      //
+      // `frame-ancestors 'none'` rather than `X-Frame-Options: DENY`: it is
+      // the header that is actually specified, it covers every ancestor rather
+      // than just the parent, and it cannot be overridden by a `<meta>` tag.
+      //
+      // The public half of the site is deliberately left framable: /worldmap,
+      // /hiscores and the news pages are things people embed, and there is no
+      // cookie behind them to abuse. Both the bare path and the subtree are
+      // listed because they are two matches, not one.
+      ...[
+        "/account",
+        "/account/:path*",
+        "/messages",
+        "/messages/:path*",
+        "/staff",
+        "/staff/:path*",
+      ].map((source) => ({
+        source,
+        headers: [
+          {
+            key: "Content-Security-Policy",
+            value: "frame-ancestors 'none'",
+          },
+        ],
+      })),
     ];
   },
 };

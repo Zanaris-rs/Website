@@ -45,7 +45,10 @@ export default function StaffThread({ ticket }: { ticket: Thread }) {
           </div>
           {owner === "" ? null : (
             <div className={styles.meta}>
-              <a className={frame.link} href={`/hiscores/player/${owner}`}>
+              <a
+                className={frame.link}
+                href={`/hiscores/player/${encodeURIComponent(owner)}`}
+              >
                 Hiscores for {toDisplayName(owner)}
               </a>
             </div>

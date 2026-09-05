@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 
 import { assertSameOrigin } from "@/lib/account/origin";
-import { readSession } from "@/lib/account/session-server";
+import { requireLiveSession } from "@/lib/account/session-server";
 import {
   isTicketKind,
   validateBody,
@@ -35,6 +35,10 @@ import { isConfigured, query } from "@/lib/db";
  * The one thing this side cannot pre-empt is the daily cap, because only the
  * database knows how many tickets today has had. `rate_limited` comes back as
  * a 429 with the number in the message.
+ *
+ * Both handlers check the cookie against the database (`requireLiveSession`),
+ * so a password changed on another device revokes this one before either the
+ * list or the open runs.
  */
 
 export const runtime = "nodejs";
@@ -46,13 +50,15 @@ function fail(error: string, status: number): Response {
 }
 
 export async function GET() {
-  const session = await readSession();
-  if (!session) return fail("session_expired", 401);
+  const live = await requireLiveSession();
+  if (live.status !== "ok") {
+    return fail(live.refusal.error, live.refusal.status);
+  }
 
   if (!isConfigured()) return fail("unavailable", 503);
 
   try {
-    const statement = ticketsStatement(session.u);
+    const statement = ticketsStatement(live.profile.username);
     const rows = await query<Record<string, unknown>>(
       statement.text,
       statement.values,
@@ -82,8 +88,10 @@ export async function POST(request: NextRequest) {
     return fail("bad_request", 400);
   }
 
-  const session = await readSession();
-  if (!session) return fail("session_expired", 401);
+  const live = await requireLiveSession();
+  if (live.status !== "ok") {
+    return fail(live.refusal.error, live.refusal.status);
+  }
 
   if (!assertSameOrigin(request.headers)) {
     console.warn("[tickets] refused: cross-origin POST");
@@ -102,7 +110,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const statement = ticketOpenStatement(
-      session.u,
+      live.profile.username,
       body.kind,
       subject.value,
       text.value,
