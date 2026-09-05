@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import {
   DEFAULT_INBOX_STATUS,
   RESOLUTIONS,
+  chatTotal,
+  type ChatRow,
   INBOX_STATUSES,
   parseInboxRow,
   parseInboxStatus,
@@ -541,6 +543,9 @@ describe("the evidence row parsers", () => {
         to_username: null,
         coord: 50331648,
         message: "inside the before window",
+        // `count(*) OVER ()`: the same number on every row of the answer, and
+        // the only way the page can tell 2000 lines from all of them.
+        total: 3,
       }),
     ).toEqual({
       at: "2026-09-05T12:21:41.000Z",
@@ -548,8 +553,36 @@ describe("the evidence row parsers", () => {
       toUsername: "",
       coord: 50331648,
       message: "inside the before window",
+      total: 3,
     });
     expect(parseChatRow({ kind: "public" })).toBeNull();
+  });
+
+  it("counts the lines there were, not the lines that arrived", () => {
+    const line = (message: string, total: number) =>
+      parseChatRow({
+        at: new Date("2026-09-05T12:21:41.000Z"),
+        kind: "public",
+        to_username: null,
+        coord: 0,
+        message,
+        total,
+      }) as ChatRow;
+
+    expect(chatTotal([line("a", 2000), line("b", 2000)])).toBe(2000);
+    // Nothing to be short of: the count rides on the rows.
+    expect(chatTotal([])).toBe(0);
+    // And a function that did not send the column must not make a complete
+    // page claim to be partial.
+    expect(
+      chatTotal([
+        parseChatRow({
+          at: new Date("2026-09-05T12:21:41.000Z"),
+          kind: "public",
+          message: "no total",
+        }) as ChatRow,
+      ]),
+    ).toBe(1);
   });
 
   it("passes an item list through as the engine's own JSON", () => {

@@ -508,6 +508,17 @@ export type ChatRow = {
   readonly toUsername: string;
   readonly coord: number | null;
   readonly message: string;
+  /**
+   * How many lines the function found before its `LIMIT 2000` — a
+   * `count(*) OVER ()`, so it is the same number on every row of the answer.
+   *
+   * It is on the row rather than beside the list because that is where the
+   * function puts it: there is no second statement and no second count over a
+   * table this one has already read. A talkative offender in a long window is
+   * exactly the report where the page must not present the first two thousand
+   * lines as all of them.
+   */
+  readonly total: number;
 };
 
 export function parseChatRow(row: unknown): ChatRow | null {
@@ -522,7 +533,21 @@ export function parseChatRow(row: unknown): ChatRow | null {
     toUsername: asString(r.to_username),
     coord: asNumber(r.coord),
     message: asString(r.message),
+    total: asCount(r.total),
   };
+}
+
+/**
+ * How many lines there were, against how many came back.
+ *
+ * Zero rows is zero lines: the count rides on the rows, so an empty answer
+ * carries no number and there is nothing to be short of. And a `total` the
+ * function did not send reads as 0, which `Math.max` turns into "as many as
+ * arrived" — a missing column must not make a complete page claim to be
+ * partial.
+ */
+export function chatTotal(chat: readonly ChatRow[]): number {
+  return Math.max(chat.length, chat[0]?.total ?? 0);
 }
 
 /**

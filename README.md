@@ -556,6 +556,14 @@ for the window into `report_chat`, and `session_wealth` — kept seven days for
 everybody — supplies what changed hands. `/staff/reports/<id>` is where a
 moderator reads all of it.
 
+Two of those reads have a ceiling, and the page says so rather than looking
+complete. `staff_report_input` returns at most 200 chunks against a count the
+report row carries; `staff_report_chat` returns at most 2,000 lines and a
+`total` column — a `count(*) OVER ()`, so it is on every row — against which
+the page prints "showing N of M lines". Everything below a partial read,
+including the verdict, is computed from what came back, and a moderator about
+to ban somebody must never be shown part of the evidence as the whole of it.
+
 ### The decoder
 
 `lib/staff/macro/decode.ts` is **the only thing anywhere that reads

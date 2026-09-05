@@ -18,11 +18,12 @@ import {
   wealthEventLabel,
   worldLabel,
 } from "@/lib/staff/format";
-import type {
-  ChatRow,
-  InputChunkRow,
-  ReportDetail,
-  WealthRow,
+import {
+  chatTotal,
+  type ChatRow,
+  type InputChunkRow,
+  type ReportDetail,
+  type WealthRow,
 } from "@/lib/staff/queries";
 
 import InputTimeline from "./InputTimeline";
@@ -144,6 +145,12 @@ export default function StaffReportDetail({
   // below — the verdict included — is computed from what came back, and a
   // partial capture must never be presented as the whole of it.
   const partial = input.length < report.inputChunks;
+  // `staff_report_chat` is capped at 2000 rows and returns the count it found
+  // before the cap on every row, for the same reason: a talkative offender in
+  // a long window arrives short, and the transcript below must not read as the
+  // whole of what was said.
+  const lines = chatTotal(chat);
+  const chatPartial = chat.length < lines;
   const chunks = partial
     ? `${input.length} of ${plural(report.inputChunks, "chunk")}`
     : plural(input.length, "chunk");
@@ -291,7 +298,11 @@ export default function StaffReportDetail({
             </tr>
             <tr>
               <th>Chat</th>
-              <td>{plural(chat.length, "line")} kept</td>
+              <td>
+                {chatPartial
+                  ? `showing ${chat.length} of ${plural(lines, "line")} kept`
+                  : `${plural(chat.length, "line")} kept`}
+              </td>
             </tr>
             <tr>
               <th>Wealth</th>
@@ -393,6 +404,13 @@ export default function StaffReportDetail({
         <div className={account.heading}>
           <b>What they said</b>
         </div>
+
+        {chatPartial ? (
+          <p className={account.error}>
+            Showing the first {chat.length} of {plural(lines, "line")} kept. The
+            rest were not loaded — the read stops at 2,000 lines.
+          </p>
+        ) : null}
 
         {chat.length === 0 ? (
           <p className={messages.empty}>
