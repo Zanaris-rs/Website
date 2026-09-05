@@ -39,6 +39,15 @@ const TIMEOUT_MS = 5_000;
 export const TURNSTILE_ACTION = "signup";
 
 /**
+ * The action the **login** widget carries. Separate from `signup` on purpose:
+ * a token solved on the register page is not consent to attempt a login, and
+ * the login endpoint is the one with a rate limiter behind it.
+ * `components/account/LoginForm.tsx` imports this constant rather than
+ * spelling the string again.
+ */
+export const TURNSTILE_LOGIN_ACTION = "login";
+
+/**
  * Hostnames a challenge may legitimately have been solved on.
  *
  * The two live ones, the two local ones (`npm run dev`), and our own Vercel
