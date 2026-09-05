@@ -185,6 +185,26 @@ async function main(): Promise<void> {
     process.exitCode = 1;
   }
 
+  // The account centre's other read. Nothing here inspects the columns — the
+  // point is the shape: `recent_logins` is the one function whose signature
+  // takes three arguments, and a limit that had become `smallint`, or a
+  // `RETURNS TABLE` that had lost a column, would fail here rather than on the
+  // page. Ten is what `lib/account/profile.ts` asks for.
+  const logins = await query(
+    "select * from accounts.recent_logins($1, $2, $3)",
+    ["__db_check__", "main", 10],
+  );
+  if (logins.length === 0) {
+    console.log(
+      "accounts.recent_logins('__db_check__', 'main', 10): 0 rows (expected)",
+    );
+  } else {
+    console.error(
+      `FAIL: recent_logins returned ${logins.length} rows for a name nobody has.`,
+    );
+    process.exitCode = 1;
+  }
+
   await checkMessageCentre();
 }
 
