@@ -1,22 +1,10 @@
-:root {
-  /* Dark, slightly warm ground with parchment and gold on top: 2004 RuneScape
-     without pulling in any webfont or hosted asset. */
-  --bg: #14110c;
-  --bg-panel: #1e1a12;
-  --bg-row: #241f16;
-  --border: #4a3f27;
-  --border-soft: #332c1d;
-  --parchment: #efe3c2;
-  --muted: #bcae88;
-  --gold: #ffcc33;
-  --gold-soft: #e0b23c;
-  --offline: #e8a081;
-
-  --font-body: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
-    Helvetica, Arial, sans-serif;
-
-  color-scheme: dark;
-}
+/*
+ * The whole site is the 2004 page chrome now, so there is no modern palette
+ * left to declare: black behind everything, white 13px Arial on top, and the
+ * rest comes from `components/site/*.module.css` and the image kit in
+ * `public/img`. That is the original's `<body bgcolor=black text=white>` plus
+ * its one-line stylesheet, and nothing else.
+ */
 
 *,
 *::before,
@@ -34,28 +22,17 @@ body {
 
 body {
   min-height: 100dvh;
-  background-color: var(--bg);
-  background-image: radial-gradient(
-    ellipse 80% 60% at 50% 0%,
-    #241d12 0%,
-    var(--bg) 70%
-  );
-  color: var(--parchment);
-  font-family: var(--font-body);
-  line-height: 1.55;
-  -webkit-font-smoothing: antialiased;
+  background: #000;
+  color: #fff;
+  font: 13px Arial, Helvetica, sans-serif;
 }
 
+/* `<body link=#90c040 alink=#90c040 vlink=#90c040>`. */
 a {
-  color: var(--gold);
-}
-
-a:hover {
-  color: #ffe08a;
+  color: #90c040;
 }
 
 :focus-visible {
-  outline: 2px solid var(--gold);
-  outline-offset: 3px;
-  border-radius: 2px;
+  outline: 2px solid #90c040;
+  outline-offset: 2px;
 }

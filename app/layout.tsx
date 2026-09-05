@@ -32,9 +32,13 @@ function siteUrl(): URL {
 
 export const metadata: Metadata = {
   metadataBase: siteUrl(),
-  title: "Zanaris",
+  // Every page below sets a bare title and gets the suffix from the template;
+  // a page that wants the whole tab to itself (the disclaimer, the title
+  // screen) sets `title: { absolute: … }`. Nothing hardcodes " | Zanaris"
+  // any more, because a template plus a hardcoded suffix doubles it.
+  title: { default: "Zanaris", template: "%s | Zanaris" },
   description:
-    "A Lost City (2004scape) server. Pick a world and play in your browser.",
+    "A free Lost City (2004scape) server. Play RuneScape as it was in 2004, in your browser.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
