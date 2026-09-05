@@ -206,3 +206,25 @@
     width: 76px;
   }
 }
+
+/* --- disclaimer --- */
+
+/* The original's `<hr>`, which inherited the page's brown border colour. */
+.rule {
+  border: none;
+  border-top: 1px solid #382418;
+  margin: 10px 0;
+}
+
+.buttons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 6px 0 2px;
+}
+
+.lead {
+  padding: 4px 0 8px;
+}
