@@ -5,10 +5,14 @@ import { ORIGINAL_RULES } from "@/lib/rules/original";
 import {
   FIRST_REPORT_REASON,
   LAST_REPORT_REASON,
+  chatKindLabel,
   coordLabel,
+  punishmentUntilLabel,
   reportReasonLabel,
   reporterLabel,
+  resolutionLabel,
   unpackCoord,
+  wealthEventLabel,
   worldLabel,
 } from "./format";
 
@@ -98,5 +102,51 @@ describe("the two nullable columns", () => {
     expect(worldLabel(null)).toBe("unknown");
     expect(reporterLabel("bob_smith")).toBe("bob_smith");
     expect(reporterLabel("")).toBe("unknown");
+  });
+});
+
+describe("wealthEventLabel", () => {
+  it("is zero-based on the engine's WealthEventType", () => {
+    // TRADE = 0 and PARTY_ROOM = 10. An off-by-one here would show a trade as
+    // a player kill on a page somebody bans an account from.
+    expect(wealthEventLabel(0)).toBe("Trade");
+    expect(wealthEventLabel(1)).toBe("Player kill");
+    expect(wealthEventLabel(10)).toBe("Party room");
+  });
+
+  it("shows a number it does not know as itself, never as a wrong label", () => {
+    expect(wealthEventLabel(11)).toBe("Event 11");
+    expect(wealthEventLabel(-1)).toBe("Event -1");
+    expect(wealthEventLabel(null)).toBe("unknown");
+    expect(wealthEventLabel(1.5)).toBe("unknown");
+  });
+});
+
+describe("resolutionLabel", () => {
+  it("calls a report with no resolution open", () => {
+    expect(resolutionLabel(null)).toBe("Open");
+    expect(resolutionLabel("")).toBe("Open");
+  });
+
+  it("names the three the function accepts", () => {
+    expect(resolutionLabel("actioned")).toBe("Actioned");
+    expect(resolutionLabel("dismissed")).toBe("Dismissed");
+    expect(resolutionLabel("watch")).toBe("Watching");
+  });
+
+  it("passes a resolution it does not know through", () => {
+    expect(resolutionLabel("escalated")).toBe("escalated");
+  });
+});
+
+describe("the evidence vocabulary", () => {
+  it("separates a public line from a private one", () => {
+    expect(chatKindLabel("public")).toBe("Public");
+    expect(chatKindLabel("private_sent")).toBe("Private");
+  });
+
+  it("says permanent, which is not the same as unknown", () => {
+    expect(punishmentUntilLabel(null)).toBe("permanent");
+    expect(punishmentUntilLabel("12 Sep 2026")).toBe("until 12 Sep 2026");
   });
 });
