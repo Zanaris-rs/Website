@@ -47,9 +47,10 @@
 # genuine duplicates in the cache (`bolt` and `bolts`) carry their whole
 # debugname, because neither adds a word the other does not.
 #
-# Of the 3883 names written, 2331 are exactly what the game shows (plus
-# "(noted)" for a note) and 1552 carry a qualifier. The script prints
-# "labels shared: 0" when every id has ended up with a label of its own, which
+# How the split falls is printed by the run rather than written down here —
+# "as the game names it" against "qualified by debugname" — because a content
+# bump moves those two numbers and a comment cannot move with them. What is
+# fixed is "labels shared: 0": every id ends up with a label of its own, which
 # is the property `lib/items/names.test.ts` also asserts.
 #
 # Re-run after a content bump and commit the result.
@@ -189,11 +190,18 @@ const lines = Object.entries(names).map(
 fs.writeFileSync(out, `{\n${lines.join(',\n')}\n}\n`);
 
 const duplicates = items.length - new Set(Object.values(names)).size;
-console.log(`ids in obj.pack:   ${debugnames.size}`);
-console.log(`obj configs read:  ${configs.size}`);
-console.log(`names written:     ${items.length}`);
-console.log(`unnamed (skipped): ${debugnames.size - items.length}`);
-console.log(`labels shared:     ${duplicates} (expect 0)`);
+// `qualifier` is set only for an object whose name another id also answers to,
+// so counting it here is exact. Counting brackets in the finished labels is
+// not: plenty of 2004 names end in one of their own.
+const qualified = items.filter((item) => item.qualifier).length;
+
+console.log(`ids in obj.pack:    ${debugnames.size}`);
+console.log(`obj configs read:   ${configs.size}`);
+console.log(`names written:      ${items.length}`);
+console.log(`unnamed (skipped):  ${debugnames.size - items.length}`);
+console.log(`as the game names:  ${items.length - qualified}`);
+console.log(`qualified:          ${qualified}`);
+console.log(`labels shared:      ${duplicates} (expect 0)`);
 console.log(`wrote ${out}`);
 JS
 
