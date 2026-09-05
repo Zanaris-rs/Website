@@ -22,10 +22,19 @@ export const revalidate = 300;
  * past the end of the record is a 404, because it is a URL that does not name
  * anything. An *empty record* is not: `/bans` renders its own "nothing yet"
  * state, and only page 2 and up can be past the end.
+ *
+ * The segment has to *look* like a page number as well as parse as one.
+ * `Number` accepts `2.0`, `0x2`, ` 2 ` and `2e0`, every one of which would be
+ * a second URL for a page that already has one; the pattern is the canonical
+ * spelling and nothing else. A digit string too long to be an exact integer
+ * is a 404 too, rather than an offset Postgres cannot read.
  */
+const PAGE_SEGMENT = /^[1-9]\d*$/;
+
 function pageNumber(raw: string): number {
+  if (!PAGE_SEGMENT.test(raw)) notFound();
   const n = Number(raw);
-  if (!Number.isInteger(n) || n < 2) notFound();
+  if (!Number.isSafeInteger(n) || n < 2) notFound();
   return n;
 }
 
@@ -58,7 +67,10 @@ export default async function BansPagePage({
     );
   }
 
-  if (load.data.items.length === 0) notFound();
+  // The rows that came back, not the ones this build could read: a page past
+  // the end of the record does not exist, but a page whose rows the parser
+  // dropped does, and answering 404 would hide that rather than show it.
+  if (load.data.rowCount === 0) notFound();
 
   return (
     <Frame>

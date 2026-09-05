@@ -42,9 +42,15 @@
 # "Longbow" like the strung one. A public table with two identical rows in it
 # is unreadable, so a name shared by more than one id is qualified with
 # whatever its debugname adds — "Halloween mask (green)", "Longbow (unstrung)",
-# "Longbow (unstrung, noted)". Twelve genuine duplicates in the cache (`bolt`
-# and `bolts`) carry their debugname instead. Names that are unique — which is
-# 2711 of the 2723 — are printed exactly as the game shows them.
+# "Longbow (unstrung, noted)". The object a name was written for keeps it
+# plain, so 995 is "Coins" while 617 (`fake_coins`) is "Coins (fake)"; twelve
+# genuine duplicates in the cache (`bolt` and `bolts`) carry their whole
+# debugname, because neither adds a word the other does not.
+#
+# Of the 3883 names written, 2331 are exactly what the game shows (plus
+# "(noted)" for a note) and 1552 carry a qualifier. The script prints
+# "labels shared: 0" when every id has ended up with a label of its own, which
+# is the property `lib/items/names.test.ts` also asserts.
 #
 # Re-run after a content bump and commit the result.
 
@@ -193,9 +199,10 @@ JS
 
 echo
 echo "sanity:"
-node -e '
-const names = require("./lib/items/names.json");
+node - "$OUT" <<'JS'
+const path = require('node:path');
+const names = require(path.resolve(process.argv[2]));
 for (const id of [995, 1038, 1050, 1053, 1055, 1057, 962, 1959, 1961, 1052]) {
   console.log(`  ${id}: ${names[id]}`);
 }
-'
+JS

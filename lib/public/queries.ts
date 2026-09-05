@@ -182,6 +182,16 @@ export function parsePunishment(row: unknown): Punishment | null {
 
 export type PunishmentPage = {
   readonly items: readonly Punishment[];
+  /**
+   * How many rows the function returned, before the extra one was dropped and
+   * before anything was parsed.
+   *
+   * `/bans/page/[n]` needs this and not `items.length`: a page past the end of
+   * the record is a 404, but a page whose rows this build could not read is
+   * not — it is a page with a shape problem, and answering "no such page"
+   * would hide it.
+   */
+  readonly rowCount: number;
   /** 1-based. */
   readonly page: number;
   readonly prevPage: number | null;
@@ -209,6 +219,7 @@ export function parsePunishmentPage(
 
   return {
     items,
+    rowCount: rows.length,
     page: n,
     prevPage: n > 1 ? n - 1 : null,
     nextPage: hasNext ? n + 1 : null,

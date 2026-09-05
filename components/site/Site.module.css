@@ -194,8 +194,14 @@
     gap: 12px 10px;
   }
 
-  .tileGrid > :nth-child(3):last-child {
+  /* Three columns now, so a third tile is not alone any more — but a fourth
+     is, and the rule that centres it has to move with the column count. */
+  .tileGrid > :nth-child(odd):last-child {
     grid-column: auto;
+  }
+
+  .tileGrid > :nth-child(3n + 1):last-child {
+    grid-column: 1 / -1;
   }
 
   /* A section with only two tiles keeps them together in the middle. */

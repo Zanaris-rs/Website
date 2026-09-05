@@ -179,6 +179,7 @@ describe("parsePunishmentPage", () => {
   it("renders an empty record as an empty page, not an error", () => {
     const page = parsePunishmentPage([], 1);
     expect(page.items).toEqual([]);
+    expect(page.rowCount).toBe(0);
     expect(page.prevPage).toBeNull();
     expect(page.nextPage).toBeNull();
   });
@@ -187,6 +188,15 @@ describe("parsePunishmentPage", () => {
     const page = parsePunishmentPage([{ username: "" }, ...rows], 1);
     expect(page.items).toHaveLength(BANS_PAGE_SIZE - 1);
     expect(page.nextPage).toBe(2);
+  });
+
+  it("counts the rows that came back, not the ones it could read", () => {
+    // `/bans/page/[n]` 404s on zero rows. A page whose rows this build cannot
+    // parse has rows, so it is a page — with a shape problem to notice, not a
+    // URL to deny.
+    const page = parsePunishmentPage([{ username: "" }, { kind: "jail" }], 3);
+    expect(page.items).toEqual([]);
+    expect(page.rowCount).toBe(2);
   });
 });
 

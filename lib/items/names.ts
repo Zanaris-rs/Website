@@ -35,16 +35,3 @@ export function itemName(id: number): string {
   if (!Number.isInteger(id) || id < 0) return "Unknown item";
   return NAMES[String(id)] ?? `Item ${id}`;
 }
-
-/** Is this id one the generated table knows? Used by the tests, not by pages. */
-export function isNamed(id: number): boolean {
-  return Object.hasOwn(NAMES, String(id));
-}
-
-/** How many ids the table carries. */
-export function namedCount(): number {
-  return Object.keys(NAMES).length;
-}
-
-/** Coins are item 995 everywhere in the engine, and the census counts them separately. */
-export const COINS_ID = 995;

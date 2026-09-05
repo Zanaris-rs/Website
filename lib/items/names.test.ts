@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import table from "./names.json";
-import { COINS_ID, isNamed, itemName, namedCount } from "./names";
+import { itemName } from "./names";
+
+const NAMES: Record<string, string> = table;
 
 /**
  * The generated table is data, not code, so these tests are about the *shape*
@@ -13,7 +15,8 @@ import { COINS_ID, isNamed, itemName, namedCount } from "./names";
 
 describe("itemName", () => {
   it("names coins", () => {
-    expect(itemName(COINS_ID)).toBe("Coins");
+    // 995 everywhere in the engine, and the one id the census counts on its own.
+    expect(itemName(995)).toBe("Coins");
   });
 
   it("names every item /economy tracks", () => {
@@ -68,7 +71,7 @@ describe("itemName", () => {
     expect(itemName(1.5)).toBe("Unknown item");
     // The eleven placeholder objects have no model and no name in the config,
     // so they are not in the table at all.
-    expect(isNamed(599)).toBe(false);
+    expect(Object.hasOwn(NAMES, "599")).toBe(false);
     expect(itemName(599)).toBe("Item 599");
   });
 });
@@ -92,6 +95,6 @@ describe("the generated table", () => {
 
   it("covers the whole 2004 object list", () => {
     // 3894 ids in `content/pack/obj.pack` less the eleven unnamed placeholders.
-    expect(namedCount()).toBe(3883);
+    expect(Object.keys(NAMES)).toHaveLength(3883);
   });
 });

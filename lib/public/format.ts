@@ -1,4 +1,5 @@
 import type { Colour } from "@/lib/colour";
+import { formatNumber } from "@/lib/hiscores/format";
 import { formatShortDate } from "@/lib/news/parse";
 import type { Punishment, PunishmentKind } from "@/lib/public/queries";
 
@@ -16,7 +17,7 @@ import type { Punishment, PunishmentKind } from "@/lib/public/queries";
  * a permanent record is that it is permanent.
  */
 
-export { formatDay, formatWhen } from "@/lib/account/profile";
+export { formatWhen } from "@/lib/account/profile";
 export { displayName, formatNumber } from "@/lib/hiscores/format";
 
 /**
@@ -127,14 +128,13 @@ export function endsColour(
  * who. That is the whole design: totals are public, ownership is not.
  */
 export function flowSentence(delta: number): string {
-  const count = Math.abs(delta);
   const verb = delta > 0 ? "entered" : "left";
-  return `${count.toLocaleString("en-GB")} ${verb} the game`;
+  return `${formatNumber(Math.abs(delta))} ${verb} the game`;
 }
 
 /** `+4` / `-1`, for a table cell that has a heading to say what it counts. */
 export function signed(delta: number): string {
-  return `${delta > 0 ? "+" : delta < 0 ? "−" : ""}${Math.abs(delta).toLocaleString("en-GB")}`;
+  return `${delta > 0 ? "+" : delta < 0 ? "−" : ""}${formatNumber(Math.abs(delta))}`;
 }
 
 /** The colour of a delta: entering is green, leaving is red, nothing is plain. */
