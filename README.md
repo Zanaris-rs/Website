@@ -607,7 +607,7 @@ the applet had none).
 
 | Verdict | When |
 | --- | --- |
-| Likely macro | bot-like on ≥2 timing **and** ≥1 cursor signal; or any unfocused click; or ≥3 bot-like across families |
+| Likely macro | bot-like on ≥2 timing **and** ≥1 cursor signal; or any unfocused click; or ≥3 bot-like signals spanning at least two families |
 | Review | one bot-like signal, or three suspicious ones |
 | Human-like | everything else |
 | Not enough data | nothing could be measured |
@@ -619,11 +619,23 @@ Every row of the table prints the false positive that makes it a signal rather
 than a proof. Timing needs 30 click intervals and 50 for a rhythm; below that
 it says so.
 
-Three deliberate brakes:
+The two-family clause is the point of grouping at all. A fixed click interval
+makes the spread zero, the commonest interval 100% *and* the unbroken run as
+long as the capture, so three bot-like timing signals can be three views of one
+observation — which is a Review and a second capture, not a ban. The plan's
+curved-path script is exactly that stream: it defeats every cursor signal, its
+clock convicts it three times over, and the page says Review.
+
+Four deliberate brakes:
 
 - the cursor family is **not evaluated at all** for a Java client (whose packets
   carry at most one move record) or a throttled tab (whose 50 ms sampler is not
   running), and the page says which;
+- the focus family is withheld, and the verdict held at Review, for a capture
+  the flood cap truncated or one whose last record ran off the end of the bytes.
+  Focus is a state and the client only reports the *change*, so a capture that
+  lost the "focus regained" record reads every click after it as a click into a
+  window nobody was looking at — the one signal that convicts on its own;
 - a **touch-like** stream — taps with nothing between them, spread around the
   screen, at a person's uneven pace — never exceeds Review, because a phone has
   no cursor to measure;

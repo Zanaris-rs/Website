@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
+import type { InputStream } from "./decode";
 import { MARKER_FLOOD_CAP, base64ToBytes, decodeStream } from "./decode";
+import type { Metrics } from "./metrics";
 import { measure } from "./metrics";
 import {
   buildCapture,
@@ -21,9 +23,12 @@ import { adjudicate } from "./verdict";
  * decoder, metrics, verdict — and the expected answer is the one a moderator
  * should get.
  *
- * Two of them are here to *fail* to convict. A phone taps with no cursor
+ * Three of them are here to *fail* to convict. A phone taps with no cursor
  * between taps and a background tab samples the mouse once a second; both look
- * exactly like a program to a naive spatial signal, and neither is one.
+ * exactly like a program to a naive spatial signal, and neither is one. And
+ * the curved-path script — which really is a program — reaches Review rather
+ * than Likely macro, because everything mechanical about it is the clock, and
+ * one family agreeing with itself three times is one observation.
  */
 
 function judge(rows: ReturnType<typeof humanStream>) {
@@ -69,14 +74,29 @@ describe("a script with a sleep in it", () => {
 });
 
 describe("a script that draws a curve to each target", () => {
-  it("is still likely macro: the cursor is human and the clock is not", () => {
+  it("reaches Review and no further: one family cannot convict alone", () => {
     const { verdict, metrics } = judge(curvedPathStream());
 
-    expect(verdict.verdict).toBe("macro");
-    // The point of this stream: the spatial signal it was written to defeat
-    // says "human", and it is convicted anyway.
+    // This stream was written to defeat the cursor signals, and it does: every
+    // spatial signal reads human, and the three that read mechanical are the
+    // three timing ones — which are three ways of noticing one thing. A fixed
+    // click interval makes the spread zero, the commonest interval 100% and
+    // the unbroken run as long as the capture, and calling that three
+    // agreeing observations is the double-count the families exist to stop.
     expect(metrics.straightShare).toBeLessThan(0.6);
     expect(metrics.intervalCv).toBeLessThan(0.08);
+
+    const timing = verdict.families.find((f) => f.family === "timing");
+    const spatial = verdict.families.find((f) => f.family === "spatial");
+    expect(timing?.botLike).toBe(3);
+    expect(spatial?.evaluated).toBe(true);
+    expect(spatial?.botLike).toBe(0);
+
+    // So the honest answer is "watch them, or capture again", not a ban. A
+    // script this careful is caught by a second capture — a person's rhythm
+    // does not survive one, let alone two.
+    expect(verdict.verdict).toBe("review");
+    expect(verdict.headline).toBe("Review");
   });
 });
 
@@ -228,22 +248,109 @@ describe("nothing to go on", () => {
 });
 
 describe("the Java client", () => {
-  it("has its cursor signals withheld and its clock judged", () => {
+  it("has its cursor signals withheld, and its clock alone is Review", () => {
     const rows = fixedPeriodStream().map((row) => ({ ...row, client: "java" }));
     const { verdict } = judge(rows);
 
     expect(verdict.spatialWithheld).toBe("java client");
-    // Three bot-like timing signals is still three signals across the families
-    // that were evaluated, so a Java macro is not immune — it is only judged
-    // on the half of the evidence its packets can carry.
-    expect(verdict.verdict).toBe("macro");
     const spatial = verdict.families.find((f) => f.family === "spatial");
     expect(spatial?.evaluated).toBe(false);
 
-    // The one route to the verdict that counts families out loud, and the one
-    // that can count exactly one of them.
-    expect(verdict.reason).toContain("across 1 family");
-    expect(verdict.reason).not.toContain("1 families");
+    // The same script on the web client is Likely macro, because its cursor is
+    // measurable and it convicts itself. The Java client's packets carry at
+    // most one move record each, so the only family left to read is the clock
+    // — and one family is Review whatever it says. This is the cost of not
+    // double-counting: a Java macro is convicted by an unfocused click, or by
+    // a moderator watching, and not by three views of one interval.
+    const timing = verdict.families.find((f) => f.family === "timing");
+    expect(timing?.botLike).toBe(3);
+    expect(verdict.verdict).toBe("review");
+  });
+});
+
+/**
+ * The ≥3 rule, on its own. None of the five streams reaches the verdict by
+ * this route — the fixed-period script is caught by the timing-and-cursor rule
+ * before it gets here — so it is asserted against a `Metrics` written by hand
+ * rather than against an encoded stream, which is also the only way to say
+ * "one bot-like timing signal and two spatial ones" precisely.
+ */
+const NOTHING_MECHANICAL: Metrics = {
+  clicks: 400,
+  moveSamples: 4_000,
+  placedSamples: 4_000,
+  durationMs: 600_000,
+  intervals: 399,
+  intervalCv: 0.5,
+  intervalMeanMs: 1_400,
+  modalIntervalMs: 600,
+  modalShare: 0.1,
+  constantRun: 4,
+  idleGaps: 9,
+  idleGapCv: 0.6,
+  distinctPositions: 380,
+  samePixelShare: 0.05,
+  cellClicks: 20,
+  cellSd: 5,
+  decidableClicks: 380,
+  teleports: 10,
+  teleportShare: 0.03,
+  movesPerClick: 10,
+  latencies: 300,
+  stillnessMs: 220,
+  stillnessCv: 0.5,
+  paths: 200,
+  straightPaths: 20,
+  straightShare: 0.1,
+  pathSpeedCv: 0.4,
+  unfocusedClicks: 0,
+  focusChanges: 2,
+};
+
+const CLEAN_STREAM: InputStream = {
+  events: [],
+  flags: [],
+  chunks: 1,
+  ringChunks: 1,
+  liveChunks: 0,
+  clients: ["web"],
+  from: 0,
+  to: 600_000,
+  liveFrom: null,
+};
+
+describe("three bot-like signals", () => {
+  it("convict when they span two families", () => {
+    // One mechanical clock signal, two mechanical cursor signals: three
+    // observations that are genuinely of different things.
+    const verdict = adjudicate(
+      {
+        ...NOTHING_MECHANICAL,
+        constantRun: 40,
+        samePixelShare: 0.9,
+        teleportShare: 0.7,
+      },
+      CLEAN_STREAM,
+    );
+    expect(verdict.verdict).toBe("macro");
+    expect(verdict.reason).toContain("2 families");
+  });
+
+  it("do not when they are three views of one family", () => {
+    // The same count, all of it the clock. This is the curved-path script, and
+    // the whole reason the signals are grouped.
+    const verdict = adjudicate(
+      {
+        ...NOTHING_MECHANICAL,
+        intervalCv: 0,
+        modalShare: 1,
+        constantRun: 40,
+      },
+      CLEAN_STREAM,
+    );
+    const timing = verdict.families.find((f) => f.family === "timing");
+    expect(timing?.botLike).toBe(3);
+    expect(verdict.verdict).toBe("review");
   });
 });
 

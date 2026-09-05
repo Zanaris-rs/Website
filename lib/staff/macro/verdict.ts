@@ -19,7 +19,7 @@ import {
  *
  * | Verdict | When |
  * | --- | --- |
- * | Likely macro | bot-like on ≥2 timing **and** ≥1 spatial signal; or any click while the applet had no focus; or ≥3 bot-like signals across families |
+ * | Likely macro | bot-like on ≥2 timing **and** ≥1 spatial signal; or any click while the applet had no focus; or ≥3 bot-like signals spanning at least two families |
  * | Review | any one bot-like signal, or three suspicious ones |
  * | Human-like | everything else |
  * | Not enough data | nothing could be measured |
@@ -374,6 +374,20 @@ export function adjudicate(
     (total, family) => total + (family.evaluated ? family.measured : 0),
     0,
   );
+  /**
+   * How many families read as mechanical *on their own*.
+   *
+   * This is the number the ≥3 rule asks about, and the reason the signals are
+   * grouped into families at all. Three bot-like timing signals are three ways
+   * of noticing one thing — a fixed click interval makes the spread zero, the
+   * commonest interval 100% and the unbroken run as long as the capture — and
+   * counting them as three agreeing observations is the double-count the
+   * families exist to prevent. One family reading as mechanical is a player in
+   * a rhythm as often as it is a script, and the verdict for that is Review.
+   */
+  const agreeing = families.filter(
+    (family) => family.evaluated && family.botLike > 0,
+  ).length;
 
   /**
    * A finger, not a mouse: taps with nothing between them, spread around the
@@ -406,9 +420,9 @@ export function adjudicate(
   } else if (timingTally.botLike >= 2 && spatialTally.botLike >= 1) {
     verdict = "macro";
     reason = `The timing is mechanical on ${plural(timingTally.botLike, "signal")} and the cursor on ${spatialTally.botLike}. Two families agreeing is what separates a macro from a player in a rhythm.`;
-  } else if (botLike >= 3) {
+  } else if (botLike >= 3 && agreeing >= 2) {
     verdict = "macro";
-    reason = `Bot-like on ${plural(botLike, "signal")} across ${plural(families.filter((family) => family.botLike > 0).length, "family", "families")}.`;
+    reason = `Bot-like on ${plural(botLike, "signal")}, and they are not all the same observation: ${plural(agreeing, "family", "families")} read as mechanical independently of one another.`;
   } else if (botLike >= 1) {
     verdict = "review";
     reason = `One family reads as mechanical and the others do not, which is as often a repetitive player as a script. Watch them, or capture again.`;
