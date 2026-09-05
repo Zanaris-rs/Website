@@ -1,0 +1,156 @@
+/*
+ * The account centre and the three forms that hang off it.
+ *
+ * The originals' account pages are the same furniture as everything else: a
+ * 250px title box, a black panel with a thin brown border, and a two-column
+ * `Username:` / field table inside it. Nothing here reflows — the layout
+ * viewport is pinned to 600px in `app/layout.tsx` — so the widths are fixed
+ * numbers, as they are in `Site.module.css`.
+ */
+
+/* --- forms --- */
+
+/* Narrower than a content panel: a login box that runs the full 500px looks
+   like a page, not a box. The original's is about this wide. */
+.form {
+  width: 340px;
+  max-width: 100%;
+  margin: 0 auto;
+  text-align: left;
+}
+
+.formWide {
+  width: 420px;
+}
+
+.heading {
+  text-align: center;
+  padding-bottom: 8px;
+}
+
+/* `Username:` in one column, the field in the other, the way the 2004 login
+   box lays out. A grid rather than a table because there is no tabular data
+   here — it is a form. */
+.fields {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 8px;
+  align-items: center;
+}
+
+.fields label {
+  white-space: nowrap;
+}
+
+.fields input {
+  width: 100%;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 13px;
+}
+
+.note {
+  font-size: 11px;
+  padding: 6px 0 0;
+}
+
+.error {
+  color: #ff6b6b;
+  padding: 8px 0 0;
+}
+
+.success {
+  text-align: center;
+  padding: 8px 0;
+}
+
+.actions {
+  padding-top: 12px;
+  text-align: center;
+}
+
+.submit {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 13px;
+  padding: 2px 12px;
+}
+
+.turnstile {
+  padding-top: 12px;
+  display: flex;
+  justify-content: center;
+}
+
+/* --- the account centre --- */
+
+/* Label and value, the same two columns as a form but without the fields. */
+.details {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 12px;
+  text-align: left;
+}
+
+.label {
+  color: #ffe139;
+  white-space: nowrap;
+}
+
+/* A ban, a mute or a soak timer: one line each, above everything else. */
+.notice {
+  padding: 4px 0;
+  font-weight: bold;
+}
+
+.presence {
+  padding: 8px 0 0;
+}
+
+/* The recent-logins table. Borderless, like the hiscores' own. */
+.logins {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.logins th {
+  color: #ffe139;
+  font-weight: normal;
+  padding: 2px 8px 2px 0;
+  border-bottom: 1px solid #382418;
+}
+
+.logins td {
+  padding: 2px 8px 2px 0;
+  vertical-align: top;
+}
+
+/* An address is the one column that must not wrap: an IPv6 address would
+   otherwise break in the middle and read as two. */
+.ip {
+  font-family: "Courier New", Courier, monospace;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+/* The list of things you can do with the account. */
+.links {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+}
+
+.links li {
+  padding: 3px 0;
+}
+
+.logout {
+  padding-top: 12px;
+  text-align: center;
+}
+
+.logoutButton {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 13px;
+  padding: 2px 12px;
+}
