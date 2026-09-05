@@ -1,54 +1,113 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
+import MessageCentre from "@/components/messages/MessageCentre";
 import Frame from "@/components/site/Frame";
-import frame from "@/components/site/Frame.module.css";
 import Panel from "@/components/site/Panel";
 import TitleBox from "@/components/site/TitleBox";
-import { STAFF_CONTACT } from "@/lib/site";
+import { loadAccount } from "@/lib/account/profile-server";
+import { requireSession } from "@/lib/account/session-server";
+import {
+  type MessageSummary,
+  type TicketSummary,
+  messagesStatement,
+  parseMessageSummary,
+  parseTicketSummary,
+  ticketsStatement,
+} from "@/lib/messages/queries";
+import { query } from "@/lib/db";
 
 export const metadata: Metadata = {
   title: "Message Centre",
-  description: "Messages from the Zanaris staff. Not open yet.",
+  description:
+    "Notices from the Zanaris staff, ban and mute notices, and your own tickets.",
 };
 
+/** Reads a cookie and a live inbox: never prerendered, never cached. */
+export const dynamic = "force-dynamic";
+
 /**
- * A placeholder, so the title screen's Secure Services tile leads somewhere
- * honest. Part 3 replaces this page with the real inbox: staff notices, ban
- * and mute notices, and two-way tickets.
+ * The Message Centre, replacing Part 1's placeholder.
+ *
+ * Both reads are keyed by the username out of the signed cookie and go through
+ * functions the `website` role can only `EXECUTE` — it holds no `SELECT` on
+ * `account_message` or `ticket` — so there is no id on this page that anybody
+ * could tamper with into somebody else's inbox.
+ *
+ * `loadAccount` runs first and decides whether the cookie is still good: no row
+ * (the account is gone) or a moved salt (the password was changed on another
+ * device) both mean signed out. Its verdict is returned rather than
+ * redirected, which is what lets every `redirect()` here sit outside a `try` —
+ * it works by throwing, and a `catch` would swallow it and render a signed-in
+ * page to somebody who is not.
+ *
+ * A banned account reaches this page, deliberately. It is exactly the page
+ * somebody who cannot log in to the game needs.
  */
-export default function Messages() {
+export default async function Messages() {
+  const session = await requireSession();
+  const loaded = await loadAccount(session);
+
+  if (loaded.status === "signed_out") redirect("/account/login");
+
+  if (loaded.status === "unavailable") {
+    return (
+      <Frame>
+        <TitleBox title="Message Centre" />
+        <Panel>
+          <p>The Message Centre is unavailable right now. Try again shortly.</p>
+        </Panel>
+      </Frame>
+    );
+  }
+
+  let messages: MessageSummary[] = [];
+  let tickets: TicketSummary[] = [];
+  let failed = false;
+
+  try {
+    const wanted = messagesStatement(session.u);
+    const rows = await query<Record<string, unknown>>(
+      wanted.text,
+      wanted.values,
+    );
+    messages = rows
+      .map(parseMessageSummary)
+      .filter((message): message is MessageSummary => message !== null);
+  } catch (error) {
+    console.error("[messages] list read failed", error);
+    failed = true;
+  }
+
+  // The tickets are a second panel, not a second page: if that one read fails
+  // the messages above it are still worth showing, so it degrades on its own.
+  try {
+    const wanted = ticketsStatement(session.u);
+    const rows = await query<Record<string, unknown>>(
+      wanted.text,
+      wanted.values,
+    );
+    tickets = rows
+      .map(parseTicketSummary)
+      .filter((ticket): ticket is TicketSummary => ticket !== null);
+  } catch (error) {
+    console.error("[messages] ticket list read failed", error);
+  }
+
+  if (failed) {
+    return (
+      <Frame>
+        <TitleBox title="Message Centre" />
+        <Panel>
+          <p>The Message Centre is unavailable right now. Try again shortly.</p>
+        </Panel>
+      </Frame>
+    );
+  }
+
   return (
     <Frame>
-      <TitleBox title="Message Centre" />
-
-      <Panel>
-        <p>
-          The Message Centre is not open yet. When it is, this is where notices
-          from the staff, ban and mute notices, and your own bug reports will
-          arrive.
-        </p>
-
-        {/* STAFF_CONTACT still points here, because no contact link has been
-            supplied yet (see the TODO in lib/site.ts). Sending the reader in a
-            circle would be worse than saying so; the moment the constant names
-            somewhere real, this page links to it like every other page does. */}
-        {STAFF_CONTACT.href === "/messages" ? (
-          <p>
-            In the meantime there is no other way to reach us in writing — a
-            contact link will be published here.
-          </p>
-        ) : (
-          <p>
-            In the meantime, reach the staff via{" "}
-            <a href={STAFF_CONTACT.href} className={frame.link}>
-              {STAFF_CONTACT.label}
-            </a>
-            .
-          </p>
-        )}
-
-        <p>Remember: staff will never ask for your password.</p>
-      </Panel>
+      <MessageCentre messages={messages} tickets={tickets} />
     </Frame>
   );
 }
