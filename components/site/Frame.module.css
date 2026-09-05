@@ -78,6 +78,10 @@
   pointer-events: none;
 }
 
+/* The chains sit above the cobble by z-index, not by tree order. `::before`
+   is painted before the cobble div (the body's first child) and `::after`
+   after it, so at the same z-index the fill covered the left chain and left
+   the right one showing. */
 .body::before,
 .body::after {
   content: "";
@@ -86,7 +90,7 @@
   bottom: 0;
   left: 0;
   width: var(--frame-edge);
-  z-index: 0;
+  z-index: 1;
   pointer-events: none;
   background: url("/img/background2.jpg") left top repeat-y;
 }
@@ -101,7 +105,7 @@
 
 .content {
   position: relative;
-  z-index: 1;
+  z-index: 2;
 }
 
 /* --- the footer: on a phone the note sits above the chain, full width; from
