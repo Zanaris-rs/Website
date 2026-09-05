@@ -4,8 +4,10 @@ import frame from "./Frame.module.css";
 import styles from "./Site.module.css";
 
 /**
- * The 500px black panel with the thin brown border that holds a page's prose:
+ * The black panel with the thin border that holds a page's prose:
  * `<table width=500 bgcolor=black cellpadding=4><td class=e>` in the original.
+ * It is 500px wide when the frame allows and the frame's width when it does
+ * not; a `width` overrides that.
  *
  * `align="left"` is the variant used for anything with paragraphs in it; the
  * default centres, which is what short blocks and tables want.
@@ -13,14 +15,17 @@ import styles from "./Site.module.css";
 export default function Panel({
   children,
   align = "center",
-  width = 500,
+  width,
 }: {
   children: ReactNode;
   align?: "center" | "left";
-  width?: number;
+  width?: number | string;
 }) {
   return (
-    <div className={styles.panelBox} style={{ width }}>
+    <div
+      className={styles.panelBox}
+      style={width === undefined ? undefined : { width }}
+    >
       <div
         className={`${frame.panel} ${
           align === "left" ? styles.panelLeft : styles.panelCenter

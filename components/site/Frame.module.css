@@ -1,11 +1,23 @@
 /*
  * The 2004 page chrome, ported from Lost City's inline stylesheet and table
- * layout. Every page on the site is inside it.
+ * layout and then let off its 600px leash. Every page on the site is inside
+ * it.
  *
- * The original is a 600px table sandwich — three edge tiles on top, a tiling
- * background in the middle, two tall tiles and a strip on the bottom. Widths
- * here are the original's declared pixel sizes, not the images' natural sizes,
- * because that is what produced the 2004 layout.
+ * The original was a 600px table sandwich: three edge tiles on top, a tiling
+ * background whose side chains were painted into its edges, two tall tiles and
+ * a strip on the bottom. The same five pictures make a fluid frame here:
+ *
+ * - `edge_a` / `edge_d` and `edge_g2` / `edge_h2` are the fixed 100px corners.
+ * - `edge_c` (400x42, one chain with a gem in the middle) is repeated across a
+ *   flexible strip, centred so the gem stays in the middle. At the 960px cap
+ *   the strip is 760px wide, so a second gem never appears.
+ * - `background2.jpg` (600x244, cobbles with a chain down each edge) supplies
+ *   the side chains: two absolutely positioned strips `--frame-edge` wide show
+ *   its left and right edges, and a plain cobble tile (`background.jpg`, which
+ *   the original shipped but never used) fills the middle, toned down to match.
+ *
+ * Widths are the original's declared pixel sizes where a picture is fixed,
+ * and tokens from `app/globals.css` where it is not.
  */
 
 .page {
@@ -14,7 +26,7 @@
   align-items: center;
   justify-content: center;
   background: #000;
-  color: #fff;
+  color: var(--text);
   font-family: Arial, Helvetica, sans-serif;
   font-size: 13px;
   line-height: normal;
@@ -22,12 +34,11 @@
 
 .column {
   position: relative;
-  width: 600px;
-  max-width: 100%;
+  width: min(var(--frame-max), 100%);
 }
 
-/* Long tables and the two search boxes can outgrow a phone; scroll the strip
-   rather than the whole page. */
+/* Anything that still cannot reflow — a table, the map — scrolls inside its
+   own strip rather than widening the page. */
 .column > * {
   max-width: 100%;
 }
@@ -37,49 +48,123 @@
   line-height: 0;
 }
 
-.body {
-  width: 600px;
-  max-width: 100%;
-  background-image: url("/img/background2.jpg");
-  background-repeat: repeat;
-  text-align: center;
-  padding-bottom: 8px;
+.edges > * {
+  flex: none;
 }
 
+.chainStrip {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 42px;
+  background: url("/img/edge_c.jpg") center top repeat-x;
+}
+
+/* --- the body: side chains over a cobble fill, content on top --- */
+
+.body {
+  position: relative;
+  text-align: center;
+  padding: 0 calc(var(--frame-edge) + var(--frame-gutter)) 8px;
+}
+
+/* The plain cobble tile is browner and lighter than the chained one; this
+   brings it down to the same tone so the join at the chain strips is quiet. */
+.cobble {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: url("/img/background.jpg") repeat;
+  filter: brightness(0.8) saturate(0.7);
+  pointer-events: none;
+}
+
+.body::before,
+.body::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: var(--frame-edge);
+  z-index: 0;
+  pointer-events: none;
+  background: url("/img/background2.jpg") left top repeat-y;
+}
+
+/* `right top` lines the image's right edge up with the strip's, which is
+   exactly the right-hand chain. */
+.body::after {
+  left: auto;
+  right: 0;
+  background-position: right top;
+}
+
+.content {
+  position: relative;
+  z-index: 1;
+}
+
+/* --- the footer: on a phone the note sits above the chain, full width; from
+   600px it goes back between the corner tiles where 2004 put it --- */
+
 .footer {
-  display: flex;
-  align-items: flex-end;
+  display: grid;
+  grid-template-columns: 100px minmax(0, 1fr) 100px;
+  grid-template-areas:
+    "note note note"
+    "left strip right";
+  align-items: end;
   line-height: 0;
 }
 
-.footerMiddle {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+.footerLeft {
+  grid-area: left;
+}
+
+.footerRight {
+  grid-area: right;
+}
+
+.footerStrip {
+  grid-area: strip;
 }
 
 .disclaimer {
+  grid-area: note;
   font-family: Arial, Helvetica, sans-serif;
   font-size: 11px;
   line-height: normal;
   text-align: center;
-  padding-bottom: 1rem;
+  padding: 8px 8px 1rem;
+}
+
+@media (min-width: 600px) {
+  .footer {
+    grid-template-areas:
+      "left note right"
+      "left strip right";
+  }
+
+  .disclaimer {
+    padding-top: 0;
+  }
 }
 
 .disclaimer a {
-  color: #90c040;
+  color: var(--link);
   text-decoration: none;
 }
 
 .disclaimer a:hover {
+  color: var(--link-hover);
   text-decoration: underline;
 }
 
 /* --- shared pieces of 2004 furniture, used by the pages inside the frame --- */
 
-/* `.e` in the original: the thin brown border round every black panel. */
+/* `.e` in the original: the thin border round every black panel. */
 .panel {
-  border: 2px solid #382418;
+  border: 2px solid var(--panel-border);
   background: #000;
   padding: 4px;
 }
@@ -95,14 +180,14 @@
   padding: 4px;
 }
 
-/* `<body link=#90c040>` plus `.c {text-decoration:none}`. */
+/* `<body link=…>` plus `.c {text-decoration:none}`. */
 .link {
-  color: #90c040;
+  color: var(--link);
   text-decoration: none;
 }
 
 .link:hover {
-  color: #90c040;
+  color: var(--link-hover);
   text-decoration: underline;
 }
 
@@ -117,8 +202,8 @@ a.highlight:hover {
   text-decoration: underline;
 }
 
-/* `.b2` in the original: the red bezel, used for the two "do this now" stone
-   buttons (Play Game, Create Account, I Understand). */
+/* `.b2` in the original: the red bezel, used for the "do this now" stone
+   buttons (Play Game, Create Account, I Understand) and nothing else. */
 .stoneRed {
   border-style: outset;
   border-width: 3pt;

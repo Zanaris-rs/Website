@@ -86,6 +86,7 @@ export default function StaffInbox({
             No {status === "all" ? "" : `${status} `}tickets.
           </p>
         ) : (
+          <div className={styles.scroller}>
           <table className={styles.table}>
             <thead>
               <tr>
@@ -118,6 +119,7 @@ export default function StaffInbox({
               ))}
             </tbody>
           </table>
+          </div>
         )}
 
         <p className={account.note}>

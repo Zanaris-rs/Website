@@ -6,11 +6,15 @@ import styles from "@/components/site/Site.module.css";
 import frame from "@/components/site/Frame.module.css";
 import StonePanel from "@/components/site/StonePanel";
 import Tile from "@/components/site/Tile";
+import Wordmark from "@/components/site/Wordmark";
+import { readSession } from "@/lib/account/session-server";
 import { latest } from "@/lib/news";
 import { formatShortDate, listHref, postHref } from "@/lib/news/parse";
-import { SITE_NAME } from "@/lib/site";
+import { LOSTHQ_URL, SITE_NAME } from "@/lib/site";
+import { loadStaff } from "@/lib/staff/staff-server";
 import { countPlayers, worldList } from "@/lib/title/fetch";
 import { playingSentence } from "@/lib/title/players";
+import { showsStaffTile } from "@/lib/title/staff";
 
 export const metadata: Metadata = {
   title: { absolute: "Zanaris" },
@@ -19,33 +23,41 @@ export const metadata: Metadata = {
 };
 
 /**
- * The player count is the only live thing on the site, so the page is
- * incrementally regenerated every fifteen seconds rather than rendered per
- * request: everyone gets a prerendered page, and one of them pays for the
- * worlds to be asked.
+ * Rendered per request, because the page reads the session cookie to decide
+ * whether to show the Staff Inbox tile, and a prerendered page cannot know
+ * who is looking at it. The world polls behind the player count are still
+ * cached: `countPlayers` tags each fetch with its own fifteen-second
+ * revalidation, which a route-level `0` leaves alone (it only changes the
+ * default for fetches that set nothing). `dynamic = "force-dynamic"` would
+ * not — it forces every fetch to `no-store` and would ask every world on
+ * every visit.
  */
-export const revalidate = 15;
+export const revalidate = 0;
 
 /** The main menu: what Lost City's `/title` is, under our name. */
 export default async function Title() {
-  const players = await countPlayers(worldList());
+  const [players, session] = await Promise.all([
+    countPlayers(worldList()),
+    readSession(),
+  ]);
+  // Only a signed-in visitor costs a database read; the verdict decides one
+  // tile and nothing else, so no outcome redirects or errors.
+  const staff = session ? await loadStaff(session) : null;
+  const staffTile = showsStaffTile(staff);
   const posts = latest(5);
 
   return (
     <Frame>
-      <div className={styles.logo}>
-        <Tile
-          src="/img/title/logo.svg"
-          width={312}
-          height={100}
-          alt={SITE_NAME}
-        />
-      </div>
+      <div className={styles.hero}>
+        <div className={styles.heroBrand}>
+          <Wordmark />
+          <div className={styles.playing}>{playingSentence(players)}</div>
+        </div>
 
-      <div className={styles.playing}>{playingSentence(players)}</div>
-
-      <div className={styles.sections}>
-        <StonePanel title="Latest News and Updates">
+        <StonePanel
+          title="Latest News and Updates"
+          className={styles.sectionPanel}
+        >
           <div className={styles.newsBlock}>
             <div className={styles.newsTile}>
               {/* Decorative: the same href is reached by every headline beside
@@ -81,11 +93,12 @@ export default async function Title() {
             .
           </div>
         </StonePanel>
+      </div>
 
-        <StonePanel title="Main Features">
-          <div className={styles.tileRow}>
+      <div className={styles.sections}>
+        <StonePanel title="Main Features" className={styles.sectionPanel}>
+          <div className={styles.tileGrid}>
             <MenuTile
-              layout="wide"
               variant="red"
               href="/serverlist"
               image="/img/title/mm_sword.jpg"
@@ -93,7 +106,6 @@ export default async function Title() {
               blurb={`Play ${SITE_NAME} right now!`}
             />
             <MenuTile
-              layout="wide"
               variant="red"
               href="/register"
               image="/img/title/mm_player.jpg"
@@ -101,7 +113,6 @@ export default async function Title() {
               blurb="Create an account for both the game and our website."
             />
             <MenuTile
-              layout="wide"
               href="/hiscores"
               image="/img/title/mm_chalice.jpg"
               caption="Hiscores Table"
@@ -110,10 +121,11 @@ export default async function Title() {
           </div>
         </StonePanel>
 
-        <StonePanel title="Secure Services">
-          <div className={styles.tileRow}>
+        <StonePanel title="Account Services" className={styles.sectionPanel}>
+          <div
+            className={`${styles.tileGrid} ${staffTile ? "" : styles.tileGridPair}`}
+          >
             <MenuTile
-              layout="compact"
               href="/account"
               image="/img/title/mm_security.jpg"
               caption="Account Centre"
@@ -121,31 +133,46 @@ export default async function Title() {
               linkText="Login"
             />
             <MenuTile
-              layout="compact"
               href="/messages"
               image="/img/title/mm_message.jpg"
               caption="Message Centre"
               blurb="Communicate with our staff."
               linkText="Login"
             />
+            {staffTile ? (
+              <MenuTile
+                href="/staff"
+                image="/img/title/mm_scroll.jpg"
+                caption="Staff Inbox"
+                blurb="Tickets and reports waiting for staff."
+                linkText="Open"
+              />
+            ) : null}
           </div>
         </StonePanel>
 
-        <StonePanel title="Other Features">
-          <div className={styles.tileRow}>
+        <StonePanel
+          title="Game Rules & Resources"
+          className={styles.sectionPanel}
+        >
+          <div className={styles.tileGrid}>
             <MenuTile
-              layout="compact"
               href="/rules"
               image="/img/title/mm_rules.jpg"
               caption="Rules"
               blurb="Inform yourself on how to play safely."
             />
             <MenuTile
-              layout="compact"
               href="/worldmap"
               image="/img/title/mm2_rs2b.jpg"
               caption="World Map"
               blurb="Great for finding your way around."
+            />
+            <MenuTile
+              href={LOSTHQ_URL}
+              caption="LostHQ"
+              blurb="Community guides, quest walkthroughs, calculators and item database."
+              linkText="Visit"
             />
           </div>
         </StonePanel>

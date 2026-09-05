@@ -1,6 +1,10 @@
-/* The applet is a fixed 635x503, which is wider than the 600px page column and
-   much wider than a phone. It gets its own sideways scroll rather than making
-   the whole page scroll. */
+/* The applet is a fixed 635x503 and cannot reflow (`public/js/mapview.js`
+   hard-codes its layout), but it remaps pointer positions by the canvas's
+   rendered size, so it can be *scaled*: on anything narrower than its own
+   width the canvas shrinks to fit and clicks still land where they should.
+   Scaling rather than a sideways scroll because the applet claims touch
+   drags for panning the map, so a finger could never scroll a wrapper anyway.
+   From 660px it is drawn 1:1. */
 
 .wrapper {
   width: 100%;
@@ -11,8 +15,19 @@
   text-align: center;
 }
 
+.canvas {
+  max-width: 100%;
+  height: auto;
+}
+
+@media (min-width: 660px) {
+  .canvas {
+    max-width: none;
+  }
+}
+
 .failed {
   line-height: normal;
   padding: 8px 0;
-  color: #e10505;
+  color: var(--warning);
 }

@@ -2,11 +2,14 @@
  * Layout for the hiscores screens, matching the 2004 tables the original used:
  * a 250px header box, then a 150px category list beside a 300px results panel,
  * then the two stone search boxes.
+ *
+ * On a phone the two columns stack — the category list becomes a wrapped row
+ * of links above the results, each as wide as the frame allows — and from
+ * 600px the 2004 side-by-side layout comes back.
  */
 
 .header {
-  width: 250px;
-  max-width: 100%;
+  width: min(250px, 100%);
   margin: 0 auto;
   text-align: center;
 }
@@ -28,23 +31,24 @@
 
 .columns {
   display: flex;
+  flex-direction: column;
   justify-content: center;
-  align-items: flex-start;
+  align-items: center;
+  gap: 12px;
 }
 
 .left {
-  width: 160px;
+  width: min(300px, 100%);
   text-align: center;
 }
 
 .right {
-  width: 290px;
+  width: min(300px, 100%);
   text-align: center;
 }
 
 .listPanel {
-  width: 150px;
-  height: 400px;
+  width: 100%;
   margin: 0 auto;
   display: flex;
   align-items: center;
@@ -52,22 +56,56 @@
 }
 
 .categoryList {
-  height: 380px;
   width: 100%;
   display: flex;
-  flex-direction: column;
-  justify-content: space-between;
+  flex-wrap: wrap;
+  justify-content: center;
   align-items: center;
+  gap: 4px 12px;
   list-style: none;
   margin: 0;
-  padding: 0;
+  padding: 4px 0;
 }
 
 .resultsPanel {
-  width: 300px;
+  width: 100%;
   height: 400px;
   margin: 0 auto;
   overflow: auto;
+}
+
+@media (min-width: 600px) {
+  .columns {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 0;
+  }
+
+  .left {
+    width: 160px;
+  }
+
+  .right {
+    width: 290px;
+  }
+
+  .listPanel {
+    width: 150px;
+    height: 400px;
+  }
+
+  .categoryList {
+    height: 380px;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    gap: 0;
+    padding: 0;
+  }
+
+  .resultsPanel {
+    width: 300px;
+  }
 }
 
 /* The results table. Rank / Level / XP are right-aligned as in the original;
@@ -111,7 +149,7 @@
 }
 
 .searchBox {
-  width: 200px;
+  width: min(200px, 100%);
   text-align: center;
 }
 
@@ -128,9 +166,12 @@
   font-size: 13px;
 }
 
-/* The personal page: Skill / Rank / Level / XP. */
+/* The personal page: Skill / Rank / Level / XP. Four no-wrap columns are
+   about as wide as a phone, so the panel scrolls sideways if it has to. */
 .playerPanel {
   display: inline-block;
+  max-width: 100%;
+  overflow-x: auto;
   text-align: left;
 }
 

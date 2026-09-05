@@ -19,13 +19,23 @@ export const GAME_VERSION = { revision: 274, date: "November 24, 2004" };
 
 /** The footer line under every page, in place of Jagex's 2004 copyright. */
 export const PRESERVED_LINE =
-  "Recreated by the Lost City crew in 2023; rehosted and preserved by Zanaris since 2026.";
+  "Recreated by the Lost City team in 2023; rehosted and preserved by Zanaris since 2026.";
 
 /** Our fork of the server, client and content. */
 export const SOURCE_URL = "https://github.com/Zanaris-rs";
 
-/** Upstream: the people who wrote the server we run. */
+/**
+ * Upstream: the people who wrote the server we run. Their GitHub organisation,
+ * their own game site, and the two places they talk — which is where anyone
+ * who wants to help should go, rather than to our fork.
+ */
 export const LOSTCITY_URL = "https://github.com/LostCityRS";
+export const LOSTCITY_SITE_URL = "https://2004.lostcity.rs";
+export const LOSTCITY_DISCORD_URL = "https://discord.lostcity.rs";
+export const LOSTCITY_FORUMS_URL = "https://lostcity.rs";
+
+/** The community wiki: guides, quests, calculators, an item database. */
+export const LOSTHQ_URL = "https://2004.losthq.rs/";
 
 /** The rights holder in the assets and trademarks this project preserves. */
 export const JAGEX_URL = "https://www.jagex.com/";

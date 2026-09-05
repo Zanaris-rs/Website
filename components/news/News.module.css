@@ -6,8 +6,7 @@
 }
 
 .table {
-  width: 490px;
-  max-width: 100%;
+  width: 100%;
   border-collapse: collapse;
   text-align: left;
 }
@@ -39,7 +38,12 @@
 }
 
 /* The rendered Markdown body of a post. The panel gives it its padding, so
-   the first and last blocks lose their own margins. */
+   the first and last blocks lose their own margins. A wide Markdown table
+   scrolls inside the body rather than widening the page. */
+.body {
+  overflow-x: auto;
+}
+
 .body > :first-child {
   margin-top: 0;
 }
@@ -63,7 +67,7 @@
 
 .body th,
 .body td {
-  border: 1px solid #382418;
+  border: 1px solid var(--panel-border);
   padding: 2px 6px;
 }
 

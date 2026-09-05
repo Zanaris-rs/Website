@@ -1,8 +1,7 @@
 /* The register form, inside the same 2004 frame as the hiscores. */
 
 .wrap {
-  width: 420px;
-  max-width: 100%;
+  width: min(420px, 100%);
   margin: 0 auto;
   text-align: left;
 }

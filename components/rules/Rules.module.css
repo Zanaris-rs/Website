@@ -1,4 +1,5 @@
-/* The twelve rule cards, two to a row at 500px and one to a row on a phone. */
+/* The twelve rule cards, two to a row when the panel is 500px wide and one to
+   a row on a phone. */
 
 .grid {
   display: flex;
@@ -9,8 +10,7 @@
 }
 
 .card {
-  width: 240px;
-  max-width: 100%;
+  width: min(240px, 100%);
 }
 
 .cardInner {

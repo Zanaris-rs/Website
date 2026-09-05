@@ -9,7 +9,7 @@ page, the rules, the world map, the hiscores and account creation, all inside
 the page furniture the original used.
 
 **Zanaris is a free rehost of [Lost City](https://github.com/LostCityRS)**, the
-open-source 2004scape server written from scratch by the Lost City crew. We are
+open-source 2004scape server written from scratch by the Lost City team. We are
 not its authors — we run their work, with our own fork at
 [github.com/Zanaris-rs](https://github.com/Zanaris-rs). Nothing here is for sale,
 there is no membership, and there never will be.
