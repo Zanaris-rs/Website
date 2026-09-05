@@ -203,15 +203,29 @@ export function measure(stream: InputStream): Metrics {
   // The longest run of consecutive intervals within one sample of each other.
   // A person's rhythm survives for a few clicks; a `sleep` loop's survives
   // until the script stops.
+  //
+  // Walked over `intervals` rather than over `active`, because a break *ends*
+  // a rhythm. Comparing the interval after a two-minute pause against the one
+  // before it — which is what stepping over the gaps does — joins two ordinary
+  // runs of a dozen into one unbroken run of twenty-five, and "the run that
+  // never breaks" is the whole of what this signal claims. The player who
+  // fishes at a steady pace, banks, and comes back to the same steady pace is
+  // exactly the false positive the table warns about.
   let constantRun = 0;
-  let run = active.length > 0 ? 1 : 0;
-  for (let i = 1; i < active.length; i++) {
-    if (Math.abs(active[i] - active[i - 1]) <= SAMPLE_MS) {
-      run += 1;
-    } else {
+  let run = 0;
+  let previous: number | null = null;
+  for (const interval of intervals) {
+    if (interval > IDLE_GAP_MS) {
       constantRun = Math.max(constantRun, run);
-      run = 1;
+      run = 0;
+      previous = null;
+      continue;
     }
+    run =
+      previous !== null && Math.abs(interval - previous) <= SAMPLE_MS
+        ? run + 1
+        : 1;
+    previous = interval;
   }
   constantRun = Math.max(constantRun, run);
 

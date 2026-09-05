@@ -86,6 +86,27 @@ describe("click intervals", () => {
     expect(enough.constantRun).toBe(MIN_INTERVALS_FOR_RUNS);
   });
 
+  it("end an unbroken rhythm at the break, not step over it", () => {
+    // Thirty clicks a second apart, a half-minute away from the keyboard, then
+    // thirty more a second apart. Two ordinary runs of thirty — the pace a
+    // player fishing or alching genuinely holds — with a bank run in between.
+    //
+    // The gaps are filtered out of the intervals the spread is computed from,
+    // and reading the run off that filtered list joins the two halves into one
+    // unbroken run of sixty, which is the number that convicts. The break is
+    // the evidence *against*: a script's `sleep` loop does not stop for one.
+    const events: StreamEvent[] = [click(0, 4095)];
+    for (let i = 1; i <= 30; i++) events.push(click(i * 1000, 20));
+    events.push(click(61_000, 600));
+    for (let i = 1; i <= 30; i++) events.push(click(61_000 + i * 1000, 20));
+
+    const metrics = measure(stream(events));
+    expect(metrics.idleGaps).toBe(1);
+    // Sixty one-second intervals, so the run is reportable either way.
+    expect(metrics.intervals).toBe(60);
+    expect(metrics.constantRun).toBe(30);
+  });
+
   it("separate a pause from a rhythm at five seconds", () => {
     const events: StreamEvent[] = [click(0, 4095)];
     for (let i = 1; i <= 40; i++) {

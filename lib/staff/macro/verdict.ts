@@ -226,7 +226,7 @@ export function adjudicate(
       family: "timing",
       level: levelHigh(metrics.constantRun, THRESHOLDS.constantRun),
       value: count(metrics.constantRun),
-      detail: `Consecutive intervals within one 50 ms sample of each other. Needs ${MIN_INTERVALS_FOR_RUNS} intervals.`,
+      detail: `Consecutive intervals within one 50 ms sample of each other, with a break of more than five seconds ending the run. Needs ${MIN_INTERVALS_FOR_RUNS} intervals.`,
       falsePositive:
         "A run of a dozen is ordinary in a repetitive task; it is the run that never breaks — through a chat message, a dropped item, somebody walking past — that no person produces.",
       counted: true,
