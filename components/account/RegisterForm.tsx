@@ -11,6 +11,7 @@ import {
   validateUsername,
 } from "@/lib/account/validation";
 import { turnstileSiteKey } from "@/lib/account/site-key";
+import { TURNSTILE_ACTION } from "@/lib/account/turnstile";
 import { submitState } from "@/lib/account/submit";
 
 import frame from "@/components/site/Frame.module.css";
@@ -43,12 +44,13 @@ declare global {
         element: HTMLElement,
         options: {
           sitekey: string;
+          action?: string;
           callback: (token: string) => void;
           "expired-callback"?: () => void;
           "error-callback"?: () => void;
           theme?: "light" | "dark" | "auto";
         },
-      ): string;
+      ): string | undefined;
       reset(widgetId?: string): void;
     };
   }
@@ -97,6 +99,7 @@ export default function RegisterForm() {
 
   const widgetRef = useRef<HTMLDivElement>(null);
   const renderedRef = useRef(false);
+  const widgetIdRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
     if (!scriptReady || !siteKey || renderedRef.current) return;
@@ -104,8 +107,12 @@ export default function RegisterForm() {
     if (!element || !window.turnstile) return;
 
     renderedRef.current = true;
-    window.turnstile.render(element, {
+    widgetIdRef.current = window.turnstile.render(element, {
       sitekey: siteKey,
+      // The server accepts a token only if it carries this action, so a token
+      // minted by any other widget - ours or a copy of our public site key on
+      // somebody else's page - is refused. See lib/account/turnstile.ts.
+      action: TURNSTILE_ACTION,
       theme: "dark",
       callback: (value) => setToken(value),
       // A token is single-use and short-lived. Dropping it on expiry means the
@@ -166,8 +173,9 @@ export default function RegisterForm() {
     } catch {
       setState({ kind: "failed", error: MESSAGES.unavailable });
     } finally {
-      // Every token is single-use, so a failed attempt needs a fresh one.
-      window.turnstile?.reset();
+      // Every token is single-use, so a failed attempt needs a fresh one, and
+      // a successful one must not leave a spent token sitting in state.
+      window.turnstile?.reset(widgetIdRef.current);
       setToken(null);
     }
   }

@@ -9,7 +9,7 @@ import {
   registerStatement,
   statusFor,
 } from "@/lib/account/register";
-import { verifyTurnstile } from "@/lib/account/turnstile";
+import { allowedHostnames, verifyTurnstile } from "@/lib/account/turnstile";
 import { validatePassword, validateUsername } from "@/lib/account/validation";
 import { isConfigured, query } from "@/lib/db";
 
@@ -24,7 +24,9 @@ import { isConfigured, query } from "@/lib/db";
  *   1. **Turnstile, first and fail-closed.** With no email verification this
  *      is the load-bearing half of the gate. It runs before anything touches
  *      the database, so a scripted client cannot use this endpoint to probe
- *      which usernames are taken.
+ *      which usernames are taken. The token must also carry the `signup`
+ *      action and a hostname of ours, so a site key lifted onto somebody
+ *      else's page mints nothing that works here.
  *   2. Cheap local validation of the username and password.
  *   3. Email normalisation, blocklist, then the MX lookup (a network hop, so
  *      last of the checks).
@@ -61,12 +63,14 @@ export async function POST(request: NextRequest) {
 
   const ip = clientIp(request.headers);
 
-  // 1. Turnstile. A missing secret, a missing token, a siteverify error and a
-  //    `success: false` are all the same answer: no.
+  // 1. Turnstile. A missing secret, a missing token, a siteverify error, a
+  //    `success: false`, an action that is not `signup` and a hostname that is
+  //    not ours are all the same answer: no.
   const passedTurnstile = await verifyTurnstile({
     token: asString(body.turnstileToken),
     secret: process.env.TURNSTILE_SECRET_KEY,
     remoteIp: ip,
+    allowedHostnames: allowedHostnames(process.env.ALLOWED_TURNSTILE_HOSTNAMES),
   });
   if (!passedTurnstile) {
     return fail("turnstile", 400);
