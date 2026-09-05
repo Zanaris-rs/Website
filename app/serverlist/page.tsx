@@ -1,17 +1,24 @@
-import Link from "next/link";
+import type { Metadata } from "next";
 
+import Frame from "@/components/site/Frame";
+import Panel from "@/components/site/Panel";
+import TitleBox from "@/components/site/TitleBox";
 import WorldTable from "@/components/WorldTable";
 
-import styles from "./page.module.css";
+export const metadata: Metadata = {
+  title: "Play Zanaris",
+  description:
+    "Pick a world and play in your browser, at high or low detail.",
+};
 
+/** The world list, in the page chrome like everything else. */
 export default function ServerList() {
   return (
-    <main className={styles.page}>
-      <h1 className={styles.heading}>Choose a world</h1>
-      <WorldTable />
-      <p className={styles.back}>
-        <Link href="/title">Back to the title screen</Link>
-      </p>
-    </main>
+    <Frame>
+      <TitleBox title="Select a World" />
+      <Panel>
+        <WorldTable />
+      </Panel>
+    </Frame>
   );
 }
