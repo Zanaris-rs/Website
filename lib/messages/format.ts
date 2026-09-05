@@ -115,7 +115,6 @@ export function ticketStatusLabel(status: string): string {
  * than from a keyboard. `\r` is stripped rather than refused, because a
  * `<textarea>` submits CRLF and refusing that would refuse every real form.
  */
-// eslint-disable-next-line no-control-regex
 const CONTROL_CHARACTERS = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/;
 
 /** Line endings normalised to `\n`; nothing else is touched. */
