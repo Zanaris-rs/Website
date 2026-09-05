@@ -20,6 +20,12 @@ import styles from "./Staff.module.css";
  * own 765x503, with the cursor path faint behind the clicks, because "every
  * click on one pixel" and "clicks scattered over an inventory" are the two
  * pictures a moderator can tell apart at a glance and no number describes.
+ *
+ * Both are capped at a fixed element budget and say so in the caption when the
+ * cap bites. Neither drawing is the evidence — the evidence is the table of
+ * signals underneath, measured from every event in the capture — and a picture
+ * with forty thousand elements in it is not a better picture, only a slower
+ * one.
  */
 
 const WIDTH = 700;
@@ -30,6 +36,33 @@ const DENSITY_TOP = 20;
 const DENSITY_HEIGHT = 52;
 /** How many buckets the density is drawn in. One per two pixels is plenty. */
 const BUCKETS = 350;
+
+/**
+ * The element budget.
+ *
+ * A ring dump of a fast script is tens of thousands of clicks, and one SVG
+ * element per click is a megabyte of markup for a picture 644 pixels wide —
+ * hundreds of ticks landing on the same column, and a page a moderator waits
+ * for. Both drawings are shapes, not data: a click mark two pixels from
+ * another click mark tells nobody anything, so past the budget every nth one
+ * is drawn and the caption says so. The numbers below what is drawn are
+ * `metrics`, computed from the whole stream, and are not touched by this.
+ */
+const MAX_CLICK_MARKS = 2_000;
+const MAX_PATH_POINTS = 4_000;
+
+/**
+ * Every nth element, evenly spaced, keeping the first — which for a timeline
+ * keeps the shape (the density of marks along the axis) and for the plot keeps
+ * the spread (where on the applet they landed).
+ */
+function decimate<T>(items: readonly T[], budget: number): [T[], number] {
+  if (items.length <= budget) return [[...items], 1];
+  const stride = Math.ceil(items.length / budget);
+  const kept: T[] = [];
+  for (let i = 0; i < items.length; i += stride) kept.push(items[i]);
+  return [kept, stride];
+}
 
 const LEFT_CLICK = "#9db8c3";
 const RIGHT_CLICK = "#ffbb22";
@@ -112,6 +145,17 @@ export default function InputTimeline({
   }
   if (lostAt !== null) unfocused.push({ from: lostAt, to });
 
+  const [drawnClicks, clickStride] = decimate(clicks, MAX_CLICK_MARKS);
+  const [drawnPath, pathStride] = decimate(path, MAX_PATH_POINTS);
+
+  const thinned: string[] = [];
+  if (clickStride > 1) thinned.push(`1 click in ${clickStride}`);
+  if (pathStride > 1) thinned.push(`1 cursor sample in ${pathStride}`);
+  const decimated =
+    thinned.length === 0 ? "" : ` · decimated: ${thinned.join(" and ")} drawn`;
+
+  // `density` is a fixed 350 buckets and counts every sample, so the shape
+  // behind the ticks is the whole stream however much of it is drawn.
   const busiest = Math.max(1, ...density);
 
   // The density as one filled shape rather than 350 rectangles: a path is a
@@ -126,9 +170,9 @@ export default function InputTimeline({
   area += ` L ${WIDTH - PAD} ${DENSITY_TOP + DENSITY_HEIGHT} Z`;
 
   const trail =
-    path.length < 2
+    drawnPath.length < 2
       ? null
-      : path
+      : drawnPath
           .map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`)
           .join(" ");
 
@@ -140,7 +184,7 @@ export default function InputTimeline({
         className={styles.timeline}
         viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
         role="img"
-        aria-label={`Input timeline: ${clicks.length} clicks between ${clock(from, seconds)} and ${clock(to, seconds)} UTC`}
+        aria-label={`Input timeline: ${clicks.length} clicks between ${clock(from, seconds)} and ${clock(to, seconds)} UTC${decimated === "" ? "" : `, ${drawnClicks.length} of them drawn`}`}
       >
         {unfocused.map((span_, index) => (
           <rect
@@ -164,7 +208,7 @@ export default function InputTimeline({
           strokeWidth={1}
         />
 
-        {clicks.map((click, index) => (
+        {drawnClicks.map((click, index) => (
           <line
             key={`click-${index}`}
             x1={x(click.at)}
@@ -224,7 +268,7 @@ export default function InputTimeline({
           fontFamily="Helvetica, Arial, sans-serif"
         >
           cursor samples above · left clicks below the line, right clicks above
-          · UTC
+          · UTC{decimated}
         </text>
       </svg>
 
@@ -232,7 +276,7 @@ export default function InputTimeline({
         className={styles.plot}
         viewBox={`0 0 ${SCREEN_WIDTH} ${SCREEN_HEIGHT}`}
         role="img"
-        aria-label={`Where the ${clicks.length} clicks landed in the ${SCREEN_WIDTH} by ${SCREEN_HEIGHT} applet`}
+        aria-label={`Where the ${clicks.length} clicks landed in the ${SCREEN_WIDTH} by ${SCREEN_HEIGHT} applet${decimated === "" ? "" : `, ${drawnClicks.length} of them drawn`}`}
       >
         <rect
           x={0.5}
@@ -252,7 +296,7 @@ export default function InputTimeline({
             strokeWidth={1}
           />
         )}
-        {clicks.map((click, index) => (
+        {drawnClicks.map((click, index) => (
           <circle
             key={`plot-${index}`}
             cx={click.x}

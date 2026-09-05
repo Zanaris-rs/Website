@@ -247,6 +247,67 @@ describe("focus", () => {
   });
 });
 
+describe("a very long capture", () => {
+  /**
+   * Ten minutes of a fast script is a big stream, and this page is rendered on
+   * the server for a moderator who is waiting for it.
+   *
+   * The number that matters is not the constant: it is the *shape*. Reading
+   * the cursor's path between two clicks by filtering the whole move array is
+   * quadratic, and quadratic on a capture the ring is allowed to hold is a
+   * page that never comes back. Both loops walk one moving index over arrays
+   * that are already in time order, so this is linear and the assertion has
+   * two orders of magnitude of room in it.
+   */
+  it("measures a 30,000-click stream in well under half a second", () => {
+    const events: StreamEvent[] = [];
+    let moves = 0;
+    let longLegs = 0;
+
+    for (let i = 0; i < 30_000; i++) {
+      const at = i * 300;
+      events.push(click(at, 6, 100 + (i % 600), 100 + (i % 400)));
+      events.push(move(at + 50, 100 + (i % 600), 100 + (i % 400)));
+      events.push(move(at + 100, 140 + (i % 600), 160 + (i % 400)));
+      moves += 2;
+      // Every seventeenth journey is long enough to be judged as a path, up to
+      // the sample budget: a stream of nothing but two-sample hops would skip
+      // the expensive half of the loop and prove nothing about it.
+      if (i % 17 === 0 && longLegs < 1_750) {
+        longLegs += 1;
+        events.push(move(at + 150, 180 + (i % 600), 220 + (i % 400)));
+        events.push(move(at + 200, 220 + (i % 600), 280 + (i % 400)));
+        moves += 2;
+      }
+    }
+
+    expect(events.length - moves).toBe(30_000);
+    expect(moves).toBe(63_500);
+
+    const long: InputStream = {
+      events,
+      flags: [],
+      chunks: 1,
+      ringChunks: 1,
+      liveChunks: 0,
+      clients: ["web"],
+      from: events[0].at,
+      to: events[events.length - 1].at,
+      liveFrom: null,
+    };
+
+    const started = performance.now();
+    const metrics = measure(long);
+    const elapsed = performance.now() - started;
+
+    expect(metrics.clicks).toBe(30_000);
+    expect(metrics.moveSamples).toBe(63_500);
+    // And it did the work rather than skipping it.
+    expect(metrics.paths).toBeGreaterThan(1_000);
+    expect(elapsed).toBeLessThan(500);
+  });
+});
+
 describe("a stream with no cursor to place", () => {
   it("counts the samples but leaves them out of the path", () => {
     // A capture that opens mid-session: relative steps against a cursor

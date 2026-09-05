@@ -292,16 +292,30 @@ export function measure(stream: InputStream): Metrics {
 
   /* --- the cursor's path between clicks --- */
 
+  // Both ends of the leg walk forward and never back, the way the teleport
+  // loop's cursor does, because both arrays are already in time order and the
+  // legs are consecutive. Filtering the whole move array once per click reads
+  // better and is quadratic: on a ten-minute capture of a fast script — the
+  // size the ring is allowed to reach — that is seconds of a moderator's page,
+  // spent re-scanning samples the previous click already walked past.
   let paths = 0;
   let straightPaths = 0;
   const speedCvs: number[] = [];
+  let legStart = 0;
+  let legEnd = 0;
 
   for (let i = 1; i < clicks.length; i++) {
     const from = clicks[i - 1].at;
     const to = clicks[i].at;
-    const leg = moves.filter((move) => move.at >= from && move.at <= to);
-    if (leg.length < MIN_PATH_SAMPLES) continue;
 
+    while (legStart < moves.length && moves[legStart].at < from) legStart += 1;
+    if (legEnd < legStart) legEnd = legStart;
+    while (legEnd < moves.length && moves[legEnd].at <= to) legEnd += 1;
+
+    const legLength = legEnd - legStart;
+    if (legLength < MIN_PATH_SAMPLES) continue;
+
+    const leg = moves.slice(legStart, legEnd);
     const first = leg[0];
     const last = leg[leg.length - 1];
     const chord = distance(
