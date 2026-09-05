@@ -546,6 +546,115 @@ A report carries no text: the 2004 packet is an offender and a rule number.
 `ReportAbuseReason` (zero-based, onto the twelve rules `/rules` already lists)
 and `CoordGrid.packCoord` — with the engine file named against each.
 
+## Public record and economy
+
+Two pages exist because the owner decided that what happens inside the server
+should be checkable from outside it: `/bans` is a permanent record of every
+punishment, and `/economy` is what the game contains. Both are public, both are
+inside the 2004 chrome, and both are `export const revalidate = 300` — five
+minutes of ISR, so a burst of readers is one database read rather than
+thousands.
+
+All four calls live in `lib/public/queries.ts`, one line each. The functions
+are `SECURITY DEFINER` reads in the engine repo's `4_evidence_and_records`
+migration and the `website` role has no grant on the tables behind them:
+
+| Function | Returns | The page |
+| --- | --- | --- |
+| `accounts.public_punishments(p_limit, p_offset)` | `username, kind, issued_at, until, automated, note, lifted_at` | `/bans` |
+| `accounts.public_economy(p_days)` | `taken_at, players, coins, tracked` | `/economy` |
+| `accounts.public_economy_flow(p_days)` | `taken_at, item_id, delta` | `/economy` |
+| `accounts.public_staff_spawns(p_days)` | `created_at, item_id, count, world` | `/economy` |
+
+### What `/bans` does not say
+
+**Who issued it.** A row reads "A moderator" or "Automated" and there is no
+column for a name, because `public_punishments` does not return one — not the
+issuer's account id and not their username. That is enforced in SQL, so no
+change on this side could publish it by accident.
+
+Nothing else is held back. Expired punishments and lifted ones stay on the
+record with their dates; a record that quietly loses rows is not a record, and
+"Lifted 3-Sep-2026" is the row a wrongly-banned player most wants other people
+to be able to see. The record begins when migration 4 lands: punishments issued
+before then were never written down in a publishable form, and the page says
+so.
+
+Paging follows `/news` — `/bans`, then `/bans/page/2`, the arrows walking the
+list rather than the calendar — with one difference: the pages cannot be
+enumerated at build time, so there is no `generateStaticParams` and each page is
+rendered on demand and then cached. The statement asks for `BANS_PAGE_SIZE + 1`
+rows and `parsePunishmentPage` drops the extra, which is how the page knows
+there is a next one without a second count over a table that only grows.
+
+### What `/economy` counts
+
+An hourly census on the hub reads every `.sav` file and sums every item id
+across every permanent inventory. So:
+
+- **A logged-in player is counted as of their last save.** Anything picked up
+  since appears at the next save, not immediately.
+- **Shop stock and ground items are not counted.** Neither is anything held by
+  an account that never logs out again. They are not in a save file, so by this
+  definition they are not "in existence".
+- **"Entered" and "left the game" are the difference between one census and the
+  next.** A trade moves an item between two saves and changes nothing.
+
+The page says all three out loud, because a total without its definition is
+worse than no total.
+
+The charts are inline SVG rendered on the server: a `d` attribute, no client
+bundle and no charting dependency. `chartPath` in `lib/public/economy.ts` does
+the arithmetic and `components/public/EconomyChart.tsx` only draws — the box is
+300x60 stretched to the panel with `preserveAspectRatio="none"` and a
+`non-scaling-stroke`, which is why the scale is printed underneath in words
+rather than drawn inside a stretched viewBox. The vertical scale is the data's
+own range rather than zero: an hourly coin total against a zero baseline is a
+flat line whatever it did.
+
+Daily change compares the newest census with the newest one a full day older,
+not with the row 24 back, so a missed hour cannot become a wrong figure.
+
+### Empty is a state, not a failure
+
+Both pages have to look finished with no rows, because that is how they look
+until the migration is applied and the timer has run once — and again on any
+day nothing happened. `lib/public/read-server.ts` therefore separates "the read
+failed" (the page says so) from "there is nothing yet" (each block says what it
+is waiting for). `/economy` degrades a block at a time: losing the flows or the
+staff spawns costs those blocks, not the totals above them.
+
+### Item names
+
+The census counts item ids, and no page may ever print one on its own.
+`lib/items/names.json` is a committed `{id: name}` table for all 3883 named
+objects, and `itemName()` answers `Item <id>` for anything missing.
+
+```sh
+npm run items:update             # CONTENT_DIR=../Server/content
+```
+
+The **ids** come from `content/pack/obj.pack`, the `<id>=<debugname>` file that
+is the one place the engine assigns them (`tools/pack/config/ObjConfig.ts`
+walks `0 .. ObjPack.max` and looks each id up in it). Reading that rather than
+unpacking `data/pack/server/obj.dat` means no engine build is needed: the
+`.pack` file is the source and the `.dat` is an artefact of it.
+
+The **names** come from the `[debugname]` blocks in the content repo's `*.obj`
+configs, resolved with the packer's own rules — `name=` when there is one, the
+capitalised debugname when there is a model but no name, and for a `cert_x`
+note the linked object's name, because the packer synthesises those configs
+with a `certlink` and the client shows the link's name.
+
+Two departures from what the game shows, both because a public table is not a
+game interface: a note is marked `(noted)`, and a name that several ids answer
+to is qualified by whatever its debugname adds — `Halloween mask (green)`,
+`Longbow (unstrung, noted)`. The object a name was written for keeps it plain,
+so 995 is `Coins` and 617 is `Coins (fake)`. `lib/items/names.test.ts` asserts
+that no two ids share a label.
+
+Re-run the script after a content bump and commit the result.
+
 ## Hiscores
 
 Ranking is the game's own: `value DESC, date ASC, account_id ASC`, rank from
@@ -798,6 +907,8 @@ fetches the file in the browser and picks it up immediately.
 | `app/staff/tickets/[id]/page.tsx` | a ticket as staff see it; marks nothing read |
 | `app/staff/notice/page.tsx` | write a notice, re-typing the staff password |
 | `app/staff/reports/page.tsx` | Report Abuse rows, `?since=<ISO>` |
+| `app/bans/page.tsx`, `app/bans/page/[n]/page.tsx` | the public ban record, ISR at 5m |
+| `app/economy/page.tsx` | the public economy census, ISR at 5m |
 | `app/api/hiscores/route.ts` | the table API |
 | `app/api/hiscores/player/[username]/route.ts` | the personal API |
 | `app/api/account/register/route.ts` | registration, Node runtime, `no-store` |
@@ -813,6 +924,7 @@ fetches the file in the browser and picks it up immediately.
 | `components/account/` | `LoginForm`, `AccountCentre`, `LogoutButton`, `ChangePasswordForm`, `ChangeEmailForm` |
 | `components/messages/` | the inbox, one message, a thread, the reply box, the ticket form |
 | `components/staff/` | the inbox table, the staff thread and reply box, the notice form, the reports table |
+| `components/public/` | the ban record, the economy page and its server-rendered SVG chart |
 | `components/WorldTable.tsx` | the world list itself |
 | `lib/site.ts` | the site name, the revision, the credit line, the URLs |
 | `lib/news/` | frontmatter and filename parsing, categories, pagination, dates, Markdown |
@@ -829,10 +941,13 @@ fetches the file in the browser and picks it up immediately.
 | `lib/account/message-centre-contract.json` | the cross-repo Message Centre contract, copied from the engine |
 | `lib/messages/` | the seven player SQL calls and their parsers; the kinds, caps and wording |
 | `lib/staff/` | the five staff SQL calls, the staff level, and the two engine encodings `/staff/reports` decodes |
+| `lib/public/` | the four public SQL calls and their parsers, the census maths, the wording, and the server-side reads |
+| `lib/items/names.json`, `names.ts` | item ids as names, generated from the content repo |
 | `content/news/` | the news posts |
 | `scripts/db-check.mts` | `npm run db:check` |
 | `scripts/vendor-2004-assets.sh` | `npm run assets:vendor` |
 | `scripts/update-worldmap.sh` | `npm run worldmap:update` |
+| `scripts/update-item-names.sh` | `npm run items:update` |
 | `public/img/` | the 2004 page graphics |
 | `public/js/mapview.js`, `public/worldmap.jag` | the map applet and its data |
 | `types/mapview.d.ts` | the one type the map applet needs, since it is loaded by URL |
