@@ -69,6 +69,11 @@ async function main(): Promise<void> {
 
   // The `website` role must NOT be able to read the account table. A URL that
   // still names the `postgres` role passes every check above and fails here.
+  //
+  // The table name is interpolated rather than parameterised because a table
+  // name cannot be a placeholder in SQL. It is safe here and only here: the
+  // list below is a hardcoded constant in this file, with nothing from the
+  // environment, the arguments or the database anywhere near it.
   for (const table of [
     "public.account",
     "public.login_attempt",

@@ -132,11 +132,13 @@ only way to drive either form end to end on a developer machine is with the
 real widget's keys — which means the owner adding `localhost` to the widget's
 allowed domains. Everything behind the gate (the salt handshake, the session
 cookie, the rate limits, the two change routes) is reachable without it: only
-`login` and `register` carry a Turnstile check. They are **local dev only; never in
-production** — an always-pass key is not a gate, it is the shape of one, and it
-is why `.env.example` ships both Turnstile variables blank with the test keys
-only in a comment. Nothing that can be pasted straight into a production
-environment should be able to open the gate by accident.
+`login` and `register` carry a Turnstile check.
+
+The test keys are **local dev only; never in production** — an always-pass key
+is not a gate, it is the shape of one, and it is why `.env.example` ships both
+Turnstile variables blank with the test keys only in a comment. Nothing that
+can be pasted straight into a production environment should be able to open the
+gate by accident.
 
 The live widget exists, and its site key ships in `lib/account/site-key.ts`.
 **`TURNSTILE_SECRET_KEY` in the Vercel project is the one thing that opens the
