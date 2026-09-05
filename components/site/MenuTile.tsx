@@ -44,7 +44,13 @@ export default function MenuTile({
           </StoneCaption>
         </a>
         <div className={styles.tileCompactImage}>
-          <a href={href}>
+          {/* The picture is a third link to the same place as the caption
+              above it and the link below it. It carries no name of its own —
+              the tile's name is the caption — so it is hidden from assistive
+              technology and taken out of the tab order rather than announced
+              as an unlabelled link. A mouse can still click it, which is the
+              only thing it was ever for. */}
+          <a href={href} aria-hidden="true" tabIndex={-1}>
             <Tile src={image} width={48} height={75} />
           </a>
         </div>
@@ -62,7 +68,9 @@ export default function MenuTile({
   return (
     <div className={styles.tileWide}>
       <div className={styles.tileImage}>
-        <a href={href}>
+        {/* Hidden from assistive technology and out of the tab order: see the
+            note on the compact layout above. */}
+        <a href={href} aria-hidden="true" tabIndex={-1}>
           <Tile src={image} width={77} height={120} />
         </a>
       </div>

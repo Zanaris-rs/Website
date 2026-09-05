@@ -48,7 +48,11 @@ export default async function Title() {
         <StonePanel title="Latest News and Updates">
           <div className={styles.newsBlock}>
             <div className={styles.newsTile}>
-              <a href={listHref()}>
+              {/* Decorative: the same href is reached by every headline beside
+                  it and by the "Click Here" below, both of which have names.
+                  An unlabelled third link would only add noise to a screen
+                  reader. */}
+              <a href={listHref()} aria-hidden="true" tabIndex={-1}>
                 <Tile src="/img/title/mm_scroll.jpg" width={77} height={120} />
               </a>
             </div>
