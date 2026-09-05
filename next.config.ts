@@ -6,6 +6,22 @@ const nextConfig: NextConfig = {
   trailingSlash: false,
   images: { unoptimized: true },
 
+  async redirects() {
+    return [
+      {
+        // www.zanaris.rs serves the site directly today, so the same page can
+        // be reached at two hostnames. That is a nuisance for canonical URLs
+        // and a real problem for the website session cookie Part 2 adds: it is
+        // host-only (no Domain attribute), so a login on the apex is invisible
+        // on www and the reader is silently signed out by a link.
+        source: "/:path*",
+        has: [{ type: "host", value: "www.zanaris.rs" }],
+        destination: "https://zanaris.rs/:path*",
+        permanent: true, // 308: keeps the method, and browsers cache it
+      },
+    ];
+  },
+
   async headers() {
     return [
       {

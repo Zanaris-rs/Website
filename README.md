@@ -1,22 +1,27 @@
-# Zanaris — the Zanaris website
+# Zanaris — the website
 
-The front door for **Zanaris**, a [Lost City](https://lostcity.rs)
-(2004scape) private server on the Zanaris fleet. Four screens:
+The front door for **Zanaris**, a free rehost of [Lost
+City](https://github.com/LostCityRS) (2004scape) — the open-source recreation
+of RuneScape as it was in 2004. It is a copy of the 2004 site's structure,
+under our own name, and it is honest on its first screen about being a rehost
+of somebody else's work with no connection to Jagex Ltd.
 
-- `/` and `/title` — the title screen: what the server is, a **Play now**
-  button, and links to the hiscores and registration.
-- `/serverlist` — the world list: one row per world with its region, whether it
-  is members or free, a live player count, and links into the game client at
-  high or low detail.
-- `/hiscores` — rankings for Overall and each of the nineteen skills, plus
-  `/hiscores/player/<username>` for one player. A deliberate replica of the
-  2004 hiscores, down to the page furniture.
-- `/register` — the **only** way to create an account, behind Cloudflare
-  Turnstile and the database's own rate limits.
+| Path | What is there |
+| --- | --- |
+| `/` and `/disclaimer` | the non-affiliation disclaimer; `/` is the front page, as it is on Lost City |
+| `/title` | the main menu: the wordmark, the live player count, the latest news, and the four stone panels |
+| `/news` | news posts, from Markdown files in `content/news` — plus `/news/page/N`, `/news/category/<cat>` and `/news/<slug>` |
+| `/rules` and `/rules/original` | what the twelve rules mean here, and the twelve rules themselves |
+| `/worldmap` | the 2004 map applet, drawn from the game's own map data |
+| `/serverlist` | the world list: region, members or free, a live player count, and links into the client at high or low detail |
+| `/hiscores` | rankings for Overall and each of the nineteen skills, plus `/hiscores/player/<username>` |
+| `/register` | the **only** way to create an account, behind Cloudflare Turnstile and the database's own rate limits |
+| `/messages` | a placeholder for the Message Centre, until it is built |
 
 Built with Next.js 16 (App Router, TypeScript) and hosted on **Vercel**. It is
-no longer a static export: the hiscores and registration routes run
-server-side and talk to Supabase Postgres.
+not a static export: the hiscores and registration routes run server-side and
+talk to Supabase Postgres. Everything else prerenders, and `/title` is
+regenerated every fifteen seconds for the player count.
 
 ## Running it
 
@@ -29,6 +34,8 @@ npm run lint                 # eslint
 npm run typecheck            # tsc --noEmit
 npm run build                # a real Next build
 npm run db:check             # prove DATABASE_URL connects and is the right role
+npm run assets:vendor        # re-vendor the 2004 graphics (see "2004 assets")
+npm run worldmap:update      # rebuild the map applet and map data (see "World map assets")
 ```
 
 Without a `DATABASE_URL` the site still runs: the hiscores API answers 503 and
@@ -340,30 +347,61 @@ deploys; a pull request gets a preview deployment.
 The worlds themselves are not here — they stay on the hub under
 `*.04.zanaris.rs`, deployed by `Server/ec2-setup`.
 
+**`www.zanaris.rs` 308s to the apex** (`redirects()` in `next.config.ts`,
+matched on the `host` header). Both hostnames served the site directly, which
+gives every page two URLs — a nuisance for canonical links, and a real problem
+for the host-only session cookie the account login adds: a login on the apex
+would be invisible on `www`, and a single link would silently sign the reader
+out.
+
+Almost everything is prerendered at build time. `/title` is the exception: it
+is regenerated every fifteen seconds (`export const revalidate = 15`) because
+of the live player count, which is the only thing on the site that changes on
+its own. `public/worlds.json` is read at build time, so a world added by the
+deploy script appears in `/title`'s count on the next deploy — `/serverlist`
+fetches the file in the browser and picks it up immediately.
+
 ## Layout
 
 | Path | What it is |
 | --- | --- |
-| `app/layout.tsx` | html/body shell, page metadata, global CSS |
-| `app/page.tsx`, `app/title/page.tsx` | the title screen |
+| `app/layout.tsx` | html/body shell, the title template, global CSS |
+| `app/page.tsx`, `app/disclaimer/page.tsx` | the non-affiliation disclaimer |
+| `app/title/page.tsx` | the main menu, ISR at 15s for the player count |
+| `app/news/**` | the five news routes, all prerendered |
+| `app/rules/page.tsx`, `app/rules/original/page.tsx` | the rules |
+| `app/worldmap/page.tsx` | the map applet's page |
 | `app/serverlist/page.tsx` | the world list |
 | `app/hiscores/page.tsx` | `/hiscores` |
 | `app/hiscores/player/[username]/page.tsx` | one player's hiscores |
 | `app/register/page.tsx` | account registration |
+| `app/messages/page.tsx` | the Message Centre placeholder |
 | `app/api/hiscores/route.ts` | the table API |
 | `app/api/hiscores/player/[username]/route.ts` | the personal API |
 | `app/api/account/register/route.ts` | registration, Node runtime, `no-store` |
-| `components/site/Frame.tsx` | the shared 2004 chrome, used by hiscores *and* register |
+| `components/site/Frame.tsx` | the 2004 page chrome every page is inside |
+| `components/site/Tile.tsx` | the one component allowed a bare `<img>` |
+| `components/site/` | `TitleBox`, `Panel`, `StonePanel`, `StoneCaption`, `StoneButton`, `MenuTile`, `PageNav`, `Disclaimer` |
+| `components/news/`, `components/rules/`, `components/worldmap/` | the list and post views, the rule card, the map canvas |
 | `components/hiscores/` | the table, the personal page, the shared header |
 | `components/account/RegisterForm.tsx` | the form, the Turnstile widget, the warnings |
-| `components/TitlePage.tsx`, `components/WorldTable.tsx` | the original two screens |
+| `components/WorldTable.tsx` | the world list itself |
+| `lib/site.ts` | the site name, the revision, the credit line, the URLs |
+| `lib/news/` | frontmatter and filename parsing, categories, pagination, dates, Markdown |
+| `lib/title/` | the player-count sum and the sentence, and the server-side fetch |
+| `lib/rules/original.ts` | the twelve rules as data |
 | `lib/db.ts` | the one `pg.Pool`, and the only `query()` |
 | `lib/base37.ts` | name encoding, ported from the engine's `util/JString.ts` |
 | `lib/supabase-ca.ts`, `lib/supabase-root-2021.crt` | Supabase's root CA, so TLS is verified |
 | `lib/hiscores/` | categories, formatting, params, SQL, response shapes |
 | `lib/account/` | validation, email, IP grouping, Turnstile, bcrypt, the register call |
+| `content/news/` | the news posts |
 | `scripts/db-check.mts` | `npm run db:check` |
-| `public/img/` | the seven 2004 page graphics |
+| `scripts/vendor-2004-assets.sh` | `npm run assets:vendor` |
+| `scripts/update-worldmap.sh` | `npm run worldmap:update` |
+| `public/img/` | the 2004 page graphics |
+| `public/js/mapview.js`, `public/worldmap.jag` | the map applet and its data |
+| `types/mapview.d.ts` | the one type the map applet needs, since it is loaded by URL |
 
 Everything under `lib/` is pure and unit-tested (`lib/**/*.test.ts`); the route
 handlers and components hold no logic worth testing on their own. Two fixture
@@ -371,13 +409,107 @@ files are cross-repo contracts rather than restatements of the code:
 `lib/base37-fixture.json` was generated by running the engine's `JString.ts`,
 and `lib/account/bcrypt-fixture.json` holds a hash from each repo.
 
-Styling is plain CSS: `app/globals.css` and CSS modules alongside each
-component. The 2004 chrome is scoped to the hiscores and register pages, so the
-title and serverlist screens keep their modern look. No webfonts, no CDNs, no
-analytics.
+Styling is plain CSS: `app/globals.css` (black, white 13px Arial, and nothing
+else) and CSS modules alongside each component. There is no design system and
+no colour variables — the palette is the 2004 one, written where it is used:
+`components/site/Frame.module.css` holds the panel, the stone bezels and the
+original's nine link colours, and `Site.module.css` holds the furniture built
+from them. No webfonts, no CDNs, no analytics.
+
+**Links in the chrome are plain `<a>` elements, never `next/link`.** The world
+map applet reaches for its canvas the moment it is evaluated, so `/worldmap`
+has to be a fresh document load; a client-side navigation into it would hand
+the applet a page whose canvas does not exist yet.
+
+## News authoring
+
+A post is one Markdown file in `content/news`, named
+`YYYY-MM-DD-lower-case-slug.md`, with exactly three frontmatter keys:
+
+```markdown
+---
+title: Welcome to Zanaris
+date: 2026-09-05
+category: Website
+---
+
+The body, in Markdown.
+```
+
+- `date` **must** equal the date in the filename; the build fails if it does not.
+- `category` must be one of **Game Updates**, **Website**, **Customer Support**,
+  **Technical**, **Community** or **Behind the Scenes** — the six in
+  `lib/news/categories.ts`, each with its own colour.
+- The slug becomes the URL (`/news/<slug>`); `page` and `category` are reserved
+  because `/news/page/2` and `/news/category/website` are real paths.
+- Seventeen posts to a list page, newest first.
+
+There is no database, no editor and no admin login: a post is a pull request.
+Every news URL is prerendered at build time, so **nothing reads `content/` on a
+request** — which also means a new post needs a deploy, and a malformed one
+fails the build rather than rendering an empty page. `npm test` checks every
+committed post the same way the build does, in a second rather than a minute.
+
+**Markdown is rendered without sanitisation, deliberately.** Raw HTML in a post
+is a feature — a table, a coloured span, an image at an exact size — and posts
+are repo files reviewed like any other change. `lib/news/render.test.ts`
+asserts that raw HTML passes through, so the decision cannot be reversed by
+accident. If news ever becomes something a logged-in user can submit, that test
+is the first thing that has to change.
+
+## World map assets
+
+`/worldmap` needs two files, both committed:
+
+| File | Where it comes from |
+| --- | --- |
+| `public/js/mapview.js` | ~80 KB, bundled from the game client's own `src/mapview/MapView.ts` (`Zanaris-rs/Client-TS`, branch `274`, `bun run bundle.ts`) |
+| `public/worldmap.jag` | ~425 KB, packed by the engine from the content maps (`engine/data/pack/mapview/worldmap.jag`) |
+
+```sh
+npm run worldmap:update          # ENGINE_DIR=../Server/engine, CLIENT_BRANCH=274
+```
+
+The script clones or refreshes the client into `.cache/` (gitignored), bundles
+it with `bun`, and copies both files into `public/`. The client branch is
+pinned to the revision the fleet runs — move it with `GAME_VERSION` in
+`lib/site.ts` when the fleet moves.
+
+**`worldmap.jag` goes stale.** It is a snapshot of the content maps at the
+moment it was packed, so a content change that moves anything on the map will
+not show here until someone re-runs the script and commits the result.
+
+## 2004 assets
+
+`public/img/` is the original 2004 site graphics — the page chrome, the stone
+frame, the menu tiles, the twelve rule illustrations.
+
+```sh
+npm run assets:vendor            # ENGINE_DIR=../Server/engine
+```
+
+Most of them are recovered from the **engine repository's own git history**:
+the website used to live in `Server/` and was moved out in commit `f2c4d3ed`,
+so `f2c4d3ed^` is the last commit that still carries `public/img/**`. Three
+tiles never existed in 2004 — `title/mm_security.jpg`, `title/mm_message.jpg`
+and `title/mm2_rs2b.jpg`, drawn by [Lost City](https://2004.lostcity.rs/) for
+pages 2004 did not have — and are fetched from the live Lost City site.
+
+The script never overwrites: a file that is already there is reported as
+`keep`. That is what protects the seven graphics this repo shipped before, whose
+bytes differ from the history copies and which the chrome was built against.
+
+The wordmark is ours: `public/img/title/logo.svg`, three stacked `<text>`
+layers in a serif stack with a gold gradient, 312x100.
+`public/img/title/logo.source.svg` is the same file kept as the editable
+source — outlining the text to paths is optional polish for a machine with a
+vector editor on it, and would only change how the wordmark renders where
+Georgia is missing.
 
 `public/img/` is the original 2004 site graphics as served by
 [Lost City](https://2004.lostcity.rs/), a preservation project.
 `lib/account/disposable-domains.json` is the
 [disposable-email-domains](https://github.com/disposable-email-domains/disposable-email-domains)
-blocklist, released under CC0-1.0.
+blocklist, released under CC0-1.0. The server this site fronts is
+[Lost City](https://github.com/LostCityRS)'s, MIT-licensed; our fork is at
+[github.com/Zanaris-rs](https://github.com/Zanaris-rs).

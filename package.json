@@ -10,7 +10,8 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "db:check": "node --conditions=react-server --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/db-check.mts",
-    "assets:vendor": "bash scripts/vendor-2004-assets.sh"
+    "assets:vendor": "bash scripts/vendor-2004-assets.sh",
+    "worldmap:update": "bash scripts/update-worldmap.sh"
   },
   "dependencies": {
     "bcrypt-ts": "^9.0.2",
@@ -31,5 +32,5 @@
     "typescript": "^5",
     "vitest": "^5.0.0"
   },
-  "description": "Website for Zanaris on the Zanaris fleet, a Lost City (2004scape) server: world list, hiscores and account registration."
+  "description": "The Zanaris website, a free Lost City (2004scape) rehost: disclaimer, main menu, news, rules, world map, world list, hiscores and account registration."
 }

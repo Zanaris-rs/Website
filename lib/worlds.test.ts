@@ -13,7 +13,7 @@ const world1 = {
   name: "World 1",
   region: "US-East",
   members: true,
-  url: "https://w1.04.retired.invalid",
+  url: "https://w1.04.zanaris.rs",
 };
 
 describe("parseWorlds", () => {
@@ -24,7 +24,7 @@ describe("parseWorlds", () => {
         name: "World 1",
         region: "US-East",
         members: true,
-        url: "https://w1.04.retired.invalid",
+        url: "https://w1.04.zanaris.rs",
       },
     ]);
   });
@@ -35,9 +35,9 @@ describe("parseWorlds", () => {
 
   it("trims a trailing slash from the url", () => {
     const [world] = parseWorlds([
-      { ...world1, url: "https://w1.04.retired.invalid/" },
+      { ...world1, url: "https://w1.04.zanaris.rs/" },
     ]);
-    expect(world.url).toBe("https://w1.04.retired.invalid");
+    expect(world.url).toBe("https://w1.04.zanaris.rs");
   });
 
   it("throws when a field is missing", () => {
@@ -111,20 +111,20 @@ describe("playersLabel", () => {
 
 describe("clientUrl", () => {
   it("builds the high detail client url", () => {
-    expect(clientUrl("https://w1.04.retired.invalid", false)).toBe(
-      "https://w1.04.retired.invalid/rs2.cgi",
+    expect(clientUrl("https://w1.04.zanaris.rs", false)).toBe(
+      "https://w1.04.zanaris.rs/rs2.cgi",
     );
   });
 
   it("builds the low detail client url", () => {
-    expect(clientUrl("https://w1.04.retired.invalid", true)).toBe(
-      "https://w1.04.retired.invalid/rs2.cgi?lowmem=1",
+    expect(clientUrl("https://w1.04.zanaris.rs", true)).toBe(
+      "https://w1.04.zanaris.rs/rs2.cgi?lowmem=1",
     );
   });
 
   it("does not double up a slash when the origin has one", () => {
-    expect(clientUrl("https://w1.04.retired.invalid/", false)).toBe(
-      "https://w1.04.retired.invalid/rs2.cgi",
+    expect(clientUrl("https://w1.04.zanaris.rs/", false)).toBe(
+      "https://w1.04.zanaris.rs/rs2.cgi",
     );
   });
 });
