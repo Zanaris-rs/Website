@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 
 import "./globals.css";
 
@@ -39,6 +39,25 @@ export const metadata: Metadata = {
   title: { default: "Zanaris", template: "%s | Zanaris" },
   description:
     "A free Lost City (2004scape) server. Play RuneScape as it was in 2004, in your browser.",
+};
+
+/**
+ * The whole site is a fixed 600px column of 2004 furniture — edge tiles,
+ * 500px panels, 100px stone captions — and none of it can reflow, because the
+ * pictures are the layout. On a phone the choice is therefore between clipping
+ * the right-hand edge and scaling the page down, and the original made the
+ * same choice we do: its own `<meta viewport>` carried `initial-scale=0.7`.
+ *
+ * `width: 600` hands the browser a 600px layout viewport and lets it scale to
+ * whatever the screen is, so a 375px phone sees the entire page at 62% rather
+ * than two thirds of it at 100%. Desktop browsers ignore the tag entirely.
+ */
+export const viewport: Viewport = {
+  width: 600,
+  // Next's default is `initial-scale=1`, which would pin the page at 100% and
+  // put a third of it off-screen. Undefined leaves the tag without a scale, so
+  // the browser picks the one that makes 600px fit whatever screen it has.
+  initialScale: undefined,
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
