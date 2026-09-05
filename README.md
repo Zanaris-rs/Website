@@ -66,11 +66,13 @@ Two details in `DATABASE_URL` are load-bearing:
 - **The role must be `website`, not `postgres`.** `postgres` owns every table
   and bypasses RLS, so a bug in a route handler could read password hashes or
   set `staffmodlevel`. `website` has `SELECT` on two views and `EXECUTE` on
-  eight `accounts.*` functions, and nothing else — no table privilege at all.
+  twenty `accounts.*` functions, and nothing else — no table privilege at all.
   `npm run db:check` fails if the role can read `public.account`,
-  `public.login_attempt`, `public.session` or `public.account_login`, or if it
-  can execute `accounts.throttled` / `accounts.record_failure`, which is what
-  catches this.
+  `public.login_attempt`, `public.session`, `public.account_login` or the
+  Message Centre's own five — `public.account_message`, `public.ticket`,
+  `public.ticket_message`, `public.staff_action` and `public.report` — or if
+  it can execute `accounts.throttled` / `accounts.record_failure`, which is
+  what catches this.
 - **The port must be `6543`, not `5432`.** `5432` is session mode, one
   dedicated connection per client; serverless scales to many instances and
   would exhaust the free pooler budget. `6543` multiplexes — which is why
