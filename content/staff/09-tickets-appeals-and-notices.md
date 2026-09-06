@@ -6,7 +6,7 @@ title: Tickets, appeals and notices
      (the three ticket kinds and their labels; subject 120, body 4000, 5
      tickets per account per day, 20 replies per account per hour, 20 notices
      per actor per hour), lib/staff/queries.ts (staff_inbox's ?status=, and
-     staff_reply's close flag), components/staff/StaffReplyForm.tsx,
+     staff_reply's close flag, and DEFAULT_INBOX_STATUS = "open"), components/staff/StaffReplyForm.tsx,
      StaffNoticeForm.tsx and app/staff/notice/page.tsx (the re-typed password
      and its own throttle bucket), engine MessageCentre.ts (what the ban
      notice tells the player to do). -->
@@ -25,9 +25,9 @@ write back lands in theirs.
 
 ### The inbox
 
-`/staff` lists every ticket, most recently active first. `?status=open`,
-`?status=closed` and `?status=all` are plain links, so your back button works
-and you can send somebody "the closed ones".
+`/staff` lists the **open** tickets, most recently active first; `?status=all`
+lists every one, and `?status=closed` only the closed. They are plain links, so
+your back button works and you can send somebody "the closed ones".
 
 The column that matters is **Awaiting staff** — the newest message on the
 ticket is the player's — and the count of those is printed at the top. The list

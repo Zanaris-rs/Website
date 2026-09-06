@@ -6,18 +6,23 @@ title: The evidence
      200-chunk and 2,000-line notices, the flags, the "what they said" and
      "what changed hands" notes), StaffResolveForm.tsx (one capture per
      offender per fifteen minutes, and what dismissing deletes),
-     lib/staff/macro/decode.ts (the flags) and the ops guide
-     macro-moderator-guide.md for the windows the world captures. -->
+     lib/staff/macro/decode.ts (the flags), engine World.notifyPlayerReport
+     (a capture, and so a uuid, only when the reason is macroing or bug abuse
+     *and* the offender is on this world), LoggerServer.copyChat (the chat is
+     filed under the capture's uuid) and migration 4's staff_report_chat and
+     staff_report_wealth (chat joins on r.uuid; wealth does not), and the ops
+     guide macro-moderator-guide.md for the windows the world captures. -->
 
-When a player is reported for **macroing** or **bug abuse**, three things are
-attached to the report. Every other reason leaves a row with no evidence behind
-it.
+When a player is reported for **macroing** or **bug abuse** *and the offender
+is on the reporter's world*, three things are attached to the report. Every
+other reason leaves a row with no evidence behind it — and so does an offender
+the world could not capture, which is the paragraph after the table.
 
 | Evidence | What it is | Window |
 | --- | --- | --- |
 | input | the offender's mouse: movement, clicks and window focus | about 10 minutes *before* the report, then a 15-minute live tail after it |
 | chat | the offender's own public chat, and the private messages **they sent** | 30 minutes before the report to 15 minutes after |
-| wealth | trades, stakes, kills, deaths, drops, pickups, shop trades and alchemies | the same window, out of the 7 days kept for everybody |
+| wealth | trades, stakes, kills, deaths, drops, pickups, shop trades, alchemies and the party room | the same window, out of the 7 days kept for everybody |
 
 The input capture is always running, in memory, for every player — a rolling
 ring of about ten minutes that is overwritten and thrown away unless a report
@@ -39,10 +44,16 @@ evidence is one.**
 
 ### What you will not have
 
-- **They logged out before the report** — chat and wealth only. No input, and
+**No capture means no chat either.** The chat copy is filed under the capture's
+own key, so a report that never opened a capture has nothing to file it under:
+what survives is the wealth, which is read out of `session_wealth` by the
+offender's own sessions and never needed a key. That is worth knowing before you
+open a report expecting a transcript.
+
+- **They logged out before the report** — **wealth only**. No input, no chat and
   no verdict.
-- **A cross-world report** — a world only sees its own players, so there is no
-  input. Chat and wealth still arrive.
+- **A cross-world report** — a world only sees its own players, so no capture
+  opens: **only wealth arrives**.
 - **A report in the first minute of a session** — a very short "before".
 - **A Java client** — it sends at most one movement record per packet, so the
   capture has clicks and focus but almost no movement. The page flags it and

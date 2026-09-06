@@ -3,13 +3,15 @@ title: Bans and mutes
 ---
 
 <!-- Sources: engine ClientCheatHandler.ts (`::ban`, `::mute`, the argument
-     parsing and the messages), World.ts notifyPlayerBan/notifyPlayerMute,
+     parsing and the messages, and the `input.length > 80` refusal that drops a
+     long line rather than trimming it), World.ts notifyPlayerBan/Mute,
      MessagePublicHandler.ts and MessagePrivateHandler.ts (what a mute stops),
      LoginServer.ts and MessageCentre.ts (the notice, the punishment row and
      the one-hour rewrite window), the Java client's login messages,
      lib/account/profile.ts (the Account Centre line), lib/public/format.ts
-     and components/public/Bans.tsx (the public record), lib/staff/format.ts
-     (PUBLIC_NOTE_MAX). -->
+     and components/public/Bans.tsx (the public record; a null `until` reads as
+     "Never", and MessageCentre.ts's PunishmentRecord says nothing in the engine
+     issues one), lib/staff/format.ts (PUBLIC_NOTE_MAX). -->
 
 Two commands, and they take the same arguments:
 
@@ -55,6 +57,11 @@ Durations we use:
 | a year | `525600` |
 | permanent | `52560000` |
 
+`52560000` is a hundred years, and it is the in-game **stand-in** for permanent
+rather than the thing itself. A truly permanent punishment is one with no end
+date at all, and nothing in the game can write one — that is the operator's,
+and it is what `/bans` prints as "Never".
+
 ### What a ban does
 
 If they are online they are logged out and disconnected at once. Until the end
@@ -72,8 +79,9 @@ the Report Abuse screen, which is always 48 hours. See *Report Abuse*.
 
 ### There is no reason field
 
-The command line is lower-cased and capped at 80 characters before the handler
-sees it, so there is nowhere to put one. If the player should know more than
+The command line is lower-cased before the handler sees it, and **anything over
+80 characters is ignored outright** rather than trimmed — so there is nowhere to
+put one, and a long line is not a short ban, it is no ban at all. If the player should know more than
 the notice tells them, send them a notice from `/staff/notice` and keep it
 short and factual.
 

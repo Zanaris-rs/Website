@@ -6,7 +6,9 @@ title: Reading the verdict
      grouping, the rules in the order adjudicate() applies them, the touch and
      withheld brakes, and every signal's label, detail and false positive),
      lib/staff/macro/metrics.ts (MIN_CLICKS_FOR_TIMING = 30,
-     MIN_INTERVALS_FOR_RUNS = 50, MIN_CLICKS_FOR_SPATIAL = 10) and
+     MIN_INTERVALS_FOR_RUNS = 50, MIN_CLICKS_FOR_SPATIAL = 10,
+     MIN_IDLE_GAPS = 5, MIN_LATENCIES = 20, MIN_PATHS = 5,
+     MIN_CELL_CLICKS = 10) and
      components/staff/StaffReportDetail.tsx (FAMILY_LABELS and FLAG_TEXT). -->
 
 A report with input on it gets a verdict, and then the numbers behind it.
@@ -21,9 +23,10 @@ You are the one accountable for the ban.
 | **Human-like** | nothing in the input looks mechanical. This is evidence *for* the player. |
 | **Not enough data** | nothing could be measured. |
 
-**"Not enough data" is a verdict, not a failure.** A short capture, a quiet ten
-minutes, a Java client — all of them land here, and the honest answer is that
-we do not know. It does not mean "probably guilty because the system could not
+**"Not enough data" is a verdict, not a failure.** A short capture or a quiet
+ten minutes lands here, and the honest answer is that we do not know. (A Java
+client does not, on its own: it withholds the cursor family, and the timing
+signals are still measured.) It does not mean "probably guilty because the system could not
 tell". If you still believe something is wrong, `::track` them for a longer
 window and get a real sample.
 
@@ -72,11 +75,23 @@ verdict with something missing says what.
 
 ### Before a signal means anything
 
-- **30 intervals** before any timing signal is computed.
-- **50 intervals** before the unbroken-rhythm signal is.
-- **10 clicks** before any cursor signal is.
+Each signal has its own minimum, and below it the row reads "Not enough data"
+and is not counted:
 
-Below those, the signal reads "Not enough data" and is not counted.
+| Signal | Needs |
+| --- | --- |
+| Click interval spread, Commonest interval | 30 intervals |
+| Longest unbroken rhythm | 50 intervals |
+| Break regularity | 5 gaps of more than five seconds |
+| Repeated pixels, Cursor samples per click | 10 clicks |
+| Clicks with no approach | 10 judgeable clicks |
+| Spread inside the busiest square | 10 clicks inside that square |
+| Stillness around a click | 20 measurable pauses |
+| Straight-line journeys | 5 journeys long enough to judge |
+
+The unfocused-click signal has no minimum. It convicts on its own, so it is
+never held back for want of a sample size — but the *absence* of one is only
+reported once there were at least 10 clicks to be unfocused during.
 
 ### The signals, and what an honest player does to set them off
 
