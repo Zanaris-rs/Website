@@ -32,7 +32,15 @@ function read(file: string): string {
   return readFileSync(join(HANDBOOK_DIR, file), "utf8");
 }
 
-const SECTIONS = FILES.map((file) => parseSection(file, read(file)));
+/**
+ * Parsed lazily, inside the tests that need the whole book. At module scope a
+ * single malformed file would throw during collection and take the *other*
+ * files' tests with it, so the run would say "no tests" instead of naming the
+ * one file that is wrong.
+ */
+function sections() {
+  return FILES.map((file) => parseSection(file, read(file)));
+}
 
 /** Anything shaped like an address; operator material, never moderator material. */
 const IPV4 = /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/;
@@ -75,11 +83,11 @@ describe("content/staff", () => {
   });
 
   it("assembles, so the orders and the slugs are unique", () => {
-    expect(() => assembleHandbook(SECTIONS)).not.toThrow();
+    expect(() => assembleHandbook(sections())).not.toThrow();
   });
 
   it("gives every heading in the book its own id", () => {
-    const book = assembleHandbook(SECTIONS);
+    const book = assembleHandbook(sections());
     const ids = book.sections.flatMap((section) => [
       // The `<section id>` the contents list links to, which a heading id must
       // not collide with either.
