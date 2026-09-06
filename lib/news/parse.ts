@@ -78,10 +78,22 @@ export type Frontmatter = {
 };
 
 /**
- * The three keys and the body. Hand-rolled rather than a YAML dependency:
- * three keys, one line each, no nesting and no quoting rules to get wrong.
+ * The `---` block and the body, pulled apart, with the block read as one
+ * `key: value` per line.
+ *
+ * This is the half of frontmatter that has nothing to do with news. A post
+ * takes three keys and a handbook section takes one, but both files open with
+ * the same fences and neither wants to get them wrong in its own way — so the
+ * fences, the line splitting and the duplicate-key refusal live here, and
+ * *which* keys are allowed stays with the caller that knows.
+ *
+ * Hand-rolled rather than a YAML dependency: one line each, no nesting and no
+ * quoting rules to get wrong.
  */
-export function parseFrontmatter(source: string, where = "post"): Frontmatter {
+export function splitFrontmatter(
+  source: string,
+  where = "post",
+): { fields: Map<string, string>; body: string } {
   const normalised = source.replace(/\r\n/g, "\n");
   if (!normalised.startsWith("---\n")) {
     throw new Error(`${where}: must start with a "---" frontmatter block`);
@@ -109,6 +121,16 @@ export function parseFrontmatter(source: string, where = "post"): Frontmatter {
     }
     fields.set(key, value);
   }
+
+  return { fields, body };
+}
+
+/**
+ * The three keys and the body: the fences from `splitFrontmatter`, and the
+ * three names news insists on.
+ */
+export function parseFrontmatter(source: string, where = "post"): Frontmatter {
+  const { fields, body } = splitFrontmatter(source, where);
 
   for (const key of fields.keys()) {
     if (key !== "title" && key !== "date" && key !== "category") {

@@ -12,6 +12,7 @@ import {
   resolutionLabel,
   worldLabel,
 } from "@/lib/staff/format";
+import { staffLinks } from "@/lib/staff/links";
 import type { ReportRow } from "@/lib/staff/queries";
 
 import staff from "./Staff.module.css";
@@ -42,11 +43,7 @@ export default function StaffReports({
     <>
       <TitleBox
         title="Reports"
-        links={[
-          { href: "/staff", text: "Staff inbox" },
-          { href: "/staff/notice", text: "Send a notice" },
-          { href: "/staff/wealth", text: "Wealth" },
-        ]}
+        links={staffLinks("/staff/reports")}
       />
 
       <Panel align="left">

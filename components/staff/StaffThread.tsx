@@ -10,6 +10,7 @@ import {
   ticketStatusLabel,
 } from "@/lib/messages/format";
 import type { Thread } from "@/lib/messages/queries";
+import { staffLinks } from "@/lib/staff/links";
 
 import StaffReplyForm from "./StaffReplyForm";
 
@@ -29,10 +30,7 @@ export default function StaffThread({ ticket }: { ticket: Thread }) {
     <>
       <TitleBox
         title="Ticket"
-        links={[
-          { href: "/staff", text: "Staff inbox" },
-          { href: "/staff/notice", text: "Send a notice" },
-        ]}
+        links={staffLinks()}
       />
 
       <Panel align="left">

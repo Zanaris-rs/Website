@@ -5,6 +5,7 @@ import TitleBox from "@/components/site/TitleBox";
 import { toDisplayName } from "@/lib/base37";
 import { formatWhen } from "@/lib/messages/format";
 import { coordLabel, wealthEventLabel } from "@/lib/staff/format";
+import { staffLinks } from "@/lib/staff/links";
 import type { WealthRow } from "@/lib/staff/queries";
 
 import styles from "./Staff.module.css";
@@ -37,10 +38,7 @@ export default function StaffWealth({
     <>
       <TitleBox
         title="Wealth"
-        links={[
-          { href: "/staff", text: "Staff inbox" },
-          { href: "/staff/reports", text: "Reports" },
-        ]}
+        links={staffLinks("/staff/wealth")}
       />
 
       <Panel align="left">

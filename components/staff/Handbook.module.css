@@ -1,0 +1,115 @@
+/*
+ * The handbook: a document rather than a table, which is the only page on the
+ * staff side that is.
+ *
+ * The `.body` rules are `News.module.css`'s, for the same reason they exist
+ * there — the panel supplies the padding, so the first and last blocks lose
+ * their own margins, and a wide Markdown table scrolls inside the body rather
+ * than widening the page. They are copied rather than shared because the two
+ * Markdown surfaces are allowed to diverge: this one is read at 11px on a
+ * phone by somebody deciding whether to ban a player, and a news post is not.
+ */
+
+.contents {
+  margin: 0;
+  padding: 0 0 0 18px;
+  line-height: 1.6;
+}
+
+/*
+ * Where an anchor lands. Without this the heading sits hard against the top of
+ * the viewport and reads as the *end* of the section above it.
+ */
+/* Ten sections in one panel need a line above each of them, or the book reads
+   as one very long section with headings in it. The first one is separated
+   from the contents list by the same rule. */
+.section {
+  scroll-margin-top: 12px;
+  margin-top: 18px;
+  border-top: 1px solid var(--panel-border);
+  padding-top: 14px;
+}
+
+/* The section's own title, from the frontmatter. Bigger than anything a body
+   may use, because a body may not use an h2 at all. */
+.title {
+  margin: 0 0 8px;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.body {
+  overflow-x: auto;
+  line-height: 1.5;
+}
+
+.body > :first-child {
+  margin-top: 0;
+}
+
+.body > :last-child {
+  margin-bottom: 0;
+}
+
+/* The chrome is 13px, so the browser's own heading scale is far too loud: an
+   h3 at 1.17em next to 13px body text is a shout. These are the sizes the rest
+   of the staff side uses for the same job. */
+.body h3 {
+  margin: 16px 0 6px;
+  font-size: 13px;
+  font-weight: bold;
+}
+
+.body h4,
+.body h5,
+.body h6 {
+  margin: 12px 0 4px;
+  font-size: 13px;
+  font-weight: bold;
+}
+
+.body p {
+  margin: 0 0 8px;
+}
+
+.body ul,
+.body ol {
+  margin: 0 0 8px;
+  padding-left: 18px;
+}
+
+.body li {
+  margin-bottom: 4px;
+}
+
+.body img {
+  max-width: 100%;
+  height: auto;
+}
+
+.body pre {
+  overflow-x: auto;
+  margin: 0 0 8px;
+  padding: 6px;
+  border: 1px solid var(--panel-border);
+}
+
+.body code {
+  font-size: 12px;
+}
+
+/* A table wider than the panel scrolls inside `.body`; 11px is what the
+   reports table uses, and these carry the same kind of short cells. */
+.body table {
+  border-collapse: collapse;
+  margin: 0 0 8px;
+  font-size: 11px;
+}
+
+.body th,
+.body td {
+  border: 1px solid var(--panel-border);
+  padding: 2px 6px;
+  text-align: left;
+  vertical-align: top;
+}

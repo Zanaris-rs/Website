@@ -504,8 +504,9 @@ ordinary ways somebody arrives at their own message to fix a cosmetic problem.
 ### The staff side
 
 `/staff` (with `?status=open|closed|all`), `/staff/tickets/<id>`,
-`/staff/notice` and `/staff/reports` need `staffmodlevel >= 2`, and it is read
-from `accounts.profile` **on every request**. The session cookie carries a
+`/staff/notice`, `/staff/reports`, `/staff/reports/<id>`, `/staff/wealth` and
+`/staff/handbook` need `staffmodlevel >= 2`, and it is read from
+`accounts.profile` **on every request**. The session cookie carries a
 username, an issue time and a salt fingerprint and deliberately no level: a
 level in a cookie is one that survives a demotion for seven days and one that
 anybody who could forge a cookie could grant themselves.
@@ -1072,6 +1073,7 @@ fetches the file in the browser and picks it up immediately.
 | `app/staff/tickets/[id]/page.tsx` | a ticket as staff see it; marks nothing read |
 | `app/staff/notice/page.tsx` | write a notice, re-typing the staff password |
 | `app/staff/reports/page.tsx` | Report Abuse rows, `?since=<ISO>` |
+| `app/staff/handbook/page.tsx` | the moderation handbook, from `content/staff` |
 | `app/bans/page.tsx`, `app/bans/page/[n]/page.tsx` | the public ban record, ISR at 5m |
 | `app/economy/page.tsx` | the public economy census, ISR at 5m |
 | `app/api/hiscores/route.ts` | the table API |
@@ -1088,7 +1090,7 @@ fetches the file in the browser and picks it up immediately.
 | `components/account/RegisterForm.tsx` | the form, the Turnstile widget, the warnings |
 | `components/account/` | `LoginForm`, `AccountCentre`, `LogoutButton`, `ChangePasswordForm`, `ChangeEmailForm` |
 | `components/messages/` | the inbox, one message, a thread, the reply box, the ticket form |
-| `components/staff/` | the inbox table, the staff thread and reply box, the notice form, the reports table |
+| `components/staff/` | the inbox table, the staff thread and reply box, the notice form, the reports table, the report page, the handbook |
 | `components/public/` | the ban record, the economy page and its server-rendered SVG chart |
 | `components/WorldTable.tsx` | the world list itself |
 | `lib/site.ts` | the site name, the revision, the credit line, the URLs |
@@ -1105,10 +1107,11 @@ fetches the file in the browser and picks it up immediately.
 | `lib/account/origin.ts`, `login.ts`, `profile.ts` | the CSRF check, the four SQL calls, the account-centre wording |
 | `lib/account/message-centre-contract.json` | the cross-repo Message Centre contract, copied from the engine |
 | `lib/messages/` | the seven player SQL calls and their parsers; the kinds, caps and wording |
-| `lib/staff/` | the five staff SQL calls, the staff level, and the two engine encodings `/staff/reports` decodes |
+| `lib/staff/` | the staff SQL calls, the staff level, the shared staff nav, the handbook parser and reader, and the engine encodings `/staff/reports` decodes |
 | `lib/public/` | the four public SQL calls and their parsers, the census maths, the wording, and the server-side reads |
 | `lib/items/names.json`, `names.ts` | item ids as names, generated from the content repo |
-| `content/news/` | the news posts |
+| `content/news/` | the news posts, read at build time |
+| `content/staff/` | the handbook's ten sections, read on a request |
 | `scripts/db-check.mts` | `npm run db:check` |
 | `scripts/vendor-2004-assets.sh` | `npm run assets:vendor` |
 | `scripts/update-worldmap.sh` | `npm run worldmap:update` |
@@ -1161,17 +1164,59 @@ The body, in Markdown.
 - Seventeen posts to a list page, newest first.
 
 There is no database, no editor and no admin login: a post is a pull request.
-Every news URL is prerendered at build time, so **nothing reads `content/` on a
-request** — which also means a new post needs a deploy, and a malformed one
-fails the build rather than rendering an empty page. `npm test` checks every
-committed post the same way the build does, in a second rather than a minute.
+Every news URL is prerendered at build time, so **nothing reads `content/news`
+on a request** — which also means a new post needs a deploy, and a malformed
+one fails the build rather than rendering an empty page. (`content/staff` is
+the other half of `content/`, and it *is* read on a request; see below.)
+`npm test` checks every committed post the same way the build does, in a second
+rather than a minute.
 
 **Markdown is rendered without sanitisation, deliberately.** Raw HTML in a post
 is a feature — a table, a coloured span, an image at an exact size — and posts
 are repo files reviewed like any other change. `lib/news/render.test.ts`
 asserts that raw HTML passes through, so the decision cannot be reversed by
-accident. If news ever becomes something a logged-in user can submit, that test
-is the first thing that has to change.
+accident. The same waiver covers the whole of `content/`: the staff handbook is
+rendered unsanitised too, and `lib/staff/handbook-content.test.ts` pins it from
+the other side by refusing a `<script` in a committed section. If either ever
+becomes something a logged-in user can submit, those tests are the first thing
+that has to change.
+
+## Staff handbook authoring
+
+`/staff/handbook` is the moderators' copy of the two ops guides in the server
+repo, kept in step with the code it describes. A section is one Markdown file
+in `content/staff`, named `NN-lower-case-slug.md`, with exactly **one**
+frontmatter key:
+
+```markdown
+---
+title: Bans and mutes
+---
+
+<!-- Sources: engine ClientCheatHandler.ts, ... -->
+
+### A heading inside the section
+```
+
+- `NN` is two digits and is the reading order; the slug is the section's anchor
+  (`/staff/handbook#bans-and-mutes`). Duplicate orders and duplicate slugs both
+  throw.
+- **Bodies use `###` and below.** The `<h2>` is the section's own title, from
+  the frontmatter, so a body reaching for one is claiming to be a second
+  section. A test refuses `#` and `##`.
+- Every heading gets an `id` prefixed with the section's slug, so two sections
+  may both have a "What the player sees". The ids are checked for collisions
+  across the whole book.
+- **Open with an HTML comment naming the engine or website file every number in
+  the section came from.** The handbook restates constants that live in another
+  repo and there is no contract file for them; the comment is what the next
+  person checking them follows.
+- `npm test` validates every committed section — it parses, it renders, it has
+  no `<script`, no address and none of the operator's material in it. That
+  matters more here than for news: the handbook is read **on a request**, so a
+  malformed section does not fail the deploy, it fails the page for a moderator
+  at the moment they reached for it. The page catches the throw and shows the
+  "unavailable" panel; the test is what stops it shipping.
 
 ## World map assets
 
