@@ -18,6 +18,7 @@ import {
   wealthEventLabel,
   worldLabel,
 } from "@/lib/staff/format";
+import { staffLinks } from "@/lib/staff/links";
 import {
   chatTotal,
   type ChatRow,
@@ -160,10 +161,7 @@ export default function StaffReportDetail({
     <>
       <TitleBox
         title="Report"
-        links={[
-          { href: "/staff/reports", text: "All reports" },
-          { href: "/staff/wealth", text: "Wealth search" },
-        ]}
+        links={staffLinks()}
       />
 
       <Panel align="left">

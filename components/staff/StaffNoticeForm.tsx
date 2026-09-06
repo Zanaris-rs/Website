@@ -14,6 +14,7 @@ import {
   NOTICES_PER_HOUR,
   SUBJECT_MAX,
 } from "@/lib/messages/format";
+import { staffLinks } from "@/lib/staff/links";
 
 /**
  * Send a notice into a player's Message Centre.
@@ -104,10 +105,7 @@ export default function StaffNoticeForm() {
     <>
       <TitleBox
         title="Send a notice"
-        links={[
-          { href: "/staff", text: "Staff inbox" },
-          { href: "/staff/reports", text: "Reports" },
-        ]}
+        links={staffLinks("/staff/notice")}
       />
 
       <Panel align="left">

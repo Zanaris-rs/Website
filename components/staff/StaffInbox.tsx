@@ -9,6 +9,7 @@ import {
   ticketKindLabel,
   ticketStatusLabel,
 } from "@/lib/messages/format";
+import { staffLinks } from "@/lib/staff/links";
 import type { InboxRow, InboxStatus } from "@/lib/staff/queries";
 import { INBOX_STATUSES } from "@/lib/staff/queries";
 
@@ -49,12 +50,7 @@ export default function StaffInbox({
     <>
       <TitleBox
         title="Staff inbox"
-        links={[
-          { href: "/staff/notice", text: "Send a notice" },
-          { href: "/staff/reports", text: "Reports" },
-          { href: "/staff/wealth", text: "Wealth", br: true },
-          { href: "/account", text: "Account Centre" },
-        ]}
+        links={staffLinks("/staff")}
       />
 
       <Panel align="left">
