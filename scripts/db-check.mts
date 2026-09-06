@@ -4,8 +4,9 @@
  *
  * It runs `select 1`, counts the two hiscores views, and then proves the shape
  * of the least-privilege role: refused on every table it must never read
- * (`account`, `login_attempt`, `session`, `account_login`, and the Message
- * Centre's own five), `EXECUTE` on the twenty `accounts.*` functions it needs
+ * (`account`, `login_attempt`, `session`, `account_login`, the Message
+ * Centre's own five, and the three transparency tables), `EXECUTE` on the
+ * twenty-four `accounts.*` functions it needs
  * and **not** on `throttled`, `record_failure` or `is_staff` — the rate
  * limiter's own machinery and the staff check, none of which is an API. Those
  * checks are the ones worth having: a URL that connects as `postgres` looks
@@ -26,6 +27,18 @@
 import { readFileSync } from "node:fs";
 
 import { isConfigured, pool, query } from "../lib/db.ts";
+import {
+  BANS_PAGE_SIZE,
+  type Statement,
+  parseFlows,
+  parsePunishmentPage,
+  parseSnapshots,
+  parseStaffSpawns,
+  publicEconomyFlowStatement,
+  publicEconomyStatement,
+  publicPunishmentsStatement,
+  publicStaffSpawnsStatement,
+} from "../lib/public/queries.ts";
 
 /** Minimal `.env.local` reader: this script runs outside Next's loader. */
 function loadEnvLocal(): void {
@@ -102,6 +115,15 @@ async function main(): Promise<void> {
     "public.session_wealth",
     "public.public_chat",
     "public.private_chat",
+    // 4_evidence_and_records' public four. These are the tables behind /bans
+    // and /economy, and the site reads all of them — but only through the
+    // `public_*` functions, which return the public columns and nothing else.
+    // A direct grant here would hand the site `punishment.issued_by_account_id`,
+    // which is the one column the whole feature exists to keep private.
+    "public.punishment",
+    "public.staff_spawn",
+    "public.economy_snapshot",
+    "public.economy_flow",
   ]) {
     try {
       await query(`select 1 from ${table} limit 1`);
@@ -148,6 +170,13 @@ async function main(): Promise<void> {
     "accounts.staff_report_resolve(text, text, int, text, text)",
     "accounts.staff_lift(text, text, int, text)",
     "accounts.staff_punishment_note(text, int, text)",
+    // 4_evidence_and_records, public half. No actor argument anywhere: these
+    // are the only functions in the API that answer the same thing to
+    // everybody, because their answers are on public pages.
+    "accounts.public_punishments(int, int)",
+    "accounts.public_economy(int)",
+    "accounts.public_economy_flow(int)",
+    "accounts.public_staff_spawns(int)",
   ];
   const withheld = [
     "accounts.throttled(text, text)",
@@ -226,6 +255,7 @@ async function main(): Promise<void> {
 
   await checkMessageCentre();
   await checkEvidence();
+  await checkPublicPages();
 }
 
 /**
@@ -429,6 +459,65 @@ async function checkMessageCentre(): Promise<void> {
     } else {
       console.error(
         `FAIL: ${name} answered ${JSON.stringify(row?.result)}; expected ${expected}.`,
+      );
+      process.exitCode = 1;
+    }
+  }
+}
+
+/**
+ * One call per public function, built by the same statement builders the pages
+ * use, and every row put through the same parser.
+ *
+ * The calls are read-only and take no actor, so there is nothing to refuse and
+ * nothing to spend: what is being proved is that the four functions exist with
+ * the argument types `lib/public/queries.ts` passes, and that their
+ * `RETURNS TABLE` still matches what the parsers read. A column renamed in the
+ * migration turns into rows the parser drops, which fails here rather than
+ * turning /bans into a blank table in front of a player.
+ *
+ * Zero rows is a pass, not a failure. These tables are empty until the census
+ * timer has run, and both pages are built to look finished that way.
+ */
+async function checkPublicPages(): Promise<void> {
+  const reads: [
+    string,
+    Statement,
+    (rows: readonly unknown[]) => readonly unknown[],
+  ][] = [
+    [
+      "public_punishments",
+      publicPunishmentsStatement(1),
+      (rows) => [...parsePunishmentPage(rows, 1).items],
+    ],
+    ["public_economy", publicEconomyStatement(), (rows) => parseSnapshots(rows)],
+    [
+      "public_economy_flow",
+      publicEconomyFlowStatement(),
+      (rows) => parseFlows(rows),
+    ],
+    [
+      "public_staff_spawns",
+      publicStaffSpawnsStatement(),
+      (rows) => parseStaffSpawns(rows),
+    ],
+  ];
+
+  for (const [name, statement, parse] of reads) {
+    const rows = await query(statement.text, statement.values);
+    // `public_punishments` deliberately asks for one row more than a page
+    // shows, so its parser returning fewer is the page size, not a drop.
+    const parsed = parse(rows);
+    const kept =
+      name === "public_punishments"
+        ? Math.min(rows.length, BANS_PAGE_SIZE)
+        : rows.length;
+
+    if (parsed.length === kept) {
+      console.log(`accounts.${name}(…): ${rows.length} rows, all readable`);
+    } else {
+      console.error(
+        `FAIL: ${name} returned ${rows.length} rows and the parser could read ${parsed.length}; the RETURNS TABLE has drifted.`,
       );
       process.exitCode = 1;
     }

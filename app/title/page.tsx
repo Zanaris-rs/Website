@@ -168,6 +168,27 @@ export default async function Title() {
               caption="World Map"
               blurb="Great for finding your way around."
             />
+            {/* The two transparency pages, side by side, and no pictures:
+                there is no 2004 tile for either of them, and borrowing one
+                already on this page would put the same picture in two places.
+                LostHQ has been without one since it was added, so an
+                unillustrated tile is already part of this section's look. */}
+            <MenuTile
+              href="/bans"
+              caption="Ban Record"
+              blurb="Every ban and mute, permanently public."
+            />
+            <MenuTile
+              href="/economy"
+              caption="The Economy"
+              blurb="What exists in the game, counted every hour."
+            />
+            {/* Last, because it is the one link that leaves the site. Five
+                tiles land differently at the grid's two widths: in two
+                columns this one is the odd tile out and the grid centres it
+                across a row of its own, while in three it simply follows The
+                Economy on the second row, leaving the third column empty as
+                any trailing row does. */}
             <MenuTile
               href={LOSTHQ_URL}
               caption="LostHQ"

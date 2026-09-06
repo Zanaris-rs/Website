@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit",
     "db:check": "node --conditions=react-server --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/db-check.mts",
     "assets:vendor": "bash scripts/vendor-2004-assets.sh",
+    "items:update": "bash scripts/update-item-names.sh",
     "worldmap:update": "bash scripts/update-worldmap.sh"
   },
   "dependencies": {
