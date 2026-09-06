@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import {
   DEFAULT_INBOX_STATUS,
+  RESOLUTIONS,
+  chatTotal,
+  type ChatRow,
   INBOX_STATUSES,
   parseInboxRow,
   parseInboxStatus,
@@ -13,8 +16,24 @@ import {
   staffInboxStatement,
   staffNoticeStatement,
   staffReplyStatement,
+  parseChatRow,
+  parseInputChunkRow,
+  parseReportDetail,
+  parseResolution,
+  parseStaffLiftResult,
+  parseStaffPunishmentNoteResult,
+  parseStaffResolveResult,
+  parseWealthRow,
+  staffLiftStatement,
+  staffPunishmentNoteStatement,
+  staffReportChatStatement,
+  staffReportInputStatement,
+  staffReportResolveStatement,
+  staffReportStatement,
+  staffReportWealthStatement,
   staffReportsStatement,
   staffThreadStatement,
+  staffWealthStatement,
 } from "./queries";
 
 /**
@@ -221,6 +240,9 @@ describe("parseReportRow", () => {
       reason: 6,
       coord: 52459126,
       sessionUuid: "abc",
+      uuid: "",
+      hasEvidence: false,
+      resolution: null,
     });
   });
 
@@ -287,5 +309,342 @@ describe("the result parsers", () => {
         /accounts\.staff_notice returned/,
       );
     }
+  });
+});
+
+/**
+ * The evidence half. These statements are written against
+ * `4_evidence_and_records`, which is applied after this branch was written, so
+ * asserting the text character for character is the whole of what this side
+ * can prove: an argument in the wrong order is a hash handed to a function as
+ * a report id, and no type checker on either side of the wire would notice.
+ */
+describe("the evidence statements", () => {
+  it("read one report and its four kinds of evidence by actor and id", () => {
+    expect(staffReportStatement("admin", 7)).toEqual({
+      text: "select * from accounts.staff_report($1, $2)",
+      values: ["admin", 7],
+    });
+    expect(staffReportInputStatement("admin", 7)).toEqual({
+      text: "select * from accounts.staff_report_input($1, $2)",
+      values: ["admin", 7],
+    });
+    expect(staffReportChatStatement("admin", 7)).toEqual({
+      text: "select * from accounts.staff_report_chat($1, $2)",
+      values: ["admin", 7],
+    });
+    expect(staffReportWealthStatement("admin", 7)).toEqual({
+      text: "select * from accounts.staff_report_wealth($1, $2)",
+      values: ["admin", 7],
+    });
+  });
+
+  it("searches wealth by name with a since that may be null", () => {
+    expect(staffWealthStatement("admin", "bob_smith")).toEqual({
+      text: "select * from accounts.staff_wealth($1, $2, $3)",
+      values: ["admin", "bob_smith", null],
+    });
+    const since = new Date("2026-09-01T00:00:00.000Z");
+    expect(staffWealthStatement("admin", "bob_smith", since).values[2]).toBe(
+      since,
+    );
+  });
+
+  it("puts the candidate hash second in both verbs that re-type a password", () => {
+    // Second, exactly as staff_notice does. `dismissed` deletes a macroer's
+    // mouse trail and `staff_lift` un-bans an account: both are the sort of
+    // thing a stolen session must not be able to do on its own.
+    expect(
+      staffReportResolveStatement("admin", "$2b$10$hash", 7, "dismissed", "n"),
+    ).toEqual({
+      text: "select accounts.staff_report_resolve($1, $2, $3, $4, $5) as result",
+      values: ["admin", "$2b$10$hash", 7, "dismissed", "n"],
+    });
+    expect(staffLiftStatement("admin", "$2b$10$hash", 12, "note")).toEqual({
+      text: "select accounts.staff_lift($1, $2, $3, $4) as result",
+      values: ["admin", "$2b$10$hash", 12, "note"],
+    });
+  });
+
+  it("writes a public note without one, because it grants nothing", () => {
+    expect(staffPunishmentNoteStatement("admin", 12, "Bot farm.")).toEqual({
+      text: "select accounts.staff_punishment_note($1, $2, $3) as result",
+      values: ["admin", 12, "Bot farm."],
+    });
+  });
+
+  it("never interpolates, and never names a statement", () => {
+    const nasty = "'; drop table report_input; --";
+    for (const statement of [
+      staffReportStatement(nasty, 1),
+      staffReportInputStatement(nasty, 1),
+      staffReportChatStatement(nasty, 1),
+      staffReportWealthStatement(nasty, 1),
+      staffWealthStatement(nasty, nasty),
+      staffReportResolveStatement(nasty, nasty, 1, "watch", nasty),
+      staffLiftStatement(nasty, nasty, 1, nasty),
+      staffPunishmentNoteStatement(nasty, 1, nasty),
+    ]) {
+      expect(statement.text).not.toContain(nasty);
+      expect(statement.text).not.toContain("drop table");
+      expect(statement.values).toContain(nasty);
+      expect(Object.keys(statement).sort()).toEqual(["text", "values"]);
+    }
+  });
+});
+
+describe("parseResolution", () => {
+  it("takes the three the column may hold", () => {
+    for (const resolution of RESOLUTIONS) {
+      expect(parseResolution(resolution)).toBe(resolution);
+    }
+  });
+
+  it("reads anything else as an open report rather than guessing", () => {
+    // A resolution a later migration adds must not show as a resolution this
+    // build cannot act on: "open" is the safe reading, because an open report
+    // is one a moderator looks at again.
+    for (const bad of [null, undefined, "", "ACTIONED", "escalated", 1, {}]) {
+      expect(parseResolution(bad)).toBeNull();
+    }
+  });
+});
+
+describe("parseReportRow, with the three columns migration 4 adds", () => {
+  it("carries the uuid, the evidence flag and the resolution", () => {
+    const row = parseReportRow({
+      id: 4,
+      reported_at: new Date("2026-09-05T12:33:11.000Z"),
+      world: 1,
+      reporter: "mod_matt",
+      offender: "bob_smith",
+      reason: 5,
+      coord: 50331648,
+      session_uuid: "s-1",
+      uuid: "dcfcdaf6",
+      has_evidence: true,
+      resolution: "watch",
+    });
+    expect(row?.uuid).toBe("dcfcdaf6");
+    expect(row?.hasEvidence).toBe(true);
+    expect(row?.resolution).toBe("watch");
+  });
+
+  it("reads a row written before migration 4 as evidence-free and open", () => {
+    const row = parseReportRow({
+      id: 1,
+      reported_at: null,
+      world: null,
+      reporter: "",
+      offender: "bob_smith",
+      reason: null,
+      coord: null,
+      session_uuid: "s-1",
+    });
+    expect(row?.uuid).toBe("");
+    expect(row?.hasEvidence).toBe(false);
+    expect(row?.resolution).toBeNull();
+  });
+});
+
+describe("parseReportDetail", () => {
+  const full = {
+    id: 4,
+    uuid: "dcfcdaf6",
+    reported_at: new Date("2026-09-05T12:33:11.000Z"),
+    world: 1,
+    reporter: "mod_matt",
+    offender: "bob_smith",
+    reason: 5,
+    coord: 50331648,
+    session_uuid: "s-1",
+    offender_registered: true,
+    offender_banned_until: new Date("2026-09-12T12:00:00.000Z"),
+    offender_muted_until: null,
+    offender_world: 1,
+    window_from: new Date("2026-09-05T12:03:11.000Z"),
+    window_to: new Date("2026-09-05T12:48:11.000Z"),
+    input_chunks: 4,
+    same_ip_as_reporter: false,
+    offender_logins_24h: 3,
+    resolved_at: null,
+    resolution: null,
+    resolved_by: "",
+    staff_note: "",
+    ban_punishment_id: 12,
+    mute_punishment_id: null,
+  };
+
+  it("reads the whole row, dates as ISO strings", () => {
+    const detail = parseReportDetail(full);
+    expect(detail?.id).toBe(4);
+    expect(detail?.uuid).toBe("dcfcdaf6");
+    expect(detail?.reportedAt).toBe("2026-09-05T12:33:11.000Z");
+    expect(detail?.windowFrom).toBe("2026-09-05T12:03:11.000Z");
+    expect(detail?.windowTo).toBe("2026-09-05T12:48:11.000Z");
+    expect(detail?.inputChunks).toBe(4);
+    expect(detail?.offenderRegistered).toBe(true);
+    expect(detail?.offenderBannedUntil).toBe("2026-09-12T12:00:00.000Z");
+    expect(detail?.banPunishmentId).toBe(12);
+    expect(detail?.mutePunishmentId).toBeNull();
+  });
+
+  it("keeps 'no login to compare' apart from 'a different address'", () => {
+    // Three states, and the middle one matters: false means the function
+    // compared two addresses and they differed, null means it had nothing to
+    // compare. Collapsing them would put "not the same person" on a page where
+    // the truth is "we do not know".
+    expect(parseReportDetail(full)?.sameIpAsReporter).toBe(false);
+    expect(
+      parseReportDetail({ ...full, same_ip_as_reporter: true })
+        ?.sameIpAsReporter,
+    ).toBe(true);
+    expect(
+      parseReportDetail({ ...full, same_ip_as_reporter: null })
+        ?.sameIpAsReporter,
+    ).toBeNull();
+  });
+
+  it("refuses a row with no id rather than rendering an empty page", () => {
+    expect(parseReportDetail(null)).toBeNull();
+    expect(parseReportDetail({})).toBeNull();
+    expect(parseReportDetail({ id: "4" })).toBeNull();
+  });
+});
+
+describe("the evidence row parsers", () => {
+  it("reads an input chunk, base64 left as text", () => {
+    const chunk = parseInputChunkRow({
+      seq: 0,
+      kind: "ring",
+      client: "web",
+      started_at: new Date("2026-09-05T12:33:03.000Z"),
+      flushed_at: new Date("2026-09-05T12:33:05.000Z"),
+      data_base64: "BgMFAAAC",
+    });
+    expect(chunk).toEqual({
+      seq: 0,
+      kind: "ring",
+      client: "web",
+      startedAt: "2026-09-05T12:33:03.000Z",
+      flushedAt: "2026-09-05T12:33:05.000Z",
+      data: "BgMFAAAC",
+    });
+    // seq 0 is a real chunk, not a missing one.
+    expect(parseInputChunkRow({ seq: 0 })?.seq).toBe(0);
+    expect(parseInputChunkRow({ kind: "ring" })).toBeNull();
+  });
+
+  it("reads a chat line, and a public one has no recipient", () => {
+    expect(
+      parseChatRow({
+        at: new Date("2026-09-05T12:21:41.000Z"),
+        kind: "public",
+        to_username: null,
+        coord: 50331648,
+        message: "inside the before window",
+        // `count(*) OVER ()`: the same number on every row of the answer, and
+        // the only way the page can tell 2000 lines from all of them.
+        total: 3,
+      }),
+    ).toEqual({
+      at: "2026-09-05T12:21:41.000Z",
+      kind: "public",
+      toUsername: "",
+      coord: 50331648,
+      message: "inside the before window",
+      total: 3,
+    });
+    expect(parseChatRow({ kind: "public" })).toBeNull();
+  });
+
+  it("counts the lines there were, not the lines that arrived", () => {
+    const line = (message: string, total: number) =>
+      parseChatRow({
+        at: new Date("2026-09-05T12:21:41.000Z"),
+        kind: "public",
+        to_username: null,
+        coord: 0,
+        message,
+        total,
+      }) as ChatRow;
+
+    expect(chatTotal([line("a", 2000), line("b", 2000)])).toBe(2000);
+    // Nothing to be short of: the count rides on the rows.
+    expect(chatTotal([])).toBe(0);
+    // And a function that did not send the column must not make a complete
+    // page claim to be partial.
+    expect(
+      chatTotal([
+        parseChatRow({
+          at: new Date("2026-09-05T12:21:41.000Z"),
+          kind: "public",
+          message: "no total",
+        }) as ChatRow,
+      ]),
+    ).toBe(1);
+  });
+
+  it("passes an item list through as the engine's own JSON", () => {
+    const wealth = parseWealthRow({
+      at: new Date("2026-09-05T12:20:00.000Z"),
+      event_type: 0,
+      coord: 50331648,
+      items: '[{"id":995,"name":"Coins","count":1000}]',
+      value: 1000,
+      counterpart: "s-2",
+      counterpart_items: "[]",
+      counterpart_value: 0,
+    });
+    expect(wealth?.eventType).toBe(0);
+    expect(wealth?.items).toBe('[{"id":995,"name":"Coins","count":1000}]');
+    expect(wealth?.counterpart).toBe("s-2");
+    expect(parseWealthRow({ event_type: 0 })).toBeNull();
+  });
+});
+
+describe("the evidence result parsers", () => {
+  it("accept what the two password verbs can return", () => {
+    for (const result of [
+      "ok",
+      "forbidden",
+      "bad_credentials",
+      "rate_limited",
+      "not_found",
+      "invalid",
+    ]) {
+      expect(parseStaffResolveResult(result)).toBe(result);
+      expect(parseStaffLiftResult(result)).toBe(result);
+    }
+  });
+
+  it("know the note has no password and so no bad_credentials", () => {
+    for (const result of [
+      "ok",
+      "forbidden",
+      "rate_limited",
+      "not_found",
+      "invalid",
+    ]) {
+      expect(parseStaffPunishmentNoteResult(result)).toBe(result);
+    }
+    // It takes no password, so there is nothing to mistype — but it is limited
+    // all the same, at twenty an hour, because the thing it writes is a line
+    // on a page anybody can read.
+    expect(() => parseStaffPunishmentNoteResult("bad_credentials")).toThrow(
+      /accounts\.staff_punishment_note returned/,
+    );
+  });
+
+  it("throw on anything else, naming the function that said it", () => {
+    expect(() => parseStaffResolveResult("dismissed")).toThrow(
+      /accounts\.staff_report_resolve returned/,
+    );
+    expect(() => parseStaffLiftResult(null)).toThrow(
+      /accounts\.staff_lift returned/,
+    );
+    expect(() => parseStaffPunishmentNoteResult(1)).toThrow(
+      /accounts\.staff_punishment_note returned/,
+    );
   });
 });

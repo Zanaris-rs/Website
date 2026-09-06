@@ -1,3 +1,4 @@
+import { formatWhen } from "@/lib/messages/format";
 import { ORIGINAL_RULES } from "@/lib/rules/original";
 
 /**
@@ -72,3 +73,91 @@ export function worldLabel(world: number | null): string {
 export function reporterLabel(reporter: string): string {
   return reporter === "" ? "unknown" : reporter;
 }
+
+/**
+ * `event_type` is `WealthEventType` from
+ * `engine/src/server/logger/WealthEventType.ts`: a zero-based enum, TRADE (0)
+ * to PARTY_ROOM (10), written into `session_wealth.event_type` by the world
+ * and never into any table with a name in it.
+ *
+ * Transcribed here for the same reason the report reason is: the encoding
+ * belongs to the engine, the website cannot see that file at build time, and
+ * naming the source is the only honest way to carry it across a repo boundary.
+ * A number outside the enum reads as itself rather than as a wrong label —
+ * `-1` is the column's own default and means the world did not say.
+ */
+const WEALTH_EVENT_LABELS: readonly string[] = [
+  "Trade",
+  "Player kill",
+  "Stake",
+  "Death",
+  "Drop",
+  "Pickup",
+  "Shop buy",
+  "Shop sell",
+  "Low alchemy",
+  "High alchemy",
+  "Party room",
+];
+
+export function wealthEventLabel(eventType: number | null): string {
+  if (eventType === null || !Number.isInteger(eventType)) return "unknown";
+  return WEALTH_EVENT_LABELS[eventType] ?? `Event ${eventType}`;
+}
+
+/**
+ * What a moderator decided, in the past tense they decided it in.
+ *
+ * "Dismissed" is deliberately plain: it is the resolution that **deletes the
+ * evidence**, and a word like "cleared" would read as a favour to the player
+ * rather than as the irreversible thing it is. The page says the rest.
+ */
+const RESOLUTION_LABELS: Record<string, string> = {
+  actioned: "Actioned",
+  dismissed: "Dismissed",
+  watch: "Watching",
+};
+
+export function resolutionLabel(resolution: string | null): string {
+  if (resolution === null || resolution === "") return "Open";
+  return RESOLUTION_LABELS[resolution] ?? resolution;
+}
+
+/** The offender's own words: a public line, or a private message they sent. */
+export function chatKindLabel(kind: string): string {
+  return kind === "private_sent"
+    ? "Private"
+    : kind === "public"
+      ? "Public"
+      : kind;
+}
+
+/**
+ * A ban or mute end date, as a sentence.
+ *
+ * A `null` `until` on a live punishment is **permanent**, which is not the
+ * same as unknown and must not read like it — an offender whose ban has no end
+ * date is the one case where a missing value is the most important thing on
+ * the row.
+ *
+ * The date goes through `formatWhen`, so this cannot drift from every other
+ * date on the staff pages.
+ */
+export function punishmentUntilLabel(until: string | null): string {
+  return until === null ? "permanent" : `until ${formatWhen(until)}`;
+}
+
+/**
+ * The two notes a moderator can write, and what this side refuses before the
+ * database does.
+ *
+ * The public note on a punishment is one line on a page anybody can read, so
+ * it is short by design — the plan's cap, and the function's. The staff note on
+ * a report is internal and can be an explanation; the cap is here so a runaway
+ * paste is refused with a sentence rather than by a `invalid` from SQL.
+ *
+ * **The functions are the authority.** These numbers are what the site refuses
+ * a moment earlier, with a message naming the field.
+ */
+export const PUBLIC_NOTE_MAX = 120;
+export const STAFF_NOTE_MAX = 1000;

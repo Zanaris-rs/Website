@@ -1,9 +1,6 @@
 import type { NextRequest } from "next/server";
 
-import { hashPasswordWithSalt } from "@/lib/account/hash";
-import { parseSalt, passwordSaltStatement } from "@/lib/account/login";
 import { assertSameOrigin } from "@/lib/account/origin";
-import { isBcryptHash, isBcryptSalt } from "@/lib/account/salt";
 import { readSession } from "@/lib/account/session-server";
 import {
   PASSWORD_MAX_TYPED,
@@ -11,6 +8,7 @@ import {
 } from "@/lib/account/validation";
 import { validateBody, validateSubject } from "@/lib/messages/format";
 import { statusFor } from "@/lib/messages/queries";
+import { candidateHash } from "@/lib/staff/actor-server";
 import { parseStaffNoticeResult, staffNoticeStatement } from "@/lib/staff/queries";
 import { loadStaff } from "@/lib/staff/staff-server";
 import { isConfigured, query } from "@/lib/db";
@@ -19,21 +17,12 @@ import { isConfigured, query } from "@/lib/db";
  * `POST /api/staff/notice` — write a notice into a player's Message Centre in
  * a staff member's name. `{ username, subject, body, password }`.
  *
- * This is the one verb in the whole API that writes into somebody else's inbox
- * under a moderator's name, so it is the one that **re-types a password**, and
- * the handshake is the same three steps as `/api/account/password`:
- *
- *  1. `accounts.password_salt(actor)` returns the actor's own 29-character
- *     bcrypt salt — public by design, and the site never sees a hash;
- *  2. `bcrypt(lower(typed), salt)` here produces the candidate;
- *  3. `accounts.staff_notice` compares it against the stored hash, and the
- *     compare is the authorisation. A leaked `website` credential still cannot
- *     impersonate a moderator, because it does not know the moderator's
- *     password.
- *
- * There is no fake-salt path, unlike the login route: the actor is the account
- * already signed in, so a missing salt is not an unknown username but a dead
- * session, and it says so.
+ * This writes into somebody else's inbox under a moderator's name, so it
+ * **re-types a password**: `lib/staff/actor-server.ts` runs the salt handshake
+ * and `accounts.staff_notice` compares the candidate against the stored hash.
+ * The compare is the authorisation — a leaked `website` credential still
+ * cannot impersonate a moderator, because it does not know the moderator's
+ * password. Resolving a report and lifting a ban go through the same helper.
  *
  * The failures the function counts are its own bucket, `notice:<actor>`, not
  * the actor's login bucket. Ten mistyped notices must not also lock a
@@ -104,34 +93,12 @@ export async function POST(request: NextRequest) {
   const actor = staff.profile.username;
 
   try {
-    const saltStatement = passwordSaltStatement(actor);
-    const saltRows = await query<{ salt: unknown }>(
-      saltStatement.text,
-      saltStatement.values,
-    );
-    const stored = parseSalt(saltRows[0]?.salt);
-
-    // No salt for an account that answered `accounts.profile` a moment ago
-    // means the account has gone between the two calls. There is nothing to
-    // compare against and nothing to say beyond "log in again".
-    if (!isBcryptSalt(stored)) {
-      console.warn("[staff] no usable salt for the actor's account");
-      return fail("session_expired", 401);
-    }
-
-    const candidate = await hashPasswordWithSalt(password, stored);
-
-    // The function refuses anything that is not 60 characters, which would
-    // come back as `bad_credentials` and read as a mistyped password. It would
-    // not be: it would be this side broken, and it should say so.
-    if (!isBcryptHash(candidate)) {
-      console.error("[staff] computed candidate is not a bcrypt hash");
-      return fail("unavailable", 503);
-    }
+    const candidate = await candidateHash(actor, password);
+    if (!candidate.ok) return fail(candidate.error, candidate.status);
 
     const statement = staffNoticeStatement(
       actor,
-      candidate,
+      candidate.hash,
       recipient.value,
       subject.value,
       text.value,
