@@ -131,3 +131,9 @@
   font-size: 10px;
   color: #e10505;
 }
+
+/* The family column is one word; a 41px column was breaking "Timing" and
+   "Cursor" mid-word on the one table a moderator reads hardest. */
+.family {
+  white-space: nowrap;
+}

@@ -385,7 +385,7 @@ export default function StaffReportDetail({
                           <i>False positive:</i> {signal.falsePositive}
                         </div>
                       </td>
-                      <td>{FAMILY_LABELS[signal.family]}</td>
+                      <td className={styles.family}>{FAMILY_LABELS[signal.family]}</td>
                       <td className={styles.name}>{signal.value}</td>
                       <td className={LEVEL_CLASS[signal.level]}>
                         {LEVEL_LABELS[signal.level]}
