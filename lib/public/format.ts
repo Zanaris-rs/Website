@@ -1,7 +1,11 @@
 import type { Colour } from "@/lib/colour";
 import { formatNumber } from "@/lib/hiscores/format";
 import { formatShortDate } from "@/lib/news/parse";
-import type { Punishment, PunishmentKind } from "@/lib/public/queries";
+import {
+  ECONOMY_DEFAULT_WINDOW,
+  type Punishment,
+  type PunishmentKind,
+} from "@/lib/public/queries";
 
 /**
  * The words /bans and /economy put round the rows.
@@ -46,6 +50,20 @@ export function formatShortWhen(iso: string | null | undefined): string {
  */
 export function bansHref(page: number): string {
   return page <= 1 ? "/bans" : `/bans/page/${page}`;
+}
+
+/**
+ * Where a window of the census lives: `/economy`, then `/economy/7-days`.
+ *
+ * `bansHref`'s rule again. The default window is `/economy` and has no slug of
+ * its own, so nothing has to decide whether `/economy` or `/economy/30-days` is
+ * the canonical one — the second is a 404, and `generateStaticParams` does not
+ * offer it.
+ */
+export function economyHref(window: { slug: string }): string {
+  return window.slug === ECONOMY_DEFAULT_WINDOW.slug
+    ? "/economy"
+    : `/economy/${window.slug}`;
 }
 
 const KIND_LABELS: Record<PunishmentKind, string> = {

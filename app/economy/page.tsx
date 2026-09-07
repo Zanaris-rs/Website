@@ -4,12 +4,13 @@ import Economy from "@/components/public/Economy";
 import Frame from "@/components/site/Frame";
 import Panel from "@/components/site/Panel";
 import TitleBox from "@/components/site/TitleBox";
+import { ECONOMY_DEFAULT_WINDOW } from "@/lib/public/queries";
 import { loadEconomy } from "@/lib/public/read-server";
 
 export const metadata: Metadata = {
   title: "The Economy",
   description:
-    "An hourly census of every save file on Zanaris: coins in existence, accounts with a save, and what has entered or left the game.",
+    "An hourly census of every save file on Zanaris: what exists in the game, counted item by item, and what has entered or left it.",
 };
 
 /**
@@ -22,7 +23,9 @@ export const metadata: Metadata = {
 export const revalidate = 300;
 
 export default async function EconomyPage() {
-  const load = await loadEconomy();
+  // The default window has one URL, and this is it — `/economy/30-days` is a
+  // 404, and `app/economy/[window]/page.tsx` refuses to answer to it.
+  const load = await loadEconomy(ECONOMY_DEFAULT_WINDOW);
 
   if (load.status !== "ok") {
     return (

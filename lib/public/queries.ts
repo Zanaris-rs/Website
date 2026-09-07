@@ -62,14 +62,43 @@ export function publicPunishmentsStatement(
 /* --- /economy --- */
 
 /**
- * How much of the census /economy shows.
+ * The windows /economy can be read over, in the order the tabs print them.
  *
  * Thirty days of hourly snapshots is 720 rows and about 20 KB over the wire,
- * which is a chart's worth of shape without being a download. The flow rows
- * and the staff spawns use the same window so the three blocks on the page are
- * talking about the same month.
+ * which is a chart's worth of shape without being a download; ninety is the
+ * ceiling `public_economy` clamps to, and the ceiling exists so that a tab
+ * cannot ask for a year. Every read on the page uses the same window, so the
+ * charts, the low and high lines, what entered and left, and what staff created
+ * are all talking about the same stretch of time.
+ *
+ * The slug is the URL segment. `/economy` *is* the default window - there is no
+ * `/economy/30-days` - which is `bansHref`'s rule and the news list's.
  */
-export const ECONOMY_DAYS = 30;
+export type EconomyWindow = {
+  readonly slug: string;
+  readonly days: number;
+  /** For a heading: "the last 7 days". */
+  readonly label: string;
+  /** For a tab: "7 days". */
+  readonly short: string;
+};
+
+export const ECONOMY_WINDOWS: readonly EconomyWindow[] = [
+  { slug: "24-hours", days: 1, label: "the last 24 hours", short: "24 hours" },
+  { slug: "7-days", days: 7, label: "the last 7 days", short: "7 days" },
+  { slug: "30-days", days: 30, label: "the last 30 days", short: "30 days" },
+  { slug: "90-days", days: 90, label: "the last 90 days", short: "90 days" },
+];
+
+export const ECONOMY_DEFAULT_WINDOW: EconomyWindow = ECONOMY_WINDOWS[2];
+
+/** The window a slug names, or `null` - which the route turns into a 404. */
+export function economyWindow(slug: string): EconomyWindow | null {
+  return ECONOMY_WINDOWS.find((window) => window.slug === slug) ?? null;
+}
+
+/** Derived, so the default tab and the number the page prints cannot drift apart. */
+export const ECONOMY_DAYS = ECONOMY_DEFAULT_WINDOW.days;
 
 /** The snapshots themselves: totals, plus the tracked items, hourly. */
 export function publicEconomyStatement(days: number = ECONOMY_DAYS): Statement {
@@ -108,6 +137,42 @@ export function publicStaffSpawnsStatement(
   return {
     text: "select * from accounts.public_staff_spawns($1)",
     values: [days],
+  };
+}
+
+/**
+ * The newest census, whole - `items` included, which `public_economy` does not
+ * return.
+ *
+ * No window argument. "How much iron ore exists" has one answer whichever tab
+ * is open; only the low and high lines move, so all four windows read this same
+ * row and the page has one place to be wrong about "now".
+ */
+export function publicEconomyLatestStatement(): Statement {
+  return {
+    text: "select * from accounts.public_economy_latest()",
+    values: [],
+  };
+}
+
+/**
+ * The low and the high of each category's total across the window.
+ *
+ * The categories come from `lib/items/groups.ts` and are sent as an argument,
+ * because a taxonomy for a public page is a presentation decision and not a
+ * fact about the game - see that file, and migration 5.
+ *
+ * Stringified here rather than left to `pg`'s object coercion: the driver would
+ * do the same thing, but doing it here is what keeps "no argument reaches the
+ * statement text" a property this file's own test can check.
+ */
+export function publicEconomyGroupRangeStatement(
+  days: number,
+  groups: Record<string, readonly number[]>,
+): Statement {
+  return {
+    text: "select * from accounts.public_economy_group_range($1, $2)",
+    values: [days, JSON.stringify(groups)],
   };
 }
 
@@ -372,4 +437,75 @@ export function parseStaffSpawns(rows: readonly unknown[]): StaffSpawn[] {
   return rows
     .map(parseStaffSpawn)
     .filter((row): row is StaffSpawn => row !== null);
+}
+
+/**
+ * The newest census: the totals plus every id in the game.
+ *
+ * `items` is the whole count and `tracked` is not on it - the function does not
+ * return that column, because a page that has every id has no use for a subset
+ * of it. Otherwise the same shape as `Snapshot`, and parsed with the same
+ * `parseTracked`, since both columns are the same `{id: count}` jsonb.
+ */
+export type Census = {
+  readonly takenAt: string | null;
+  readonly players: number | null;
+  readonly coins: number | null;
+  readonly items: readonly TrackedItem[];
+};
+
+/**
+ * The one row, or `null` when the census has not run.
+ *
+ * `null` is a page that says "the first census has not run yet", which is a
+ * finished page. It is not an error, and `read()` must not turn it into one.
+ */
+export function parseCensus(rows: readonly unknown[]): Census | null {
+  const row = rows[0];
+  if (typeof row !== "object" || row === null) return null;
+  const r = row as Record<string, unknown>;
+
+  const takenAt = asIso(r.taken_at);
+  if (takenAt === null) return null;
+
+  return {
+    takenAt,
+    players: asCount(r.players),
+    coins: asCount(r.coins),
+    items: parseTracked(r.items),
+  };
+}
+
+/** What one category's total sank to and reached over the window. */
+export type GroupRange = {
+  readonly low: number;
+  readonly high: number;
+};
+
+/**
+ * The ranges by group key, including `"*"` for everything no group named.
+ *
+ * A row whose numbers will not parse is dropped rather than shown as zero: the
+ * page renders a category with no range as one whose range is not known yet,
+ * and a low of "0" that is really "unreadable" is the kind of wrong number this
+ * whole page exists to not print.
+ */
+export function parseGroupRanges(
+  rows: readonly unknown[],
+): Map<string, GroupRange> {
+  const ranges = new Map<string, GroupRange>();
+
+  for (const row of rows) {
+    if (typeof row !== "object" || row === null) continue;
+    const r = row as Record<string, unknown>;
+
+    const key = asString(r.grp);
+    const low = asCount(r.low);
+    const high = asCount(r.high);
+    if (key === "" || low === null || high === null) continue;
+
+    ranges.set(key, { low, high });
+  }
+
+  return ranges;
 }

@@ -1,19 +1,27 @@
 import "server-only";
 
 import { isConfigured, query } from "@/lib/db";
+import { groupIdMap } from "@/lib/items/groups";
 
 import {
   BANS_PAGE_SIZE,
-  ECONOMY_DAYS,
+  type Census,
+  ECONOMY_DEFAULT_WINDOW,
+  type EconomyWindow,
   type Flow,
+  type GroupRange,
   type PunishmentPage,
   type Snapshot,
   type StaffSpawn,
+  parseCensus,
   parseFlows,
+  parseGroupRanges,
   parsePunishmentPage,
   parseSnapshots,
   parseStaffSpawns,
   publicEconomyFlowStatement,
+  publicEconomyGroupRangeStatement,
+  publicEconomyLatestStatement,
   publicEconomyStatement,
   publicPunishmentsStatement,
   publicStaffSpawnsStatement,
@@ -71,7 +79,18 @@ export function loadPunishments(
 }
 
 export type Economy = {
+  readonly window: EconomyWindow;
   readonly snapshots: readonly Snapshot[];
+  /**
+   * The newest census, whole: every id in the game, which is what the category
+   * blocks are counted from.
+   *
+   * `null` covers two things the page can tell apart on its own, from whether
+   * `snapshots` has anything in it: no census has run yet, or this read failed.
+   * Either way the category blocks cannot be drawn and the rest of the page
+   * still can, which is the whole reason this is not fatal — see `loadEconomy`.
+   */
+  readonly census: Census | null;
   /**
    * `null` when the read failed, which is **not** the same as an empty list.
    * "Nothing entered or left the game" and "we could not find out" are
@@ -80,35 +99,67 @@ export type Economy = {
    */
   readonly flows: readonly Flow[] | null;
   readonly spawns: readonly StaffSpawn[] | null;
+  /**
+   * Each category's lowest and highest total across the window, keyed by group,
+   * with `"*"` for everything no group named. `null` if the read failed.
+   */
+  readonly ranges: ReadonlyMap<string, GroupRange> | null;
 };
 
 /**
- * A month of census, in three reads that go together.
+ * One window of census, in five reads that go together.
  *
- * They are one `Promise.all` because they are one page and three round trips
- * in series would be three times the latency for no benefit. The failures are
- * kept apart, though: the snapshots are the page, so losing them is losing the
- * page, while the flows and the staff spawns are blocks *on* it — one of them
- * failing should cost that block and not the totals above it — and the block
- * says "could not be read", never "nothing happened".
+ * They are one `Promise.all` because they are one page and five round trips in
+ * series would be five times the latency for no benefit. `lib/db.ts` keeps a
+ * pool of two, so they do not all leave at once — and that is fine: every one
+ * of these pages is `revalidate = 300`, so the queueing costs a background
+ * regeneration a few hundred milliseconds and costs a reader nothing. A bigger
+ * pool would buy latency nobody is waiting on, at the price of idle sockets on
+ * every serverless instance the site scales out to.
+ *
+ * The failures are kept apart. The snapshots and the census are the page, so
+ * losing either is losing the page; the flows, the staff spawns and the ranges
+ * are blocks *on* it — one of them failing should cost that block and not the
+ * totals above it — and the block says "could not be read", never "nothing
+ * happened".
+ *
+ * `groupIdMap()` is called here rather than in `queries.ts` so that the
+ * statement builders stay testable without the 3,883-entry object table.
  */
 export async function loadEconomy(
-  days: number = ECONOMY_DAYS,
+  window: EconomyWindow = ECONOMY_DEFAULT_WINDOW,
 ): Promise<Load<Economy>> {
-  const [snapshots, flows, spawns] = await Promise.all([
+  const days = window.days;
+
+  const [snapshots, census, flows, spawns, ranges] = await Promise.all([
     read("economy", publicEconomyStatement(days), parseSnapshots),
+    read("economy census", publicEconomyLatestStatement(), parseCensus),
     read("economy flow", publicEconomyFlowStatement(days), parseFlows),
     read("staff spawns", publicStaffSpawnsStatement(days), parseStaffSpawns),
+    read(
+      "economy group range",
+      publicEconomyGroupRangeStatement(days, groupIdMap()),
+      parseGroupRanges,
+    ),
   ]);
 
+  // Only the snapshots are the page. The census is *not*, deliberately: it is
+  // the one read that depends on migration 5, and the site deploys on a push
+  // while the migration is applied by hand at a psql prompt. Between those two
+  // events `public_economy_latest()` does not exist, and a fatal read would
+  // turn /economy into a blank "unavailable" panel for the whole window rather
+  // than the page it was the day before, minus its newest block.
   if (snapshots.status !== "ok") return { status: "unavailable" };
 
   return {
     status: "ok",
     data: {
+      window,
       snapshots: snapshots.data,
+      census: census.status === "ok" ? census.data : null,
       flows: flows.status === "ok" ? flows.data : null,
       spawns: spawns.status === "ok" ? spawns.data : null,
+      ranges: ranges.status === "ok" ? ranges.data : null,
     },
   };
 }

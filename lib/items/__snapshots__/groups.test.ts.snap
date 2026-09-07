@@ -1,0 +1,238 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`what lands in each block > Bars holds what it says 1`] = `
+[
+  "'perfect' gold bar",
+  "Adamantite bar",
+  "Bronze bar",
+  "Elemental metal",
+  "Gold bar",
+  "Iron bar",
+  "Mithril bar",
+  "Runite bar",
+  "Silver bar",
+  "Steel bar",
+]
+`;
+
+exports[`what lands in each block > Bones holds what it says 1`] = `
+[
+  "Babydragon bones",
+  "Bat bones",
+  "Big bones",
+  "Bones",
+  "Bones (mm skeleton)",
+  "Bones (newbiebones)",
+  "Burnt jogre bones",
+  "Dragon bones",
+  "Jogre bones",
+  "Monkey bones (mm bearded gorilla)",
+  "Monkey bones (mm large zombie)",
+  "Monkey bones (mm medium ninja)",
+  "Monkey bones (mm normal gorilla)",
+  "Monkey bones (mm normal)",
+  "Monkey bones (mm small ninja)",
+  "Monkey bones (mm small zombie)",
+  "Shaikahan bones",
+  "Wolf bones",
+  "Zadimus corpse",
+]
+`;
+
+exports[`what lands in each block > Coins holds what it says 1`] = `
+[
+  "Coins",
+]
+`;
+
+exports[`what lands in each block > Fish holds what it says 1`] = `
+[
+  "Anchovies",
+  "Bass",
+  "Burnt eel",
+  "Burnt lobster",
+  "Burnt manta ray",
+  "Burnt sea turtle",
+  "Burnt shark",
+  "Burnt swordfish",
+  "Cod",
+  "Giant carp",
+  "Herring",
+  "Lava eel",
+  "Lobster",
+  "Mackerel",
+  "Manta ray",
+  "Pike",
+  "Raw anchovies",
+  "Raw bass",
+  "Raw cod",
+  "Raw giant carp",
+  "Raw herring",
+  "Raw lava eel",
+  "Raw lobster",
+  "Raw mackerel",
+  "Raw manta ray",
+  "Raw pike",
+  "Raw salmon",
+  "Raw sardine",
+  "Raw sea turtle",
+  "Raw shark",
+  "Raw shrimps",
+  "Raw swordfish",
+  "Raw trout",
+  "Raw tuna",
+  "Salmon",
+  "Sardine",
+  "Sea turtle",
+  "Shark",
+  "Shrimps",
+  "Swordfish",
+  "Trout",
+  "Tuna",
+]
+`;
+
+exports[`what lands in each block > Gems holds what it says 1`] = `
+[
+  "Diamond",
+  "Dragonstone",
+  "Emerald",
+  "Jade",
+  "Opal",
+  "Red topaz",
+  "Ruby",
+  "Sapphire",
+  "Uncut diamond",
+  "Uncut dragonstone",
+  "Uncut emerald",
+  "Uncut jade",
+  "Uncut opal",
+  "Uncut red topaz",
+  "Uncut ruby",
+  "Uncut sapphire",
+]
+`;
+
+exports[`what lands in each block > Herbs holds what it says 1`] = `
+[
+  "Avantoe",
+  "Cadantine",
+  "Dwarf weed",
+  "Guam leaf",
+  "Harralander",
+  "Herb (unidentified avantoe)",
+  "Herb (unidentified cadantine)",
+  "Herb (unidentified dwarf weed)",
+  "Herb (unidentified guam)",
+  "Herb (unidentified harralander)",
+  "Herb (unidentified irit)",
+  "Herb (unidentified kwuarm)",
+  "Herb (unidentified lantadyme)",
+  "Herb (unidentified marentill)",
+  "Herb (unidentified ranarr)",
+  "Herb (unidentified snapdragon)",
+  "Herb (unidentified tarromin)",
+  "Herb (unidentified toadflax)",
+  "Herb (unidentified torstol)",
+  "Irit leaf",
+  "Kwuarm",
+  "Lantadyme",
+  "Marrentill",
+  "Ranarr weed",
+  "Snapdragon",
+  "Tarromin",
+  "Toadflax",
+  "Torstol",
+  "Unidentified herb (ardrigal)",
+  "Unidentified herb (rogues purse)",
+  "Unidentified herb (sito foil)",
+  "Unidentified herb (snake weed)",
+  "Unidentified herb (volencia moss)",
+]
+`;
+
+exports[`what lands in each block > Hides & leather holds what it says 1`] = `
+[
+  "Cow hide",
+  "Dragon leather",
+  "Dragon leather (black)",
+  "Dragon leather (blue)",
+  "Dragon leather (red)",
+  "Dragonhide (black)",
+  "Dragonhide (blue)",
+  "Dragonhide (green)",
+  "Dragonhide (red)",
+  "Hard leather",
+  "Leather",
+]
+`;
+
+exports[`what lands in each block > Logs holds what it says 1`] = `
+[
+  "Achey tree logs",
+  "Logs",
+  "Logs (newbielogs)",
+  "Magic logs",
+  "Maple logs",
+  "Oak logs",
+  "Willow logs",
+  "Yew logs",
+]
+`;
+
+exports[`what lands in each block > Ores holds what it says 1`] = `
+[
+  "'perfect' gold ore",
+  "Adamantite ore",
+  "Blurite ore",
+  "Clay",
+  "Coal",
+  "Copper ore",
+  "Elemental ore",
+  "Gold ore",
+  "Iron ore",
+  "Mithril ore",
+  "Runite ore",
+  "Silver ore",
+  "Tin ore",
+]
+`;
+
+exports[`what lands in each block > Rares holds what it says 1`] = `
+[
+  "Blue partyhat",
+  "Christmas cracker",
+  "Disk of returning",
+  "Easter egg",
+  "Green partyhat",
+  "Half full wine jug",
+  "Halloween mask (blue)",
+  "Halloween mask (green)",
+  "Halloween mask (red)",
+  "Pumpkin",
+  "Purple partyhat",
+  "Red partyhat",
+  "Santa hat",
+  "White partyhat",
+  "Yellow partyhat",
+]
+`;
+
+exports[`what lands in each block > Runes holds what it says 1`] = `
+[
+  "Air rune",
+  "Blood rune",
+  "Body rune",
+  "Chaos rune",
+  "Cosmic rune",
+  "Death rune",
+  "Earth rune",
+  "Fire rune",
+  "Law rune",
+  "Mind rune",
+  "Nature rune",
+  "Rune essence",
+  "Soul rune",
+  "Water rune",
+]
+`;

@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import type { Punishment } from "./queries";
+import { ECONOMY_DEFAULT_WINDOW, ECONOMY_WINDOWS } from "./queries";
 import {
+  economyHref,
   endsColour,
   endsLabel,
   flowColour,
@@ -139,5 +141,26 @@ describe("flowColour", () => {
     expect(flowColour(3)).toBe("green");
     expect(flowColour(-3)).toBe("red");
     expect(flowColour(0)).toBeNull();
+  });
+});
+
+describe("economyHref", () => {
+  it("gives the default window one URL, not two", () => {
+    // `/economy/30-days` is a 404 by design: `generateStaticParams` does not
+    // offer it and `dynamicParams = false` refuses it.
+    expect(economyHref(ECONOMY_DEFAULT_WINDOW)).toBe("/economy");
+    expect(economyHref({ slug: "30-days" })).toBe("/economy");
+  });
+
+  it("gives every other window a slug of its own", () => {
+    expect(economyHref({ slug: "24-hours" })).toBe("/economy/24-hours");
+    expect(economyHref({ slug: "7-days" })).toBe("/economy/7-days");
+    expect(economyHref({ slug: "90-days" })).toBe("/economy/90-days");
+  });
+
+  it("routes every window the tabs offer", () => {
+    for (const window of ECONOMY_WINDOWS) {
+      expect(economyHref(window)).toMatch(/^\/economy(\/[a-z0-9-]+)?$/);
+    }
   });
 });

@@ -6,7 +6,7 @@
  * of the least-privilege role: refused on every table it must never read
  * (`account`, `login_attempt`, `session`, `account_login`, the Message
  * Centre's own five, and the three transparency tables), `EXECUTE` on the
- * twenty-four `accounts.*` functions it needs
+ * thirty-four `accounts.*` functions it needs
  * and **not** on `throttled`, `record_failure` or `is_staff` — the rate
  * limiter's own machinery and the staff check, none of which is an API. Those
  * checks are the ones worth having: a URL that connects as `postgres` looks
@@ -29,15 +29,20 @@ import { readFileSync } from "node:fs";
 import { isConfigured, pool, query } from "../lib/db.ts";
 import {
   BANS_PAGE_SIZE,
-  type Statement,
+  ECONOMY_DAYS,
+  parseCensus,
   parseFlows,
+  parseGroupRanges,
   parsePunishmentPage,
   parseSnapshots,
   parseStaffSpawns,
   publicEconomyFlowStatement,
+  publicEconomyGroupRangeStatement,
+  publicEconomyLatestStatement,
   publicEconomyStatement,
   publicPunishmentsStatement,
   publicStaffSpawnsStatement,
+  type Statement,
 } from "../lib/public/queries.ts";
 
 /** Minimal `.env.local` reader: this script runs outside Next's loader. */
@@ -177,6 +182,10 @@ async function main(): Promise<void> {
     "accounts.public_economy(int)",
     "accounts.public_economy_flow(int)",
     "accounts.public_staff_spawns(int)",
+    // 5_economy_categories: the rest of the census. `public_economy_latest`
+    // returns the `items` column the four above deliberately do not.
+    "accounts.public_economy_latest()",
+    "accounts.public_economy_group_range(int, jsonb)",
   ];
   const withheld = [
     "accounts.throttled(text, text)",
@@ -500,6 +509,26 @@ async function checkPublicPages(): Promise<void> {
       "public_staff_spawns",
       publicStaffSpawnsStatement(),
       (rows) => parseStaffSpawns(rows),
+    ],
+    [
+      "public_economy_latest",
+      publicEconomyLatestStatement(),
+      // One row or none, and `parseCensus` answers with one object or `null`.
+      // Wrapped in an array so it is counted like every other read here.
+      (rows) => (parseCensus(rows) === null ? [] : [parseCensus(rows)]),
+    ],
+    [
+      "public_economy_group_range",
+      // A map of two groups rather than the real eleven from
+      // `lib/items/groups.ts`. What this script proves is the signature and the
+      // RETURNS TABLE, and importing the taxonomy would drag 3,883 rows of
+      // JSON through Node's type-stripping loader for no extra assurance. The
+      // groups themselves are checked by `lib/items/groups.test.ts`.
+      publicEconomyGroupRangeStatement(ECONOMY_DAYS, {
+        ores: [440, 453],
+        rares: [1038],
+      }),
+      (rows) => [...parseGroupRanges(rows)],
     ],
   ];
 

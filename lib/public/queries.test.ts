@@ -3,8 +3,13 @@ import { describe, expect, it } from "vitest";
 import {
   BANS_PAGE_SIZE,
   ECONOMY_DAYS,
+  ECONOMY_DEFAULT_WINDOW,
+  ECONOMY_WINDOWS,
+  economyWindow,
+  parseCensus,
   parseFlow,
   parseFlows,
+  parseGroupRanges,
   parsePunishment,
   parsePunishmentPage,
   parseSnapshot,
@@ -12,6 +17,8 @@ import {
   parseStaffSpawn,
   parseStaffSpawns,
   publicEconomyFlowStatement,
+  publicEconomyGroupRangeStatement,
+  publicEconomyLatestStatement,
   publicEconomyStatement,
   publicPunishmentsStatement,
   publicStaffSpawnsStatement,
@@ -26,6 +33,8 @@ describe("the statements", () => {
       publicEconomyStatement(),
       publicEconomyFlowStatement(),
       publicStaffSpawnsStatement(),
+      publicEconomyLatestStatement(),
+      publicEconomyGroupRangeStatement(30, { ores: [440] }),
     ];
 
     expect(calls.map((call) => squash(call.text))).toEqual([
@@ -33,6 +42,8 @@ describe("the statements", () => {
       "select * from accounts.public_economy($1)",
       "select * from accounts.public_economy_flow($1)",
       "select * from accounts.public_staff_spawns($1)",
+      "select * from accounts.public_economy_latest()",
+      "select * from accounts.public_economy_group_range($1, $2)",
     ]);
   });
 
@@ -43,6 +54,8 @@ describe("the statements", () => {
       publicEconomyStatement(90),
       publicEconomyFlowStatement(1),
       publicStaffSpawnsStatement(0),
+      publicEconomyLatestStatement(),
+      publicEconomyGroupRangeStatement(90, { ores: [440, 453], rares: [1038] }),
     ];
 
     for (const call of calls) {
@@ -329,5 +342,117 @@ describe("parseStaffSpawn", () => {
   it("drops a row with no item", () => {
     expect(parseStaffSpawn({ created_at: null, count: 1 })).toBeNull();
     expect(parseStaffSpawns([{}, { item_id: 1, count: 1 }])).toHaveLength(1);
+  });
+});
+
+describe("the census windows", () => {
+  it("are the four the tabs offer, widest last", () => {
+    expect(ECONOMY_WINDOWS.map((window) => window.slug)).toEqual([
+      "24-hours",
+      "7-days",
+      "30-days",
+      "90-days",
+    ]);
+    expect(ECONOMY_WINDOWS.map((window) => window.days)).toEqual([1, 7, 30, 90]);
+  });
+
+  it("stay inside the 1..90 the SQL clamps to", () => {
+    for (const window of ECONOMY_WINDOWS) {
+      expect(window.days).toBeGreaterThanOrEqual(1);
+      expect(window.days).toBeLessThanOrEqual(90);
+    }
+  });
+
+  it("keep the default and the number the page prints in step", () => {
+    expect(ECONOMY_DEFAULT_WINDOW.slug).toBe("30-days");
+    expect(ECONOMY_DAYS).toBe(ECONOMY_DEFAULT_WINDOW.days);
+  });
+
+  it("resolve a slug, and refuse one they do not know", () => {
+    expect(economyWindow("7-days")).toBe(ECONOMY_WINDOWS[1]);
+    expect(economyWindow("30-days")).toBe(ECONOMY_DEFAULT_WINDOW);
+    expect(economyWindow("all-time")).toBeNull();
+    expect(economyWindow("")).toBeNull();
+  });
+});
+
+describe("publicEconomyGroupRangeStatement", () => {
+  it("sends the map as one JSON value, not as text in the statement", () => {
+    const call = publicEconomyGroupRangeStatement(7, { ores: [440, 453] });
+    expect(call.values[0]).toBe(7);
+    expect(JSON.parse(call.values[1] as string)).toEqual({ ores: [440, 453] });
+  });
+
+  it("sends an empty map as an empty object, which the SQL reads as all-residual", () => {
+    expect(publicEconomyGroupRangeStatement(1, {}).values[1]).toBe("{}");
+  });
+});
+
+describe("parseCensus", () => {
+  const row = {
+    taken_at: "2026-09-07T08:00:00.000Z",
+    players: 475,
+    coins: 11066245,
+    items: { "440": 12314, "995": 11066245 },
+  };
+
+  it("reads the newest census", () => {
+    const census = parseCensus([row]);
+    expect(census?.takenAt).toBe("2026-09-07T08:00:00.000Z");
+    expect(census?.players).toBe(475);
+    expect(census?.coins).toBe(11066245);
+    // Most of a thing first, like `tracked`.
+    expect(census?.items).toEqual([
+      { id: 995, count: 11066245 },
+      { id: 440, count: 12314 },
+    ]);
+  });
+
+  it("reads an items column that arrived as a string", () => {
+    expect(parseCensus([{ ...row, items: JSON.stringify(row.items) }])?.items).toHaveLength(2);
+  });
+
+  it("is null when the census has not run, which is a page and not an error", () => {
+    expect(parseCensus([])).toBeNull();
+    expect(parseCensus([null])).toBeNull();
+    expect(parseCensus([{ ...row, taken_at: null }])).toBeNull();
+  });
+
+  it("counts a total it cannot read as nothing counted, never as zero", () => {
+    const census = parseCensus([{ ...row, players: "many", coins: undefined }]);
+    expect(census?.players).toBeNull();
+    expect(census?.coins).toBeNull();
+  });
+});
+
+describe("parseGroupRanges", () => {
+  it("keys the ranges by group, residual included", () => {
+    const ranges = parseGroupRanges([
+      { grp: "ores", low: 0, high: 17361 },
+      { grp: "*", low: 3586, high: 647920 },
+    ]);
+
+    expect(ranges.get("ores")).toEqual({ low: 0, high: 17361 });
+    // The ids no group named. The page prints it as "Other items", and it is
+    // summed in SQL because a minimum is not a subtraction.
+    expect(ranges.get("*")).toEqual({ low: 3586, high: 647920 });
+  });
+
+  it("reads a bigint that came back as text", () => {
+    expect(parseGroupRanges([{ grp: "coins", low: "0", high: "11940980" }]).get("coins")).toEqual({
+      low: 0,
+      high: 11940980,
+    });
+  });
+
+  it("drops a row it cannot read rather than showing it as zero", () => {
+    const ranges = parseGroupRanges([
+      { grp: "ores", low: "nonsense", high: 5 },
+      { grp: "", low: 1, high: 2 },
+      null,
+      { grp: "logs", low: 1, high: 2 },
+    ]);
+
+    expect([...ranges.keys()]).toEqual(["logs"]);
   });
 });

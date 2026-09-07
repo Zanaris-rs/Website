@@ -1,4 +1,4 @@
-import { ECONOMY_FLOW_ROW_LIMIT, type Flow, type Snapshot } from "@/lib/public/queries";
+import { ECONOMY_FLOW_ROW_LIMIT, type Flow, type Snapshot, type TrackedItem } from "@/lib/public/queries";
 
 /**
  * The maths behind /economy: the shape of a line, and a month of hourly
@@ -240,4 +240,171 @@ export function dailyChange(
   }
 
   return null;
+}
+
+/* --- the categories --- */
+
+/** The lowest and highest a series reached, without building a chart for it. */
+export function rangeOf(
+  points: readonly Point[],
+): { low: number; high: number } | null {
+  if (points.length === 0) return null;
+  const values = points.map((point) => point.value);
+  return { low: Math.min(...values), high: Math.max(...values) };
+}
+
+/**
+ * A census with every bank note counted as the object it is a note for.
+ *
+ * A note is redeemable one for one at any banker, so "how much iron ore exists"
+ * has to include the noted iron ore or it is not the number a reader came for.
+ * It also keeps the rares block from listing "Red partyhat" and "Red partyhat
+ * (noted)" as two different rares.
+ *
+ * `baseIdOf` is passed in rather than imported so this file stays free of the
+ * object tables — the same reason `chartPath` takes numbers and knows nothing
+ * about SVG.
+ */
+export function foldNotes(
+  items: readonly TrackedItem[],
+  baseIdOf: (id: number) => number,
+): TrackedItem[] {
+  const totals = new Map<number, number>();
+  for (const item of items) {
+    const id = baseIdOf(item.id);
+    totals.set(id, (totals.get(id) ?? 0) + item.count);
+  }
+  return [...totals].map(([id, count]) => ({ id, count }));
+}
+
+/** What `economyBlocks` needs to know about an object. Supplied by `lib/items`. */
+export type Catalogue = {
+  readonly groupOf: (id: number) => string | null;
+  readonly baseIdOf: (id: number) => number;
+  readonly name: (id: number) => string;
+  /** `null` for an object whose config declares no price — not zero, and never 1. */
+  readonly cost: (id: number) => number | null;
+};
+
+/** One category, as the page needs it. `roster` is the ids it prints even at zero. */
+export type BlockSpec = {
+  readonly key: string;
+  readonly label: string;
+  readonly headline?: boolean;
+  readonly roster: readonly number[] | null;
+};
+
+export type Block = {
+  readonly key: string;
+  readonly label: string;
+  readonly headline: boolean;
+  /** The rows to print, already ordered and capped. */
+  readonly items: readonly { readonly id: number; readonly count: number }[];
+  /** How many distinct objects the block actually holds. `items.length` when nothing was cut. */
+  readonly of: number;
+  /** Every one of them, added up. */
+  readonly count: number;
+  /**
+   * `Σ count × cost` over the objects that declare a price, or `null` when not
+   * one of them does — which is the rares block, and is why it carries no shop
+   * value rather than carrying a made-up one.
+   */
+  readonly value: number | null;
+  /** How many of the block's objects could be priced, and how many there were. */
+  readonly priced: number;
+  readonly counted: number;
+  readonly low: number | null;
+  readonly high: number | null;
+};
+
+/** How many rows a block prints before it says "top N of M". */
+export const BLOCK_ROWS = 48;
+
+/**
+ * The census as the blocks the page prints.
+ *
+ * Notes are folded first, then every object is asked which category claims it,
+ * and the leftovers become the residual block — keyed `"*"`, the same key
+ * `accounts.public_economy_group_range` returns its low and high under, because
+ * a minimum is not a subtraction and the residual's range has to be summed in
+ * SQL rather than derived here.
+ *
+ * Ordering is per block and deliberate. A roster block is printed in name
+ * order: it shows a line for something that does not exist, and rows that jump
+ * about as counts change would make the zeroes hard to find. Every other block
+ * is biggest first, because that is the question being asked of it.
+ *
+ * Blocks keep `specs` order, so the page does not reshuffle when the window
+ * changes.
+ */
+export function economyBlocks(
+  items: readonly TrackedItem[],
+  ranges: ReadonlyMap<string, { low: number; high: number }> | null,
+  specs: readonly BlockSpec[],
+  catalogue: Catalogue,
+  otherKey: string,
+  otherLabel = "Other items",
+): Block[] {
+  const folded = foldNotes(items, catalogue.baseIdOf);
+
+  const held = new Map<string, Map<number, number>>();
+  for (const spec of specs) held.set(spec.key, new Map());
+  held.set(otherKey, new Map());
+
+  for (const item of folded) {
+    if (item.count <= 0) continue;
+    const key = catalogue.groupOf(item.id) ?? otherKey;
+    // A group the census knows about but this page does not list is not a
+    // reason to lose the count: it goes to the residual, where it is visible.
+    (held.get(key) ?? held.get(otherKey)!).set(item.id, item.count);
+  }
+
+  const all: BlockSpec[] = [
+    ...specs,
+    { key: otherKey, label: otherLabel, roster: null },
+  ];
+
+  return all.map((spec) => {
+    const counts = held.get(spec.key)!;
+
+    const rows = spec.roster
+      ? spec.roster.map((id) => ({ id, count: counts.get(id) ?? 0 }))
+      : [...counts].map(([id, count]) => ({ id, count }));
+
+    rows.sort(
+      spec.roster
+        ? (a, b) => catalogue.name(a.id).localeCompare(catalogue.name(b.id))
+        : (a, b) => b.count - a.count || catalogue.name(a.id).localeCompare(catalogue.name(b.id)),
+    );
+
+    let count = 0;
+    let value: number | null = null;
+    let priced = 0;
+    let counted = 0;
+
+    for (const [id, number] of counts) {
+      count += number;
+      counted += 1;
+      const cost = catalogue.cost(id);
+      if (cost === null) continue;
+      priced += 1;
+      value = (value ?? 0) + number * cost;
+    }
+
+    const range = ranges?.get(spec.key) ?? null;
+
+    return {
+      key: spec.key,
+      label: spec.label,
+      headline: spec.headline === true,
+      items: rows.slice(0, BLOCK_ROWS),
+      of: rows.length,
+      count,
+      value,
+      priced,
+      counted,
+      low: range?.low ?? null,
+      high: range?.high ?? null,
+    };
+  });
 }

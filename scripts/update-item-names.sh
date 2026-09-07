@@ -109,13 +109,21 @@ for (const file of objFiles(contentDir)) {
     const line = raw.trim();
     const header = /^\[(\S+)\]$/.exec(line);
     if (header) {
-      current = { name: null, model: false };
+      current = { name: null, model: false, cost: null };
       configs.set(header[1], current);
       continue;
     }
     if (!current) continue;
     if (line.startsWith('name=')) current.name = line.slice('name='.length).trim();
     else if (line.startsWith('model=')) current.model = true;
+    else if (line.startsWith('cost=')) {
+      // Declared or absent, never defaulted. ObjType.cost falls back to 1 when
+      // a config omits the line, and a 1 written here would be indistinguishable
+      // from a real price of 1 - which is exactly the distinction /economy needs
+      // to decide whether it may put a shop value on a block at all.
+      const value = Number(line.slice('cost='.length).trim());
+      if (Number.isInteger(value) && value >= 0) current.cost = value;
+    }
   }
 }
 
@@ -136,7 +144,7 @@ for (const [id, debugname] of [...debugnames].sort((a, b) => a[0] - b[0])) {
   const base = noted ? debugname.slice('cert_'.length) : debugname;
   const name = configName(base);
   if (name === null) continue;
-  items.push({ id, base, name, noted });
+  items.push({ id, debugname, base, name, noted });
 }
 
 /* --- qualify the names more than one id answers to --- */
@@ -189,6 +197,40 @@ const lines = Object.entries(names).map(
 );
 fs.writeFileSync(out, `{\n${lines.join(',\n')}\n}\n`);
 
+/**
+ * The debugname of every id that got a label, and the declared cost of every id
+ * whose config has one.
+ *
+ * Two files rather than columns in `names.json` because that file is the one
+ * every page reads to print a row, it is asserted byte for byte by
+ * `lib/items/names.test.ts`, and nothing that only /economy needs belongs in
+ * the hot path of the hiscores.
+ *
+ * `debugnames.json` is the whole debugname, `cert_` and all: `lib/items/objects.ts`
+ * needs the prefix to tell a note from the thing it is a note for, and needs
+ * the un-prefixed name to find which id that is. It cannot use `id - 1` - the
+ * pairing is a convention of the 2004 data and not a rule of it.
+ *
+ * `costs.json` follows the packer: `toCertificate` copies `cost` from the linked
+ * object, so a note is priced exactly when its base is.
+ */
+const debugnameOut = path.join(path.dirname(out), 'debugnames.json');
+const costOut = path.join(path.dirname(out), 'costs.json');
+
+const objectLines = (entries) =>
+  entries.map(([key, value]) => `  ${JSON.stringify(String(key))}: ${JSON.stringify(value)}`);
+
+fs.writeFileSync(
+  debugnameOut,
+  `{\n${objectLines(items.map((item) => [item.id, item.debugname])).join(',\n')}\n}\n`,
+);
+
+const priced = items.filter((item) => configs.get(item.base)?.cost !== null && configs.get(item.base)?.cost !== undefined);
+fs.writeFileSync(
+  costOut,
+  `{\n${objectLines(priced.map((item) => [item.id, configs.get(item.base).cost])).join(',\n')}\n}\n`,
+);
+
 const duplicates = items.length - new Set(Object.values(names)).size;
 // `qualifier` is set only for an object whose name another id also answers to,
 // so counting it here is exact. Counting brackets in the finished labels is
@@ -202,7 +244,11 @@ console.log(`unnamed (skipped):  ${debugnames.size - items.length}`);
 console.log(`as the game names:  ${items.length - qualified}`);
 console.log(`qualified:          ${qualified}`);
 console.log(`labels shared:      ${duplicates} (expect 0)`);
+console.log(`priced (cost=):     ${priced.length}`);
+console.log(`unpriced:           ${items.length - priced.length}`);
 console.log(`wrote ${out}`);
+console.log(`wrote ${debugnameOut}`);
+console.log(`wrote ${costOut}`);
 JS
 
 echo

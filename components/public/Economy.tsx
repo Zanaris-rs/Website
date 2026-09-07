@@ -4,14 +4,19 @@ import { colourClass } from "@/components/site/colour";
 import frame from "@/components/site/Frame.module.css";
 import Panel from "@/components/site/Panel";
 import TitleBox from "@/components/site/TitleBox";
+import { GROUPS, OTHER_GROUP, groupOf, groupRoster } from "@/lib/items/groups";
 import { itemName } from "@/lib/items/names";
+import { baseIdOf, itemCost } from "@/lib/items/objects";
 import {
+  type Block,
   dailyChange,
   dailyFlows,
+  economyBlocks,
   latestSnapshot,
+  rangeOf,
   seriesOf,
 } from "@/lib/public/economy";
-import { ECONOMY_DAYS, type Snapshot } from "@/lib/public/queries";
+import type { Snapshot } from "@/lib/public/queries";
 import type { Economy as EconomyData } from "@/lib/public/read-server";
 import {
   flowColour,
@@ -23,6 +28,8 @@ import {
 } from "@/lib/public/format";
 
 import EconomyChart from "./EconomyChart";
+import EconomyGroups from "./EconomyGroups";
+import EconomyWindows from "./EconomyWindows";
 import styles from "./Public.module.css";
 
 /** "1 day", "2 days": a page that says "1 days" reads as a machine wrote it. */
@@ -35,7 +42,7 @@ function figure(value: number | null): string {
   return value === null ? "—" : formatNumber(value);
 }
 
-/** "+12,400 in the last day", or nothing at all until the series reaches back. */
+/** "+12,400 in a day", or nothing at all until the series reaches back. */
 function change(value: number | null): ReactNode {
   if (value === null || value === 0) return null;
   const colour = flowColour(value);
@@ -46,6 +53,38 @@ function change(value: number | null): ReactNode {
     </span>
   );
 }
+
+/** "low 0 / high 11,940,980", under a total, in the charts' own scale line. */
+function range(low: number | null, high: number | null): ReactNode {
+  if (low === null || high === null) return null;
+  return (
+    <div className={styles.chartScale}>
+      <span>low {formatNumber(low)}</span>
+      <span>high {formatNumber(high)}</span>
+    </div>
+  );
+}
+
+/**
+ * What the census told the page about every object in the game.
+ *
+ * `groupOf`, `baseIdOf`, `itemName` and `itemCost` all live in `lib/items`;
+ * `economyBlocks` takes them as an argument so the arithmetic stays testable
+ * against five made-up objects instead of 3,883 real ones.
+ */
+const CATALOGUE = {
+  groupOf,
+  baseIdOf,
+  name: itemName,
+  cost: itemCost,
+};
+
+const SPECS = GROUPS.map((group) => ({
+  key: group.key,
+  label: group.label,
+  headline: group.headline,
+  roster: groupRoster(group.key),
+}));
 
 /**
  * What exists in the game, and what has moved.
@@ -62,18 +101,53 @@ function change(value: number | null): ReactNode {
  * the number and the world and nothing else. That is the trade the whole
  * feature is built on: the totals are everybody's business and who holds them
  * is nobody's.
+ *
+ * The current figures come from `census` — one row, the newest — and everything
+ * with a window on it from the reads that took one. So the totals and the
+ * category tables agree with each other by construction, whichever tab is open,
+ * and only the charts and the low/high lines move when the window changes.
  */
 export default function Economy({ economy }: { economy: EconomyData }) {
-  const { snapshots, spawns } = economy;
-  const latest = latestSnapshot(snapshots);
+  const { census, snapshots, spawns, window, ranges } = economy;
+  // The totals come from the census when there is one and from the newest
+  // snapshot when there is not, so the top of the page survives a census read
+  // that failed — including the deploy window before migration 5 is applied,
+  // when `public_economy_latest()` does not exist yet. Both carry the same
+  // three figures; only the category blocks below need the census itself.
+  const totals = census ?? latestSnapshot(snapshots);
   // `null` all the way through rather than an empty list: the block below has
   // a different sentence for "could not be read" than for "nothing moved".
   const flows = economy.flows === null ? null : dailyFlows(economy.flows);
   const days = flows === null ? null : flows.days;
-  const partial = economy.flows === null || spawns === null;
+  // A block that could not be read, as opposed to one with nothing in it. The
+  // census counts here only when there *are* snapshots: with none, the page is
+  // not partial, it is new.
+  const partial =
+    economy.flows === null ||
+    spawns === null ||
+    ranges === null ||
+    (census === null && snapshots.length > 0);
 
   const coins = (snapshot: Snapshot) => snapshot.coins;
   const players = (snapshot: Snapshot) => snapshot.players;
+  const coinPoints = seriesOf(snapshots, coins);
+
+  const blocks = economyBlocks(
+    census?.items ?? [],
+    ranges,
+    SPECS,
+    CATALOGUE,
+    OTHER_GROUP,
+  );
+
+  // Coins lead the page as a figure of their own, so the group exists to keep
+  // eleven million of them out of "Other items" rather than to be printed as a
+  // block. Its range is the exact one over this window; the series is the
+  // fallback for when that read failed.
+  const isCoins = (block: Block) => block.key === "coins";
+  const coinRange = blocks.find(isCoins) ?? null;
+  const coinLow = coinRange?.low ?? rangeOf(coinPoints)?.low ?? null;
+  const coinHigh = coinRange?.high ?? rangeOf(coinPoints)?.high ?? null;
 
   return (
     <>
@@ -86,16 +160,18 @@ export default function Economy({ economy }: { economy: EconomyData }) {
         <div className={styles.intro}>
           <p>
             Once an hour, every save file on the server is read and everything
-            in it is counted. This page is the result: how many coins exist, how
-            many accounts have a save, and how many of the rarest items in the
-            game are still out there. Nobody&apos;s name appears on it, and
-            nobody&apos;s bank is shown — only the totals.
+            in it is counted — every coin, every ore, every rune, in every
+            backpack, bank and set of worn equipment. This page is the whole of
+            that count. Nobody&apos;s name appears on it and nobody&apos;s bank
+            is shown; only the totals, and how far they have moved.
           </p>
         </div>
       </Panel>
 
       <Panel>
-        {latest === null ? (
+        <EconomyWindows current={window} />
+
+        {totals === null ? (
           <div className={styles.empty}>
             The first census has not run yet. This page fills in within an hour
             of the count starting.
@@ -104,7 +180,7 @@ export default function Economy({ economy }: { economy: EconomyData }) {
           <>
             <div className={styles.totals}>
               <div className={styles.total}>
-                <div className={styles.totalValue}>{figure(latest.coins)}</div>
+                <div className={styles.totalValue}>{figure(totals.coins)}</div>
                 <div className={styles.totalLabel}>
                   coins in existence
                   {change(dailyChange(snapshots, coins))}
@@ -112,7 +188,7 @@ export default function Economy({ economy }: { economy: EconomyData }) {
               </div>
               <div className={styles.total}>
                 <div className={styles.totalValue}>
-                  {figure(latest.players)}
+                  {figure(totals.players)}
                 </div>
                 <div className={styles.totalLabel}>
                   accounts with a save
@@ -121,51 +197,37 @@ export default function Economy({ economy }: { economy: EconomyData }) {
               </div>
             </div>
 
+            {range(coinLow, coinHigh)}
+
             <EconomyChart
-              title={`Coins in existence, ${ECONOMY_DAYS} days`}
-              points={seriesOf(snapshots, coins)}
+              title={`Coins in existence, ${window.short}`}
+              points={coinPoints}
               colour="yellow"
               unit="coins"
             />
             <EconomyChart
-              title={`Accounts with a save, ${ECONOMY_DAYS} days`}
+              title={`Accounts with a save, ${window.short}`}
               points={seriesOf(snapshots, players)}
               colour="lblue"
               unit="accounts"
             />
 
             <div className={`${styles.chartScale} ${styles.counted}`}>
-              <span>Counted {formatWhen(latest.takenAt)}</span>
+              <span>
+                Counted {formatWhen(totals.takenAt)} across{" "}
+                {figure(totals.players)} save files
+              </span>
             </div>
           </>
         )}
       </Panel>
 
-      <Panel>
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th>Tracked item</th>
-              <th className={styles.figure}>In existence</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(latest?.tracked ?? []).map((item) => (
-              <tr key={item.id}>
-                <td>{itemName(item.id)}</td>
-                <td className={styles.figure}>{formatNumber(item.count)}</td>
-              </tr>
-            ))}
-            {(latest?.tracked.length ?? 0) === 0 ? (
-              <tr>
-                <td colSpan={2} className={styles.empty}>
-                  No tracked items have been counted yet.
-                </td>
-              </tr>
-            ) : null}
-          </tbody>
-        </table>
-      </Panel>
+      {census === null ? null : (
+        <Panel align="left">
+          <div className={styles.blockTitle}>Everything in the game</div>
+          <EconomyGroups blocks={blocks.filter((block) => !isCoins(block))} />
+        </Panel>
+      )}
 
       <Panel align="left">
         <div className={styles.blockTitle}>Entered and left the game</div>
@@ -178,7 +240,7 @@ export default function Economy({ economy }: { economy: EconomyData }) {
                 // part of a day is not a day. There is movement to show and
                 // this page cannot honestly show it.
                 "More movement was recorded in the last day than one read of this page returns, so none of it can be shown as a whole day."
-              : `Nothing tracked has entered or left the game in the last ${ECONOMY_DAYS} days.`}
+              : `Nothing tracked has entered or left the game in ${window.label}.`}
           </div>
         ) : (
           days.map((day) => (
@@ -204,7 +266,7 @@ export default function Economy({ economy }: { economy: EconomyData }) {
           <p className={styles.note}>
             The census wrote more rows in this window than one read returns, so
             this is the newest {plural(days.length, "day")} rather than the
-            whole {ECONOMY_DAYS}: older days are not loaded. The day the read
+            whole {window.days}: older days are not loaded. The day the read
             stopped inside is left out rather than shown as a part of itself.
           </p>
         ) : null}
@@ -237,7 +299,7 @@ export default function Economy({ economy }: { economy: EconomyData }) {
                 <td colSpan={4} className={styles.empty}>
                   {spawns === null
                     ? "This could not be read just now."
-                    : `Staff have created nothing in the last ${ECONOMY_DAYS} days.`}
+                    : `Staff have created nothing in ${window.label}.`}
                 </td>
               </tr>
             ) : null}
@@ -262,18 +324,36 @@ export default function Economy({ economy }: { economy: EconomyData }) {
               since then appears at their next save, not immediately.
             </li>
             <li>
+              It reads <b>every</b> save file, staff accounts among them.
+              Nothing is left out of these totals, so a staff member&apos;s bank
+              is in them like anybody else&apos;s — and everything staff have
+              created is listed above, so it is accounted for rather than
+              hidden.
+            </li>
+            <li>
               Items in <b>shop stock</b> and items lying on the <b>ground</b>{" "}
               are not in anybody&apos;s save and are not counted. Nor is
               anything held by an account that never logs out again.
             </li>
             <li>
-              &quot;Entered the game&quot; and &quot;left the game&quot; are the
-              difference between one census and the next. A trade moves an item
-              between two saves and changes nothing here, which is the point.
+              A <b>noted</b> item is counted as the item it is a note for. A
+              note is redeemable one for one at any banker, so counting it
+              separately would understate how much of something exists.
             </li>
             <li>
-              Items a member of staff created are listed above, without the name
-              of the staff member or of whoever received them.
+              <b>Shop value</b> is the price the game&apos;s own configuration
+              gives an item, before a shop&apos;s stock multiplier and before
+              anything a player would actually pay. It is not a market price and
+              nobody trades at it. Many items declare no price at all — the
+              holiday rares, bones, grimy herbs and dragonhides among them — so
+              they are <i>counted</i> but not <i>valued</i>, and a block says
+              how many of its items it could price.
+            </li>
+            <li>
+              &quot;Entered the game&quot; and &quot;left the game&quot; are the
+              difference between one census and the next, for the rares only. A
+              trade moves an item between two saves and changes nothing here,
+              which is the point.
             </li>
           </ul>
           <p>
