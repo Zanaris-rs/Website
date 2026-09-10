@@ -30,7 +30,7 @@ const SKILL_VIEW = "hiscores.hiscore_public";
  * there first, then the lower account id. `value` is XP times ten and level is
  * monotonic in XP, so level needs no key of its own.
  */
-const RANK_ORDER = "value desc, date asc, account_id asc";
+const RANK_ORDER = "level desc, date asc, account_id asc";
 
 /** Which view and `type` a category reads. */
 export function sourceFor(category: number): {
