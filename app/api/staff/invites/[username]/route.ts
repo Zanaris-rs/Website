@@ -47,6 +47,7 @@ export async function POST(
   } catch {
     return fail("bad_request", 400);
   }
+  if (!payload || typeof payload !== "object") return fail("bad_request", 400);
 
   const session = await readSession();
   if (!session) return fail("session_expired", 401);

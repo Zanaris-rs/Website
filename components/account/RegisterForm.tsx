@@ -92,6 +92,20 @@ type State =
   | { kind: "failed"; error: string }
   | { kind: "done"; username: string; citizenNumber: number | null };
 
+/**
+ * Once the server says the invite itself is the problem, retrying is not a
+ * fresh attempt - it is the same dead code again, and each retry still costs
+ * a Turnstile solve. These four errors permanently disable the form for the
+ * rest of this page view; every other error leaves it retryable, the way it
+ * always has.
+ */
+const DEAD_INVITE_ERRORS = new Set([
+  "invite_invalid",
+  "invite_claimed",
+  "invite_expired",
+  "invite_revoked",
+]);
+
 export default function RegisterForm({ invite }: { invite: { code: string; inviter: string } }) {
   // Site keys are public, so this one has a shipped default and the form
   // renders a widget even where `NEXT_PUBLIC_TURNSTILE_SITE_KEY` was never
@@ -105,6 +119,7 @@ export default function RegisterForm({ invite }: { invite: { code: string; invit
   const [token, setToken] = useState<string | null>(null);
   const [state, setState] = useState<State>({ kind: "editing" });
   const [scriptReady, setScriptReady] = useState(false);
+  const [inviteDead, setInviteDead] = useState(false);
 
   const widgetRef = useRef<HTMLDivElement>(null);
   const renderedRef = useRef(false);
@@ -146,7 +161,7 @@ export default function RegisterForm({ invite }: { invite: { code: string; invit
 
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
-    if (state.kind === "submitting") return;
+    if (state.kind === "submitting" || inviteDead) return;
 
     if (password !== confirm) {
       setState({ kind: "failed", error: "The passwords do not match." });
@@ -184,6 +199,7 @@ export default function RegisterForm({ invite }: { invite: { code: string; invit
         kind: "failed",
         error: MESSAGES[code] ?? "Registration failed. Try again.",
       });
+      if (DEAD_INVITE_ERRORS.has(code)) setInviteDead(true);
     } catch {
       setState({ kind: "failed", error: MESSAGES.unavailable });
     } finally {
@@ -356,11 +372,19 @@ export default function RegisterForm({ invite }: { invite: { code: string; invit
           </p>
         )}
 
+        {inviteDead ? (
+          <p className={styles.note}>
+            <a className={frame.link} href="/register">
+              Back to /register
+            </a>
+          </p>
+        ) : null}
+
         <div className={styles.actions}>
           <button
             className={styles.submit}
             type="submit"
-            disabled={submit.disabled}
+            disabled={submit.disabled || inviteDead}
           >
             {submit.label}
           </button>

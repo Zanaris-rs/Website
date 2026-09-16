@@ -85,7 +85,9 @@ export default function StaffInvites({
         ) : null}
 
         {username && !error && !self ? (
-          <p className={account.note}>There is no account called {username}.</p>
+          <p className={account.note}>
+            There is no account called {toDisplayName(username)}.
+          </p>
         ) : null}
 
         {self ? (
@@ -118,7 +120,11 @@ export default function StaffInvites({
               </table>
             </div>
 
-            <StaffInviteToggle username={self.username} enabled={self.invitesEnabled} />
+            <StaffInviteToggle
+              username={self.username}
+              enabled={self.invitesEnabled}
+              banned={self.banned}
+            />
           </>
         ) : null}
       </Panel>

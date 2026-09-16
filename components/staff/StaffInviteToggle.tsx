@@ -34,9 +34,11 @@ type State =
 export default function StaffInviteToggle({
   username,
   enabled,
+  banned,
 }: {
   username: string;
   enabled: boolean;
+  banned: boolean;
 }) {
   const router = useRouter();
   const [password, setPassword] = useState("");
@@ -86,6 +88,13 @@ export default function StaffInviteToggle({
           ? "Switching it on lets them make as many single-use links as they like, twenty unused at a time."
           : "Switching it off cancels every unused link they hold, straight away."}
       </p>
+
+      {banned ? (
+        <p className={account.note}>
+          {name} is banned: any links they make stay dead until the ban ends,
+          and lifting the ban does not switch inviting back on.
+        </p>
+      ) : null}
 
       <div className={account.fields}>
         <label htmlFor="invites-password">Your password:</label>

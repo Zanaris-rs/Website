@@ -13,7 +13,9 @@ import { isTopLevelNavigation } from "@/lib/invite/fetch-guard";
 import { invitePreviewStatement, parseInvitePreview } from "@/lib/invite/queries";
 
 export const metadata: Metadata = {
-  title: "You're invited",
+  // Static and neutral: this title also shows on a dead link (used, revoked,
+  // expired), where "You're invited" would be actively wrong.
+  title: "Zanaris invite",
   description: "Claim your place on Zanaris.",
   robots: { index: false, follow: false },
 };

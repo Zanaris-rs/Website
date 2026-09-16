@@ -851,6 +851,19 @@ is created.
   (`lib/invite/code.ts`, the same contract as the engine's
   `src/util/InviteCode.ts`).
 
+A leaked `website` credential does not get open registration back, but it is
+not nothing. `invite_create` takes no password - only a username and a
+pre-generated code - so it can mint links for any account that already has
+inviting switched on. `register_with_invite` takes the client IP as a plain
+argument rather than reading it off the connection, so a credential that can
+call it at all can also lie about that IP and claim links without the signup
+caps ever binding it. And `staff_invite_tree` / `staff_inviters` take the
+staff actor as a name, not a session, so it can read the invite tree for
+anyone already staff - the same trust every other staff read in this API
+places in its caller. All of that is still far narrower than before migration
+6, when the same credential could call `accounts.register` and create an
+account outright.
+
 ## JSON contracts
 
 ### `worlds.json` (site root, written by the deploy script)

@@ -6,6 +6,7 @@ import type { Citizen } from "@/lib/invite/queries";
 import type { InviteView } from "@/lib/invite/view";
 
 import InviteList from "./InviteList";
+import styles from "./InvitesPanel.module.css";
 
 export default function InvitesPanel({
   citizen,
@@ -21,8 +22,8 @@ export default function InvitesPanel({
         links={[{ href: "/account", text: "Account Centre" }]}
       />
 
-      <Panel align="left">
-        <div className={account.form}>
+      <Panel align="left" width="min(640px, 100%)">
+        <div className={styles.content}>
           <div className={account.heading}>
             <b>Citizen {formatCitizen(citizen.citizenNumber)}</b>
           </div>
