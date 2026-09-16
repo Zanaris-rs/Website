@@ -3,7 +3,7 @@
  *
  * A Turnstile **site key is public by construction**: it is rendered into the
  * HTML of every page that carries the widget, so anyone who can load
- * `/register` already has it. Hard-coding it here leaks nothing. The secret
+ * `/join/<code>` already has it. Hard-coding it here leaks nothing. The secret
  * key is the half that matters, it lives only in `TURNSTILE_SECRET_KEY`, and
  * nothing in this repo ever holds a copy of it.
  *
