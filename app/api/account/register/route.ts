@@ -12,9 +12,11 @@ import {
 import { allowedHostnames, verifyTurnstile } from "@/lib/account/turnstile";
 import { validatePassword, validateUsername } from "@/lib/account/validation";
 import { isConfigured, query } from "@/lib/db";
+import { normalizeInviteCode } from "@/lib/invite/code";
 
 /**
- * `POST /api/account/register` — the only way to create an account.
+ * `POST /api/account/register` — the only way to create an account, and only
+ * with a live invite.
  *
  * bcrypt and `pg` are Node libraries, so this runs on the Node runtime, and
  * nothing here may ever be cached.
@@ -27,11 +29,15 @@ import { isConfigured, query } from "@/lib/db";
  *      which usernames are taken. The token must also carry the `signup`
  *      action and a hostname of ours, so a site key lifted onto somebody
  *      else's page mints nothing that works here.
+ *   1b. **The invite code's shape**, checked locally; whether it is live is
+ *      decided inside `accounts.register_with_invite`, in the same statement
+ *      that creates the account.
  *   2. Cheap local validation of the username and password.
  *   3. Email normalisation, blocklist, then the MX lookup (a network hop, so
  *      last of the checks).
- *   4. bcrypt, then one call to `accounts.register`, which enforces the rate
- *      caps and inserts the account atomically.
+ *   4. bcrypt, then one call to `accounts.register_with_invite`, which
+ *      enforces the rate caps, claims the invite and inserts the account
+ *      atomically.
  */
 
 export const runtime = "nodejs";
@@ -43,6 +49,7 @@ function fail(error: string, status: number): Response {
 }
 
 type Body = {
+  inviteCode?: unknown;
   username?: unknown;
   password?: unknown;
   email?: unknown;
@@ -76,6 +83,11 @@ export async function POST(request: NextRequest) {
     return fail("turnstile", 400);
   }
 
+  // 1b. The invite's shape. Whether it is live is the database's call, made
+  //     in the same statement that creates the account.
+  const inviteCode = normalizeInviteCode(asString(body.inviteCode));
+  if (!inviteCode) return fail("invite_invalid", 409);
+
   // 2. Username and password.
   const username = validateUsername(asString(body.username));
   if (!username.ok) return fail(username.error, 400);
@@ -97,7 +109,7 @@ export async function POST(request: NextRequest) {
     const passwordHash = await hashPassword(password.value);
 
     const statement = registerStatement({
-      code: "", // the invite code arrives in the next change
+      code: inviteCode,
       username: username.value,
       email: email.value.email,
       emailNormalized: email.value.normalized,
@@ -107,18 +119,18 @@ export async function POST(request: NextRequest) {
       agentHash: agentHash(request.headers.get("user-agent")),
     });
 
-    const rows = await query<{ result: unknown; citizen_number: unknown }>(
+    const rows = await query<Record<string, unknown>>(
       statement.text,
       statement.values,
     );
-    const { result } = parseRegisterRow(rows[0]);
+    const { result, citizenNumber } = parseRegisterRow(rows[0]);
 
     if (result !== "ok") {
       return fail(result, statusFor(result));
     }
 
     return Response.json(
-      { ok: true, username: username.value },
+      { ok: true, username: username.value, citizenNumber },
       { status: 200, headers: NO_STORE },
     );
   } catch (error) {

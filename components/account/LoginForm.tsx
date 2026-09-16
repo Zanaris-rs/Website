@@ -130,7 +130,7 @@ export default function LoginForm() {
     <>
       <TitleBox
         title="Login"
-        links={[{ href: "/register", text: "Create account" }]}
+        links={[{ href: "/register", text: "Have an invite?" }]}
       />
 
       <Panel>
@@ -208,9 +208,9 @@ export default function LoginForm() {
             reset link, so a forgotten password can only be changed by staff.
           </p>
           <p className={styles.note}>
-            No account yet?{" "}
+            Have an invite?{" "}
             <a className={frame.link} href="/register">
-              Create one
+              Claim it
             </a>
             .
           </p>
