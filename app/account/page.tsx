@@ -12,6 +12,7 @@ import {
   recentLoginsStatement,
 } from "@/lib/account/profile";
 import { requireSession } from "@/lib/account/session-server";
+import { type Citizen, citizenStatement, parseCitizen } from "@/lib/invite/queries";
 import { parseUnread, unreadStatement } from "@/lib/messages/queries";
 import { query } from "@/lib/db";
 
@@ -87,12 +88,24 @@ export default async function Account() {
     console.error("[account] unread read failed", error);
   }
 
+  // The citizen header is a nicety too: without it the page still works, it
+  // just shows no number and no invite link.
+  let citizen: Citizen | undefined;
+  try {
+    const wanted = citizenStatement(session.u);
+    const rows = await query<Record<string, unknown>>(wanted.text, wanted.values);
+    citizen = parseCitizen(rows[0]) ?? undefined;
+  } catch (error) {
+    console.error("[account] citizen read failed", error);
+  }
+
   return (
     <Frame>
       <AccountCentre
         profile={loaded.profile}
         logins={logins}
         unread={unread}
+        citizen={citizen}
       />
     </Frame>
   );

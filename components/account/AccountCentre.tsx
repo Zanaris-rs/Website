@@ -11,6 +11,8 @@ import frame from "@/components/site/Frame.module.css";
 import Panel from "@/components/site/Panel";
 import TitleBox from "@/components/site/TitleBox";
 import { colourClass } from "@/components/site/colour";
+import { formatCitizen } from "@/lib/invite/format";
+import type { Citizen } from "@/lib/invite/queries";
 import { unreadLabel } from "@/lib/messages/format";
 import { isStaff } from "@/lib/staff/level";
 
@@ -32,6 +34,7 @@ export default function AccountCentre({
   profile,
   logins,
   unread,
+  citizen,
 }: {
   profile: Profile;
   logins: readonly RecentLogin[];
@@ -42,6 +45,8 @@ export default function AccountCentre({
    * page cannot stand behind.
    */
   unread?: number;
+  /** `accounts.citizen`; undefined when that read failed. */
+  citizen?: Citizen;
 }) {
   const notices = accountStatus(profile);
   const presence = presenceLine(profile);
@@ -55,6 +60,20 @@ export default function AccountCentre({
           <div className={styles.details}>
             <span className={styles.label}>Username:</span>
             <span>{toDisplayName(profile.username)}</span>
+
+            {citizen ? (
+              <>
+                <span className={styles.label}>Citizen:</span>
+                <span>{formatCitizen(citizen.citizenNumber)}</span>
+
+                {citizen.invitedBy ? (
+                  <>
+                    <span className={styles.label}>Invited by:</span>
+                    <span>{toDisplayName(citizen.invitedBy)}</span>
+                  </>
+                ) : null}
+              </>
+            ) : null}
 
             <span className={styles.label}>Account type:</span>
             <span>{profile.members ? "Members" : "Free"}</span>
@@ -127,6 +146,13 @@ export default function AccountCentre({
       <Panel>
         <div className={styles.form}>
           <ul className={styles.links}>
+            {citizen?.invitesEnabled ? (
+              <li>
+                <a className={frame.link} href="/account/invites">
+                  Invite someone to Zanaris
+                </a>
+              </li>
+            ) : null}
             <li>
               <a className={frame.link} href="/account/password">
                 Change your password
