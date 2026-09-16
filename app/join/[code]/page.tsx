@@ -9,6 +9,7 @@ import { clientIp } from "@/lib/account/ip";
 import { isConfigured, query } from "@/lib/db";
 import { formatInviteCode, normalizeInviteCode } from "@/lib/invite/code";
 import { DEAD_INVITE_MESSAGE, type DeadInvite, joinPath } from "@/lib/invite/format";
+import { isTopLevelNavigation } from "@/lib/invite/fetch-guard";
 import { invitePreviewStatement, parseInvitePreview } from "@/lib/invite/queries";
 
 export const metadata: Metadata = {
@@ -30,6 +31,15 @@ export const dynamic = "force-dynamic";
  *
  * Previewing does not claim anything: the link is only spent when the form
  * below creates an account, inside `accounts.register_with_invite`.
+ *
+ * Previewing does touch the database, though: a well-formed but unknown code
+ * writes an `invite_attempt` row for the visitor's IP, and thirty of those in
+ * fifteen minutes locks the address out (see `accounts.invite_preview`). A
+ * real invite click - even one opened inside Discord's in-app browser - is a
+ * top-level navigation, so `isTopLevelNavigation` (`lib/invite/fetch-guard.ts`)
+ * gates the preview on it: an `<img>`, `<iframe>` or `<script>` fetching this
+ * same URL from somebody else's page is not a person arriving, and gets the
+ * generic invite-only door with no database call at all.
  */
 export default async function Join({ params }: PageProps<"/join/[code]">) {
   const { code: segment } = await params;
@@ -45,10 +55,19 @@ export default async function Join({ params }: PageProps<"/join/[code]">) {
 
   if (!isConfigured()) return <Dead reason="unavailable" />;
 
+  const requestHeaders = await headers();
+  if (!isTopLevelNavigation(requestHeaders)) {
+    return (
+      <Frame>
+        <InviteDoor />
+      </Frame>
+    );
+  }
+
   let dead: DeadInvite | null = null;
   let inviter = "";
   try {
-    const ip = clientIp(await headers()) ?? "";
+    const ip = clientIp(requestHeaders) ?? "";
     const statement = invitePreviewStatement(code, ip);
     const rows = await query<Record<string, unknown>>(statement.text, statement.values);
     const preview = parseInvitePreview(rows[0]);
