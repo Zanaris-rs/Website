@@ -97,6 +97,7 @@ describe("toPlayerResponse", () => {
     {
       category: 0,
       username: "detective",
+      account_id: 7,
       level: 1872,
       value: 2_755_520_850,
       rank: 1,
@@ -104,6 +105,7 @@ describe("toPlayerResponse", () => {
     {
       category: 1,
       username: "detective",
+      account_id: 7,
       level: 99,
       value: 131_746_840,
       rank: 17,
@@ -114,6 +116,7 @@ describe("toPlayerResponse", () => {
     expect(toPlayerResponse("detective", playerRows, displayName)).toEqual({
       username: "detective",
       name: "Detective",
+      citizen: 7,
       skills: [
         { category: 0, rank: 1, level: 1872, xp: 275_552_085 },
         { category: 1, rank: 17, level: 99, xp: 13_174_684 },
@@ -169,6 +172,7 @@ describe("parsePlayerResponse", () => {
   const body = {
     username: "detective",
     name: "Detective",
+    citizen: 7,
     skills: [{ category: 0, rank: 1, level: 1872, xp: 275_552_085 }],
   };
 
@@ -184,5 +188,15 @@ describe("parsePlayerResponse", () => {
     expect(() =>
       parsePlayerResponse({ ...body, skills: [{ category: 0, rank: 1 }] }),
     ).toThrow();
+  });
+
+  it("reads a response cached from before the citizen number existed", () => {
+    const old = { username: body.username, name: body.name, skills: body.skills };
+    expect(parsePlayerResponse(old)).toEqual({ ...old, citizen: null });
+  });
+
+  it("drops a citizen number that is not a positive whole number", () => {
+    expect(parsePlayerResponse({ ...body, citizen: "7" }).citizen).toBeNull();
+    expect(parsePlayerResponse({ ...body, citizen: 0 }).citizen).toBeNull();
   });
 });

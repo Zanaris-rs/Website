@@ -9,6 +9,7 @@ import { parsePlayerResponse, type PlayerResponse } from "@/lib/hiscores/api";
 import { categoryName } from "@/lib/hiscores/categories";
 import { formatNumber } from "@/lib/hiscores/format";
 import { DEFAULT_PROFILE } from "@/lib/hiscores/params";
+import { formatCitizen } from "@/lib/invite/format";
 
 import frame from "@/components/site/Frame.module.css";
 
@@ -96,6 +97,11 @@ export default function PlayerHiscores({ username }: { username: string }) {
               Zanaris Hiscores for{" "}
               <span className={frame.highlight}>{name}</span>
             </div>
+            {state.data.citizen !== null ? (
+              <div className={styles.playerHeading}>
+                Citizen {formatCitizen(state.data.citizen)}
+              </div>
+            ) : null}
             <table className={styles.playerTable}>
               <thead>
                 <tr>
