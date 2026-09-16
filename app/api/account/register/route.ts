@@ -5,7 +5,7 @@ import { checkEmail } from "@/lib/account/email";
 import { hashPassword } from "@/lib/account/hash";
 import { clientIp, ipGroup } from "@/lib/account/ip";
 import {
-  parseRegisterResult,
+  parseRegisterRow,
   registerStatement,
   statusFor,
 } from "@/lib/account/register";
@@ -97,6 +97,7 @@ export async function POST(request: NextRequest) {
     const passwordHash = await hashPassword(password.value);
 
     const statement = registerStatement({
+      code: "", // the invite code arrives in the next change
       username: username.value,
       email: email.value.email,
       emailNormalized: email.value.normalized,
@@ -106,11 +107,11 @@ export async function POST(request: NextRequest) {
       agentHash: agentHash(request.headers.get("user-agent")),
     });
 
-    const rows = await query<{ result: unknown }>(
+    const rows = await query<{ result: unknown; citizen_number: unknown }>(
       statement.text,
       statement.values,
     );
-    const result = parseRegisterResult(rows[0]?.result);
+    const { result } = parseRegisterRow(rows[0]);
 
     if (result !== "ok") {
       return fail(result, statusFor(result));

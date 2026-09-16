@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import { agentHash } from "./agent";
-import { parseRegisterResult, registerStatement, statusFor } from "./register";
+import { parseRegisterRow, registerStatement, statusFor } from "./register";
 
 const input = {
+  code: "VTPVXVR14D2PF2DB",
   username: "bob",
   email: "bob@example.com",
   emailNormalized: "bob@example.com",
@@ -14,12 +15,13 @@ const input = {
 };
 
 describe("registerStatement", () => {
-  it("is one call, in the function's argument order", () => {
+  it("is one call to register_with_invite, code first", () => {
     const statement = registerStatement(input);
     expect(statement.text).toBe(
-      "select accounts.register($1, $2, $3, $4, $5, $6, $7) as result",
+      "select * from accounts.register_with_invite($1, $2, $3, $4, $5, $6, $7, $8)",
     );
     expect(statement.values).toEqual([
+      "VTPVXVR14D2PF2DB",
       "bob",
       "bob@example.com",
       "bob@example.com",
@@ -37,20 +39,46 @@ describe("registerStatement", () => {
     });
     expect(statement.text).not.toContain("drop table");
   });
+
+  it("never calls the old open door", () => {
+    expect(registerStatement(input).text).not.toContain("accounts.register(");
+  });
 });
 
-describe("parseRegisterResult", () => {
-  it("accepts the three documented answers", () => {
-    for (const result of ["ok", "username_taken", "rate_limited"] as const) {
-      expect(parseRegisterResult(result)).toBe(result);
+describe("parseRegisterRow", () => {
+  it("reads a new citizen", () => {
+    expect(parseRegisterRow({ result: "ok", citizen_number: 42 })).toEqual({
+      result: "ok",
+      citizenNumber: 42,
+    });
+  });
+
+  it("accepts every refusal, with no number", () => {
+    for (const result of [
+      "invite_invalid",
+      "invite_claimed",
+      "invite_expired",
+      "invite_revoked",
+      "username_taken",
+      "rate_limited",
+    ] as const) {
+      expect(parseRegisterRow({ result, citizen_number: null })).toEqual({
+        result,
+        citizenNumber: null,
+      });
     }
   });
 
   it("throws on anything else rather than guessing", () => {
-    // A contract break must not read as a rejection, and must never read as
-    // a success.
-    for (const bad of [null, undefined, "", "OK", 1, { result: "ok" }]) {
-      expect(() => parseRegisterResult(bad)).toThrow();
+    for (const bad of [
+      null,
+      undefined,
+      {},
+      { result: "OK" },
+      { result: "ok", citizen_number: null },
+      { result: "ok", citizen_number: "42" },
+    ]) {
+      expect(() => parseRegisterRow(bad)).toThrow();
     }
   });
 });
@@ -59,6 +87,10 @@ describe("statusFor", () => {
   it("maps each answer to its status", () => {
     expect(statusFor("ok")).toBe(200);
     expect(statusFor("username_taken")).toBe(409);
+    expect(statusFor("invite_invalid")).toBe(409);
+    expect(statusFor("invite_claimed")).toBe(409);
+    expect(statusFor("invite_expired")).toBe(409);
+    expect(statusFor("invite_revoked")).toBe(409);
     expect(statusFor("rate_limited")).toBe(429);
   });
 });
