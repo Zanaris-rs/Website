@@ -6,8 +6,7 @@
  * of the least-privilege role: refused on every table it must never read
  * (`account`, `login_attempt`, `session`, `account_login`, the Message
  * Centre's own five, the three transparency tables, and migration 6's two
- * invite tables), `EXECUTE` on the
- * forty-two `accounts.*` functions it needs
+ * invite tables), `EXECUTE` on the forty-two `accounts.*` functions it needs
  * and **not** on `throttled`, `record_failure` or `is_staff` — the rate
  * limiter's own machinery and the staff check, none of which is an API. Those
  * checks are the ones worth having: a URL that connects as `postgres` looks

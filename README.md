@@ -831,6 +831,26 @@ Rows for banned accounts and staff above `staffmodlevel > 1` are excluded by
 the database views, not here. A skill row only exists once the base level
 reaches 15; Overall always exists.
 
+## Invites
+
+Registration is invite-only (engine migration `6_invites`). `/register` is a
+closed door with a box for a pasted code; the form lives at `/join/<code>`,
+which names the player who made the link and spends it only when the account
+is created.
+
+- Every account has `invites_enabled`, **off by default**. Staff switch it on
+  at `/staff/invites` (password re-typed) or with
+  `npm run account -- invite-enable <name>` in the engine repo.
+- An enabled account mints links at `/account/invites`: single-use, fourteen
+  days, at most twenty unused at a time and a hundred a day.
+- A ban switches inviting off and cancels the account's unused links (a
+  trigger on `account.banned_until`). Lifting the ban does not switch it back.
+- The citizen number is `account.id`. It is public (account centre, hiscores);
+  who invited whom is shown only to the two players and to staff.
+- Codes are sixteen Crockford base32 characters from ten random bytes
+  (`lib/invite/code.ts`, the same contract as the engine's
+  `src/util/InviteCode.ts`).
+
 ## JSON contracts
 
 ### `worlds.json` (site root, written by the deploy script)
@@ -950,6 +970,22 @@ form. Otherwise 401 `session_expired`, 403 `origin`, 403 `bad_credentials`,
 400 `email_format` / `email_disposable` / `email_no_mx`, 429 `rate_limited`,
 503 `unavailable`. The session is **not** re-minted: the salt has not moved.
 
+### `POST /api/account/invites`
+
+No body. 200 `{ "ok": true, "code": "4NDPK5XG7HRV0S28", "expiresAt": "..." }` —
+the raw, ungrouped code and an ISO timestamp; `/join/<code>` and the
+account's own invite list are what dash the code for display. Otherwise 401
+`session_expired`, 403 `origin`, 403 `disabled` (inviting is off for this
+account, or it is banned), 429 `too_many` (twenty live links or a hundred
+minted today), 503 `unavailable`. A code collision on the unique index
+retries once inside the route and is never answered to the caller.
+
+### `POST /api/account/invites/[code]/revoke`
+
+No body. 200 `{ "ok": true }`. Otherwise 401 `session_expired`, 403 `origin`,
+404 `not_found` (somebody else's code, a dead link, one that never existed, or
+a string that cannot be a code), 409 `already_claimed`, 503 `unavailable`.
+
 ### The Message Centre routes
 
 Every route in this section and the staff one below is Node-runtime,
@@ -980,26 +1016,6 @@ ticket in a day or the twenty-first reply in an hour, 503 `unavailable`.
 
 The two **GETs that mark something read** add 403 `origin` of their own, on
 `Sec-Fetch-Site` rather than on `Origin` — see "Two GETs that write" above.
-
-## Invites
-
-Registration is invite-only (engine migration `6_invites`). `/register` is a
-closed door with a box for a pasted code; the form lives at `/join/<code>`,
-which names the player who made the link and spends it only when the account
-is created.
-
-- Every account has `invites_enabled`, **off by default**. Staff switch it on
-  at `/staff/invites` (password re-typed) or with
-  `npm run account -- invite-enable <name>` in the engine repo.
-- An enabled account mints links at `/account/invites`: single-use, fourteen
-  days, at most twenty unused at a time and a hundred a day.
-- A ban switches inviting off and cancels the account's unused links (a
-  trigger on `account.banned_until`). Lifting the ban does not switch it back.
-- The citizen number is `account.id`. It is public (account centre, hiscores);
-  who invited whom is shown only to the two players and to staff.
-- Codes are sixteen Crockford base32 characters from ten random bytes
-  (`lib/invite/code.ts`, the same contract as the engine's
-  `src/util/InviteCode.ts`).
 
 ### The staff routes
 
