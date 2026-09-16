@@ -5,9 +5,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import account from "@/components/account/Account.module.css";
-import frame from "@/components/site/Frame.module.css";
 import { joinPath } from "@/lib/invite/format";
 import type { InviteView } from "@/lib/invite/view";
+
+import styles from "./InviteList.module.css";
 
 /**
  * The list, the Create button, and a Copy and a Cancel per unused link. After
@@ -140,7 +141,7 @@ export default function InviteList({
             <tbody>
               {invites.map((invite) => (
                 <tr key={invite.code}>
-                  <td>
+                  <td className={styles.code}>
                     <code>{invite.display}</code>
                   </td>
                   <td>
@@ -154,14 +155,14 @@ export default function InviteList({
                       <>
                         <button
                           type="button"
-                          className={frame.link}
+                          className={styles.linkButton}
                           onClick={() => copy(invite.path)}
                         >
                           {copied === invite.path ? "Copied" : "Copy link"}
                         </button>{" "}
                         <button
                           type="button"
-                          className={frame.link}
+                          className={styles.linkButton}
                           onClick={() => cancel(invite.code)}
                           disabled={busy.kind === "working"}
                         >

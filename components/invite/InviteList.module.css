@@ -1,0 +1,42 @@
+/*
+ * Two things `Account.module.css` and `Frame.module.css` do not already cover:
+ *
+ * - Copy and Cancel are `<button>`s, not `<a>`s — a POST that copies to the
+ *   clipboard or cancels a link must not be a GET a crawler or a prefetch can
+ *   trigger. But a bare `<button className={frame.link}>` keeps the browser's
+ *   native button chrome (background, outset border, `cursor: default`)
+ *   layered under `frame.link`'s colour, which reads as a greyed-out,
+ *   disabled control rather than a link. `.linkButton` strips that chrome and
+ *   reproduces `frame.link` / `frame.link:hover`'s own colours by hand, so it
+ *   only needs the one class.
+ * - The invite code is four groups of four meant to be read as one line;
+ *   `.code` keeps it from wrapping. The table already sits inside
+ *   `account.scroller`, so a narrow screen scrolls the row sideways instead
+ *   of the code breaking across four lines.
+ */
+
+.linkButton {
+  background: none;
+  border: none;
+  margin: 0;
+  padding: 0;
+  font: inherit;
+  color: var(--link);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.linkButton:hover {
+  color: var(--link-hover);
+  text-decoration: underline;
+}
+
+.linkButton:disabled {
+  color: var(--text-muted);
+  text-decoration: none;
+  cursor: default;
+}
+
+.code {
+  white-space: nowrap;
+}
