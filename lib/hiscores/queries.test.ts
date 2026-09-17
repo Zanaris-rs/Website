@@ -32,14 +32,14 @@ describe("tableQuery", () => {
     expect(squash(statement.text)).toContain("where rank between $3 and $4");
   });
 
-  it("ranks by value, then who got there first, then account id", () => {
+  it("ranks by level, then value, then who got there first, then account id", () => {
     const statement = tableQuery({
       profile: "main",
       category: 1,
       selection: { kind: "top" },
     });
     expect(squash(statement.text)).toContain(
-      "row_number() over (order by value desc, date asc, account_id asc)",
+      "row_number() over (order by level desc, value desc, date asc, account_id asc)",
     );
   });
 

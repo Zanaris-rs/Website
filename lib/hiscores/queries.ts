@@ -26,9 +26,10 @@ const OVERALL_VIEW = "hiscores.hiscore_large_public";
 const SKILL_VIEW = "hiscores.hiscore_public";
 
 /**
- * Rank order, identical to the game's: highest value first, then whoever got
- * there first, then the lower account id. `value` is XP times ten and level is
- * monotonic in XP, so level needs no key of its own.
+ * Rank order: highest level first, then highest value, then whoever got there
+ * first, then the lower account id. `value` is XP times ten. A skill's level is
+ * monotonic in its XP, so the leading key only changes Overall, where level is
+ * total level: a higher total level outranks more total XP.
  */
 const RANK_ORDER = "level desc, value desc, date asc, account_id asc";
 
