@@ -9,6 +9,7 @@ describe("staffLinks", () => {
       "/staff/reports",
       "/staff/notice",
       "/staff/wealth",
+      "/staff/invites",
       "/staff/handbook",
       "/account",
     ]);
@@ -28,6 +29,7 @@ describe("staffLinks", () => {
       "Staff inbox",
       "Reports",
       "Wealth",
+      "Invites",
       "Handbook",
       "Account Centre",
     ]);

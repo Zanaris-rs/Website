@@ -40,6 +40,8 @@ export type PlayerSkill = {
 export type PlayerResponse = {
   username: string;
   name: string;
+  /** `account.id`: the public citizen number. `null` in a response cached before it existed. */
+  citizen: number | null;
   skills: PlayerSkill[];
 };
 
@@ -100,6 +102,7 @@ export function toPlayerResponse(
   return {
     username,
     name: displayName(username),
+    citizen: rows[0]?.account_id ?? null,
     skills: rows.map((row) => ({
       category: row.category,
       rank: row.rank,
@@ -187,6 +190,12 @@ export function parsePlayerResponse(json: unknown): PlayerResponse {
   return {
     username: requireString(body, "username", where),
     name: requireString(body, "name", where),
+    citizen:
+      typeof body.citizen === "number" &&
+      Number.isInteger(body.citizen) &&
+      body.citizen > 0
+        ? body.citizen
+        : null,
     skills: requireArray(body, "skills", where).map((raw, index) => {
       const at = `${where}: skills[${index}]`;
       const skill = asRecord(raw, at);

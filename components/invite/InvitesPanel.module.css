@@ -1,0 +1,14 @@
+/*
+ * `account.form` is deliberately narrow (min(340px, 100%): a login box). The
+ * invites table has four columns - Link, Status, Made, and the Copy/Cancel
+ * actions - and squeezed into that width, Status and Made wrap across three
+ * or four lines each. `.content` gives the panel room for the table while
+ * still centring and left-aligning the prose the same way `account.form`
+ * does; `account.scroller`, already wrapping the table in `InviteList.tsx`,
+ * keeps it from widening the page on a phone.
+ */
+.content {
+  width: min(640px, 100%);
+  margin: 0 auto;
+  text-align: left;
+}

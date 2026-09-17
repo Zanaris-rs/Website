@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 import Script from "next/script";
 
-import { toSafeName } from "@/lib/base37";
+import { toDisplayName, toSafeName } from "@/lib/base37";
 import {
   PASSWORD_MAX,
   PASSWORD_MIN,
@@ -13,6 +13,8 @@ import {
 import { turnstileSiteKey } from "@/lib/account/site-key";
 import { TURNSTILE_ACTION } from "@/lib/account/turnstile";
 import { submitState } from "@/lib/account/submit";
+import { formatInviteCode } from "@/lib/invite/code";
+import { formatCitizen } from "@/lib/invite/format";
 
 import frame from "@/components/site/Frame.module.css";
 
@@ -21,7 +23,7 @@ import styles from "./RegisterForm.module.css";
 /**
  * The register form.
  *
- * Three things it says out loud, because each one is a support ticket
+ * Four things it says out loud, because each one is a support ticket
  * otherwise:
  *
  * 1. **the name you will actually get**, live, before submitting — base37
@@ -32,6 +34,8 @@ import styles from "./RegisterForm.module.css";
  * 3. **there is no password reset** — with no mailer there is no link to send,
  *    so a forgotten password needs staff. That belongs on the form, not in a
  *    FAQ nobody reads.
+ * 4. **who let you in** — the form only exists behind an invite link, and it
+ *    says whose.
  */
 
 const TURNSTILE_SRC =
@@ -71,8 +75,13 @@ const MESSAGES: Record<string, string> = {
   email_disposable: "Disposable email addresses are not accepted.",
   email_no_mx: "That domain cannot receive email.",
   username_taken: "That name is taken. Try another.",
+  invite_invalid: "That invite code is not a real one. Go back to the link you were sent.",
+  invite_claimed:
+    "Somebody has just used this invite. Each link lets one person in — ask for another.",
+  invite_expired: "This invite expired while you were filling in the form. Ask for a new one.",
+  invite_revoked: "This invite has been cancelled. Ask whoever sent it for a new one.",
   rate_limited:
-    "Too many accounts have been created from your connection recently. Try again later.",
+    "Too many accounts have been created, or too many invite codes tried, from your connection recently. Try again later.",
   unavailable: "Registration is unavailable right now. Try again shortly.",
   bad_request: "Something went wrong sending that. Try again.",
 };
@@ -81,9 +90,23 @@ type State =
   | { kind: "editing" }
   | { kind: "submitting" }
   | { kind: "failed"; error: string }
-  | { kind: "done"; username: string };
+  | { kind: "done"; username: string; citizenNumber: number | null };
 
-export default function RegisterForm() {
+/**
+ * Once the server says the invite itself is the problem, retrying is not a
+ * fresh attempt - it is the same dead code again, and each retry still costs
+ * a Turnstile solve. These four errors permanently disable the form for the
+ * rest of this page view; every other error leaves it retryable, the way it
+ * always has.
+ */
+const DEAD_INVITE_ERRORS = new Set([
+  "invite_invalid",
+  "invite_claimed",
+  "invite_expired",
+  "invite_revoked",
+]);
+
+export default function RegisterForm({ invite }: { invite: { code: string; inviter: string } }) {
   // Site keys are public, so this one has a shipped default and the form
   // renders a widget even where `NEXT_PUBLIC_TURNSTILE_SITE_KEY` was never
   // set. See lib/account/site-key.ts.
@@ -96,6 +119,7 @@ export default function RegisterForm() {
   const [token, setToken] = useState<string | null>(null);
   const [state, setState] = useState<State>({ kind: "editing" });
   const [scriptReady, setScriptReady] = useState(false);
+  const [inviteDead, setInviteDead] = useState(false);
 
   const widgetRef = useRef<HTMLDivElement>(null);
   const renderedRef = useRef(false);
@@ -137,7 +161,7 @@ export default function RegisterForm() {
 
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
-    if (state.kind === "submitting") return;
+    if (state.kind === "submitting" || inviteDead) return;
 
     if (password !== confirm) {
       setState({ kind: "failed", error: "The passwords do not match." });
@@ -150,6 +174,7 @@ export default function RegisterForm() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          inviteCode: invite.code,
           username,
           email,
           password,
@@ -159,9 +184,13 @@ export default function RegisterForm() {
       const body: unknown = await response.json().catch(() => null);
 
       if (response.ok) {
-        const created =
-          (body as { username?: string } | null)?.username ?? preview;
-        setState({ kind: "done", username: created });
+        const created = body as { username?: string; citizenNumber?: number } | null;
+        setState({
+          kind: "done",
+          username: created?.username ?? preview,
+          citizenNumber:
+            typeof created?.citizenNumber === "number" ? created.citizenNumber : null,
+        });
         return;
       }
 
@@ -170,6 +199,7 @@ export default function RegisterForm() {
         kind: "failed",
         error: MESSAGES[code] ?? "Registration failed. Try again.",
       });
+      if (DEAD_INVITE_ERRORS.has(code)) setInviteDead(true);
     } catch {
       setState({ kind: "failed", error: MESSAGES.unavailable });
     } finally {
@@ -184,11 +214,19 @@ export default function RegisterForm() {
     return (
       <div className={`${frame.panel} ${styles.wrap}`}>
         <div className={styles.heading}>
-          <b>Account created</b>
+          <b>Welcome to Zanaris</b>
         </div>
         <p className={styles.success}>
-          You are <span className={styles.previewName}>{state.username}</span>.
-          Log in with that name and the password you just chose.
+          You are <span className={styles.previewName}>{state.username}</span>
+          {state.citizenNumber !== null ? (
+            <>
+              , citizen{" "}
+              <span className={styles.previewName}>
+                {formatCitizen(state.citizenNumber)}
+              </span>
+            </>
+          ) : null}
+          . Log in with that name and the password you just chose.
         </p>
         <p className={styles.success}>
           <a className={frame.link} href="/account/login">
@@ -213,7 +251,12 @@ export default function RegisterForm() {
       />
 
       <div className={styles.heading}>
-        <b>Create a Zanaris account</b>
+        <b>
+          <span className={styles.previewName}>{toDisplayName(invite.inviter)}</span>{" "}
+          invited you to Zanaris
+        </b>
+        <br />
+        <span className={styles.note}>Invite {formatInviteCode(invite.code)}</span>
         <br />
         <a className={frame.link} href="/title">
           Main menu
@@ -297,6 +340,9 @@ export default function RegisterForm() {
 
         <ul className={styles.warnings}>
           <li>
+            <b>This invite works once.</b> Creating the account uses it up.
+          </li>
+          <li>
             <b>Passwords are not case-sensitive.</b> The 2004 login protocol
             folds the case, so <code>Hunter2</code> and <code>hunter2</code> are
             the same password.
@@ -326,11 +372,19 @@ export default function RegisterForm() {
           </p>
         )}
 
+        {inviteDead ? (
+          <p className={styles.note}>
+            <a className={frame.link} href="/register">
+              Back to /register
+            </a>
+          </p>
+        ) : null}
+
         <div className={styles.actions}>
           <button
             className={styles.submit}
             type="submit"
-            disabled={submit.disabled}
+            disabled={submit.disabled || inviteDead}
           >
             {submit.label}
           </button>

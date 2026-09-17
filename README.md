@@ -15,9 +15,10 @@ of somebody else's work with no connection to Jagex Ltd.
 | `/worldmap` | the 2004 map applet, drawn from the game's own map data |
 | `/serverlist` | the world list: region, members or free, a live player count, and links into the client at high or low detail |
 | `/hiscores` | rankings for Overall and each of the nineteen skills, plus `/hiscores/player/<username>` |
-| `/register` | the **only** way to create an account, behind Cloudflare Turnstile and the database's own rate limits |
+| `/register` | a closed door: paste an invite code and continue to `/join/<code>` |
+| `/join/<code>` | the actual registration form, behind Cloudflare Turnstile and the database's own rate limits |
 | `/account/login` | the login box: a bcrypt salt handshake, so the site never sees a password hash |
-| `/account` | the account centre: status, recent game logins, and the two things the owner can change |
+| `/account` | the account centre: status, recent game logins, the citizen number, and the two things the owner can change |
 | `/messages` | a placeholder for the Message Centre, until it is built |
 
 Built with Next.js 16 (App Router, TypeScript) and hosted on **Vercel**. It is
@@ -66,7 +67,7 @@ Two details in `DATABASE_URL` are load-bearing:
 - **The role must be `website`, not `postgres`.** `postgres` owns every table
   and bypasses RLS, so a bug in a route handler could read password hashes or
   set `staffmodlevel`. `website` has `SELECT` on two views and `EXECUTE` on
-  twenty-four `accounts.*` functions, and nothing else — no table privilege at
+  forty-two `accounts.*` functions, and nothing else — no table privilege at
   all. `npm run db:check` fails if the role can read `public.account`,
   `public.login_attempt`, `public.session`, `public.account_login`, the
   Message Centre's own five — `public.account_message`, `public.ticket`,
@@ -253,7 +254,7 @@ The rest of the checks, in the order the route runs them:
 | --- | --- |
 | `lib/account/validation.ts` | usernames outside `[A-Za-z0-9_ ]{1,12}`, names base37 cannot encode, `mod_*` and eight reserved staff words; passwords outside 8–20 printable ASCII |
 | `lib/account/email.ts` | malformed addresses, ~8.7k disposable domains, domains with no MX record |
-| `accounts.register(...)` | duplicate usernames (409) and the rate caps (429) — 3 per ip per 10 min, 10 per ip per day, 30 per /24 or /64 per day, charged for accounts created rather than calls made |
+| `accounts.register_with_invite(...)` | a live single-use invite (409 `invite_*` otherwise), duplicate usernames (409) and the rate caps (429) — 3 per ip per 10 min, 10 per ip per day, 30 per /24 or /64 per day, charged for accounts created rather than calls made, plus 30 bad invite codes per ip per 15 min |
 
 The rate limits are enforced **inside the SQL function**, in one statement and
 one implicit transaction, so a malformed client cannot skip the counting by
@@ -424,8 +425,8 @@ and that `select jobname from cron.job` still lists `reap`, and record it in
 `ec2-setup/LOG.md`.
 
 `npm run db:check` is the website's half of the proof, run with the `website`
-URL: it asserts that the thirteen tables are refused, that the twenty-four
-granted functions are executable and the three withheld ones are not, and then
+URL: it asserts that the twenty tables are refused, that the forty-two
+granted functions are executable and the seven withheld ones are not, and then
 calls every one of those functions once against a username nobody has. None of those
 calls writes a row -- `ticket_open` and `ticket_reply` resolve the username
 before anything else and answer `invalid`/`not_found`, `staff_reply` and
@@ -830,6 +831,42 @@ Rows for banned accounts and staff above `staffmodlevel > 1` are excluded by
 the database views, not here. A skill row only exists once the base level
 reaches 15; Overall always exists.
 
+## Invites
+
+Registration is invite-only (engine migration `6_invites`). `/register` is a
+closed door with a box for a pasted code; the form lives at `/join/<code>`,
+which names the player who made the link and spends it only when the account
+is created.
+
+- Every account has `invites_enabled`, **off by default**. Staff switch it on
+  at `/staff/invites` (password re-typed), including for their own account, or
+  with `npm run account -- invite-enable <name>` in the engine repo. The very
+  first staff account comes from the engine's `npm run account -- create-staff`;
+  everything after that can be done here.
+- An enabled account mints links at `/account/invites`: single-use, fourteen
+  days, at most twenty unused at a time and a hundred a day.
+- A ban switches inviting off and cancels the account's unused links (a
+  trigger on `account.banned_until`). Lifting the ban does not switch it back.
+- The citizen number is `account.id`. It is public (account centre, hiscores);
+  who invited whom is shown only to the two players and to staff.
+- Codes are sixteen Crockford base32 characters from ten random bytes
+  (`lib/invite/code.ts`). Only the website mints them; the engine's staff
+  tools can switch inviting on and off and list an account's links, but never
+  create one, so the caps above always apply.
+
+A leaked `website` credential does not get open registration back, but it is
+not nothing. `invite_create` takes no password - only a username and a
+pre-generated code - so it can mint links for any account that already has
+inviting switched on. `register_with_invite` takes the client IP as a plain
+argument rather than reading it off the connection, so a credential that can
+call it at all can also lie about that IP and claim links without the signup
+caps ever binding it. And `staff_invite_tree` / `staff_inviters` take the
+staff actor as a name, not a session, so it can read the invite tree for
+anyone already staff - the same trust every other staff read in this API
+places in its caller. All of that is still far narrower than before migration
+6, when the same credential could call `accounts.register` and create an
+account outright.
+
 ## JSON contracts
 
 ### `worlds.json` (site root, written by the deploy script)
@@ -949,6 +986,22 @@ form. Otherwise 401 `session_expired`, 403 `origin`, 403 `bad_credentials`,
 400 `email_format` / `email_disposable` / `email_no_mx`, 429 `rate_limited`,
 503 `unavailable`. The session is **not** re-minted: the salt has not moved.
 
+### `POST /api/account/invites`
+
+No body. 200 `{ "ok": true, "code": "4NDPK5XG7HRV0S28", "expiresAt": "..." }` —
+the raw, ungrouped code and an ISO timestamp; `/join/<code>` and the
+account's own invite list are what dash the code for display. Otherwise 401
+`session_expired`, 403 `origin`, 403 `disabled` (inviting is off for this
+account, or it is banned), 429 `too_many` (twenty live links or a hundred
+minted today), 503 `unavailable`. A code collision on the unique index
+retries once inside the route and is never answered to the caller.
+
+### `POST /api/account/invites/[code]/revoke`
+
+No body. 200 `{ "ok": true }`. Otherwise 401 `session_expired`, 403 `origin`,
+404 `not_found` (somebody else's code, a dead link, one that never existed, or
+a string that cannot be a code), 409 `already_claimed`, 503 `unavailable`.
+
 ### The Message Centre routes
 
 Every route in this section and the staff one below is Node-runtime,
@@ -994,6 +1047,7 @@ request; a signed-in account without it gets 403 `forbidden`.
 | `GET /api/staff/reports?since=<ISO>` | | `{ reports: [...] }` |
 | `POST /api/staff/reports/<id>/resolve` | `{ resolution, note?, password }` | `{ ok: true, resolution }` |
 | `POST /api/staff/punishments/<id>/lift` | `{ note?, password }` | `{ ok: true }` |
+| `POST /api/staff/invites/<username>` | `{ enabled, password }` | `{ ok: true }` |
 
 `status` and `since` are parsed, not passed through: an unrecognised status
 would match no row and read as a quiet day, and an unparseable `since` shows
@@ -1063,10 +1117,14 @@ fetches the file in the browser and picks it up immediately.
 | `app/serverlist/page.tsx` | the world list |
 | `app/hiscores/page.tsx` | `/hiscores` |
 | `app/hiscores/player/[username]/page.tsx` | one player's hiscores |
-| `app/register/page.tsx` | account registration |
+| `app/register/page.tsx` | the closed door: paste an invite code, continue to `/join/<code>` |
+| `app/join/page.tsx` | the pasted-code box; redirects a valid code to `/join/<code>` |
+| `app/join/[code]/page.tsx` | the invite preview, and the registration form for a live one |
 | `app/account/login/page.tsx` | the login box |
 | `app/account/page.tsx` | the account centre |
 | `app/account/password/page.tsx`, `app/account/email/page.tsx` | the two change forms |
+| `app/account/invites/page.tsx` | the account's own invite links: mint and revoke |
+| `app/staff/invites/page.tsx` | who may invite, and who let whom in |
 | `app/messages/page.tsx` | the Message Centre: messages and tickets, unread first |
 | `app/messages/[id]/page.tsx` | one message — rendering it marks it read |
 | `app/messages/new/page.tsx` | the ticket form, with the bug-report hint |
@@ -1080,10 +1138,12 @@ fetches the file in the browser and picks it up immediately.
 | `app/economy/page.tsx` | the public economy census, ISR at 5m |
 | `app/api/hiscores/route.ts` | the table API |
 | `app/api/hiscores/player/[username]/route.ts` | the personal API |
-| `app/api/account/register/route.ts` | registration, Node runtime, `no-store` |
+| `app/api/account/register/route.ts` | registration through an invite, Node runtime, `no-store` |
 | `app/api/account/login/route.ts`, `logout`, `password`, `email` | the salt handshake, the cookie, and the two compare-and-set changes |
+| `app/api/account/invites/route.ts` | `POST /api/account/invites` — mint one invite link for the signed-in account |
+| `app/api/account/invites/[code]/revoke/route.ts` | `POST /api/account/invites/[code]/revoke` — cancel one of its own unused links |
 | `app/api/messages/**`, `app/api/tickets/**` | the player's six calls; two of the GETs mark rows read |
-| `app/api/staff/**` | the inbox, one thread, a reply that can close, a notice, the reports |
+| `app/api/staff/**` | the inbox, one thread, a reply that can close, a notice, the reports, switching a citizen's inviting on or off |
 | `components/site/Frame.tsx` | the 2004 page chrome every page is inside |
 | `components/site/Tile.tsx` | the one component allowed a bare `<img>` |
 | `components/site/` | `TitleBox`, `Panel`, `StonePanel`, `StoneCaption`, `StoneButton`, `MenuTile`, `PageNav`, `Disclaimer` |

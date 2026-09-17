@@ -29,6 +29,7 @@ export const STAFF_PAGES: readonly StaffLink[] = [
   { href: "/staff/reports", text: "Reports" },
   { href: "/staff/notice", text: "Send a notice" },
   { href: "/staff/wealth", text: "Wealth" },
+  { href: "/staff/invites", text: "Invites" },
   { href: "/staff/handbook", text: "Handbook" },
 ];
 
@@ -45,7 +46,7 @@ export const ACCOUNT_LINK: StaffLink = {
 /**
  * The links for one page. `current` is that page's own path, and is left out
  * of the list; a detail page — a ticket, a report — passes nothing and gets
- * all five, because its parent is one of them.
+ * all six, because its parent is one of them.
  */
 export function staffLinks(current?: string): StaffLink[] {
   return [

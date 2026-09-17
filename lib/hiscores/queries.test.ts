@@ -127,4 +127,9 @@ describe("playerQuery", () => {
     expect(skills).not.toContain("o.level");
     expect(skills).toContain("and ( o.value > h.value");
   });
+
+  it("returns the account id, which is the public citizen number", () => {
+    const text = squash(statement.text);
+    expect(text.match(/h\.account_id,/g)).toHaveLength(2);
+  });
 });

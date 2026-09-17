@@ -107,6 +107,7 @@ export function tableQuery(params: TableParams): Statement {
 export type PlayerRow = {
   category: number;
   username: string;
+  account_id: number; // `account.id`, shown publicly as the citizen number
   level: number;
   value: number;
   rank: number;
@@ -151,6 +152,7 @@ export function playerQuery(params: PlayerParams): Statement {
     select
       0 as category,
       h.username,
+      h.account_id,
       h.level,
       h.value,
       ${rankOf(OVERALL_VIEW)} as rank
@@ -160,6 +162,7 @@ export function playerQuery(params: PlayerParams): Statement {
     select
       h.type as category,
       h.username,
+      h.account_id,
       h.level,
       h.value,
       ${rankOf(SKILL_VIEW)} as rank

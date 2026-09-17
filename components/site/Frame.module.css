@@ -207,7 +207,8 @@ a.highlight:hover {
 }
 
 /* `.b2` in the original: the red bezel, used for the "do this now" stone
-   buttons (Play Game, Create Account, I Understand) and nothing else. */
+   buttons (Play Game, Invited? Claim Your Place, I Understand) and nothing
+   else. */
 .stoneRed {
   border-style: outset;
   border-width: 3pt;

@@ -40,7 +40,7 @@ export default function StoneCaption({
       <span
         className={`${stone} ${styles.captionInner} ${glow ? frame.glow : ""}`}
         // A minimum rather than a fixed height: the 2004 captions are one or
-        // two words, ours run to "Create Account (New User)", and a caption
+        // two words, ours run to "Invited? Claim Your Place", and a caption
         // that clips its own label is worse than one a few pixels tall. The
         // 4px is the black surround this box sits in.
         style={height === undefined ? undefined : { minHeight: height - 4 }}

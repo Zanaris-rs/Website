@@ -12,8 +12,8 @@ import { compare, hash } from "bcrypt-ts";
  *   A player who registers `Hunter2` types `hunter2` in the client and must
  *   still get in.
  * - **Cost 10, bcrypt, not pgcrypto.** The plaintext never reaches Postgres;
- *   `accounts.register` takes an already-computed hash, so the database never
- *   has to stay byte-compatible with this library.
+ *   `accounts.register_with_invite` takes an already-computed hash, so the
+ *   database never has to stay byte-compatible with this library.
  *
  * `hash.test.ts` verifies a committed fixture from the engine side, which is
  * the only cheap way to catch a drift before an account is created that can

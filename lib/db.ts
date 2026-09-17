@@ -67,9 +67,10 @@ function create(): Pool {
   // without this the password would cross the internet in the clear.
   //
   // The chain is **always** verified. `rejectUnauthorized: false` is never an
-  // option here: this credential can call `accounts.register`, and the
-  // `postgres` role reachable at the same host with the same password can read
-  // every password hash, so an unauthenticated TLS session is not good enough.
+  // option here: this credential can call `accounts.register_with_invite`,
+  // and the `postgres` role reachable at the same host with the same password
+  // can read every password hash, so an unauthenticated TLS session is not
+  // good enough.
   //
   // Verified 2026-09-04: `aws-0-us-east-1.pooler.supabase.com:6543` presents
   // `CN=*.pooler.supabase.com` under a self-signed "Supabase Root 2021 CA"

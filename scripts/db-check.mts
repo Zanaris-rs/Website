@@ -5,8 +5,8 @@
  * It runs `select 1`, counts the two hiscores views, and then proves the shape
  * of the least-privilege role: refused on every table it must never read
  * (`account`, `login_attempt`, `session`, `account_login`, the Message
- * Centre's own five, and the three transparency tables), `EXECUTE` on the
- * thirty-four `accounts.*` functions it needs
+ * Centre's own five, the three transparency tables, and migration 6's two
+ * invite tables), `EXECUTE` on the forty-two `accounts.*` functions it needs
  * and **not** on `throttled`, `record_failure` or `is_staff` — the rate
  * limiter's own machinery and the staff check, none of which is an API. Those
  * checks are the ones worth having: a URL that connects as `postgres` looks
@@ -129,6 +129,10 @@ async function main(): Promise<void> {
     "public.staff_spawn",
     "public.economy_snapshot",
     "public.economy_flow",
+    // 6_invites. The invite tree is who-knows-whom for every player, and the
+    // guess log is addresses; both are reached only through functions.
+    "public.invite",
+    "public.invite_attempt",
   ]) {
     try {
       await query(`select 1 from ${table} limit 1`);
@@ -151,7 +155,6 @@ async function main(): Promise<void> {
     "accounts.change_email(text, text, text, text, text)",
     "accounts.profile(text, text)",
     "accounts.recent_logins(text, text, int)",
-    "accounts.register(text, text, text, text, text, text, text)",
     "accounts.reap()",
     // 3_message_centre.
     "accounts.unread(text)",
@@ -186,6 +189,17 @@ async function main(): Promise<void> {
     // returns the `items` column the four above deliberately do not.
     "accounts.public_economy_latest()",
     "accounts.public_economy_group_range(int, jsonb)",
+    // 6_invites: registration only through an invite, the player's own links,
+    // and the staff view of who may invite.
+    "accounts.invite_preview(text, text)",
+    "accounts.register_with_invite(text, text, text, text, text, text, text, text)",
+    "accounts.invite_create(text, text)",
+    "accounts.invite_revoke(text, text)",
+    "accounts.invites(text)",
+    "accounts.citizen(text)",
+    "accounts.staff_set_invites(text, text, text, boolean)",
+    "accounts.staff_invite_tree(text, text)",
+    "accounts.staff_inviters(text)",
   ];
   const withheld = [
     "accounts.throttled(text, text)",
@@ -195,6 +209,14 @@ async function main(): Promise<void> {
     // nothing, but a site that could call it is a site somebody granted it to
     // by accident, and the whole point of these two lists is to notice that.
     "accounts.is_staff(text)",
+    // The old open door. Still defined - migration 6's rollback grants it
+    // back - but a website that can call it can make accounts without an
+    // invite, which is the one thing migration 6 exists to stop.
+    "accounts.register(text, text, text, text, text, text, text)",
+    // 6_invites' helpers and its trigger function.
+    "accounts.invite_maker_ok(int)",
+    "accounts.invite_state(timestamptz, timestamptz, timestamptz, boolean)",
+    "accounts.revoke_invites_on_ban()",
   ];
 
   for (const [list, expected] of [
@@ -265,6 +287,7 @@ async function main(): Promise<void> {
   await checkMessageCentre();
   await checkEvidence();
   await checkPublicPages();
+  await checkInvites();
 }
 
 /**
@@ -548,6 +571,66 @@ async function checkPublicPages(): Promise<void> {
       console.error(
         `FAIL: ${name} returned ${rows.length} rows and the parser could read ${parsed.length}; the RETURNS TABLE has drifted.`,
       );
+      process.exitCode = 1;
+    }
+  }
+}
+
+/**
+ * One call per migration 6 function that can be called without writing.
+ *
+ * `invite_preview` is left out on purpose: a code nobody has is recorded as a
+ * guess against the caller's address, and this script promises to write
+ * nothing. Its grant is still checked above. `register_with_invite` is called
+ * with a password hash that is not bcrypt, which it refuses before reading or
+ * writing anything - that proves the grant and the argument list and nothing
+ * more.
+ */
+async function checkInvites(): Promise<void> {
+  const empty: [string, string, readonly unknown[]][] = [
+    ["invites", "select * from accounts.invites($1)", ["__db_check__"]],
+    ["citizen", "select * from accounts.citizen($1)", ["__db_check__"]],
+    ["staff_invite_tree", "select * from accounts.staff_invite_tree($1, $2)", ["__db_check__", "__db_check__"]],
+    ["staff_inviters", "select * from accounts.staff_inviters($1)", ["__db_check__"]],
+  ];
+  for (const [name, text, values] of empty) {
+    const rows = await query(text, values);
+    if (rows.length === 0) {
+      console.log(`accounts.${name}('__db_check__'): 0 rows (expected)`);
+    } else {
+      console.error(`FAIL: ${name} returned ${rows.length} rows for a name nobody has.`);
+      process.exitCode = 1;
+    }
+  }
+
+  const answers: [string, string, readonly unknown[], string][] = [
+    ["invite_create", "select result from accounts.invite_create($1, $2)", ["__db_check__", "not a code"], "invalid"],
+    ["invite_revoke", "select accounts.invite_revoke($1, $2) as result", ["__db_check__", "not a code"], "not_found"],
+    ["staff_set_invites", "select accounts.staff_set_invites($1, $2, $3, $4) as result", ["__db_check__", "", "__db_check__", true], "forbidden"],
+  ];
+  for (const [name, text, values, expected] of answers) {
+    const [row] = await query<{ result: unknown }>(text, values);
+    if (row?.result === expected) {
+      console.log(`accounts.${name}: ${expected} (expected)`);
+    } else {
+      console.error(`FAIL: ${name} answered ${JSON.stringify(row?.result)}; expected ${expected}.`);
+      process.exitCode = 1;
+    }
+  }
+
+  try {
+    await query(
+      "select * from accounts.register_with_invite($1, $2, $3, $4, $5, $6, $7, $8)",
+      ["0000000000000000", "__db_check__", "", "", "not bcrypt", "", "", ""],
+    );
+    console.error("FAIL: register_with_invite accepted a hash that is not bcrypt.");
+    process.exitCode = 1;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (message.includes("register_with_invite: p_password_hash is not a bcrypt hash")) {
+      console.log("accounts.register_with_invite: refuses a non-bcrypt hash (expected)");
+    } else {
+      console.error(`FAIL: register_with_invite threw something else: ${message}`);
       process.exitCode = 1;
     }
   }

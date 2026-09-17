@@ -109,8 +109,8 @@ export default async function Title() {
               variant="red"
               href="/register"
               image="/img/title/mm_player.jpg"
-              caption="Create Account (New User)"
-              blurb="Create an account for both the game and our website."
+              caption="Invited? Claim Your Place"
+              blurb={`${SITE_NAME} is invite-only. Bring the link a player sent you.`}
             />
             <MenuTile
               href="/hiscores"
