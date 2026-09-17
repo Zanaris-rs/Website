@@ -117,4 +117,14 @@ describe("playerQuery", () => {
     expect(text).toContain("o.date < h.date");
     expect(text).toContain("o.account_id < h.account_id");
   });
+
+  it("ranks Overall by total level first, as the table does, and a skill by value", () => {
+    const [overall, skills] = squash(statement.text).split("union all");
+    expect(overall).toContain(
+      "o.level > h.level or (o.level = h.level and ( o.value > h.value",
+    );
+    // A skill's level is monotonic in its XP, so its value index does the work.
+    expect(skills).not.toContain("o.level");
+    expect(skills).toContain("and ( o.value > h.value");
+  });
 });

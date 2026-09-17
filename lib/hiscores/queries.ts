@@ -113,23 +113,33 @@ export type PlayerRow = {
 };
 
 /**
- * A correlated `count(*) + 1` for one row's rank. Cheaper than ranking the
- * whole category twenty times: the leading `value > ` comparison is served by
- * the `(profile, type, value desc)` index, and the tie-breaks only ever look
- * at rows on the same value.
+ * A correlated `count(*) + 1` for one row's rank, in `RANK_ORDER`. Cheaper
+ * than ranking the whole category twenty times. A skill leaves out the level
+ * key, which its XP already decides, so its leading `value > ` comparison is
+ * served by the `(profile, type, value desc)` index and the tie-breaks only
+ * ever look at rows on the same value. Overall compares total level first.
  */
 function rankOf(view: string): string {
+  const aheadOnValue = `o.value > h.value
+            or (o.value = h.value and (
+              o.date < h.date
+              or (o.date = h.date and o.account_id < h.account_id)
+            ))`;
+  const ahead =
+    view === OVERALL_VIEW
+      ? `o.level > h.level
+            or (o.level = h.level and (
+            ${aheadOnValue}
+            ))`
+      : aheadOnValue;
+
   return `(
         select count(*) + 1
         from ${view} o
         where o.profile = h.profile
           and o.type = h.type
           and (
-            o.value > h.value
-            or (o.value = h.value and (
-              o.date < h.date
-              or (o.date = h.date and o.account_id < h.account_id)
-            ))
+            ${ahead}
           )
       )::int`;
 }
