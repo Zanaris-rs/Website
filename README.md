@@ -809,9 +809,11 @@ Re-run the script after a content bump and commit the result.
 
 ## Hiscores
 
-Ranking is the game's own: `value DESC, date ASC, account_id ASC`, rank from
-`row_number()`. `value` is XP times ten, so every display divides by ten and
-floors. Names are stored base37-safe (`the_inducted`) and shown title-cased
+Ranking is `level DESC, value DESC, date ASC, account_id ASC`, rank from
+`row_number()`. Within a skill, level only rises with XP, so the leading key
+only matters for Overall, where it is total level: a higher total level ranks
+above more total XP. `value` is XP times ten, so every display divides by ten
+and floors. Names are stored base37-safe (`the_inducted`) and shown title-cased
 with underscores as spaces (`The Inducted`); player links use the stored form.
 
 Categories are `0` = Overall (from `hiscore_large`, type 0) and the skills

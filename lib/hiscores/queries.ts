@@ -26,9 +26,10 @@ const OVERALL_VIEW = "hiscores.hiscore_large_public";
 const SKILL_VIEW = "hiscores.hiscore_public";
 
 /**
- * Rank order, identical to the game's: highest value first, then whoever got
- * there first, then the lower account id. `value` is XP times ten and level is
- * monotonic in XP, so level needs no key of its own.
+ * Rank order: highest level first, then highest value, then whoever got there
+ * first, then the lower account id. `value` is XP times ten. A skill's level is
+ * monotonic in its XP, so the leading key only changes Overall, where level is
+ * total level: a higher total level outranks more total XP.
  */
 const RANK_ORDER = "level desc, value desc, date asc, account_id asc";
 
@@ -112,23 +113,33 @@ export type PlayerRow = {
 };
 
 /**
- * A correlated `count(*) + 1` for one row's rank. Cheaper than ranking the
- * whole category twenty times: the leading `value > ` comparison is served by
- * the `(profile, type, value desc)` index, and the tie-breaks only ever look
- * at rows on the same value.
+ * A correlated `count(*) + 1` for one row's rank, in `RANK_ORDER`. Cheaper
+ * than ranking the whole category twenty times. A skill leaves out the level
+ * key, which its XP already decides, so its leading `value > ` comparison is
+ * served by the `(profile, type, value desc)` index and the tie-breaks only
+ * ever look at rows on the same value. Overall compares total level first.
  */
 function rankOf(view: string): string {
+  const aheadOnValue = `o.value > h.value
+            or (o.value = h.value and (
+              o.date < h.date
+              or (o.date = h.date and o.account_id < h.account_id)
+            ))`;
+  const ahead =
+    view === OVERALL_VIEW
+      ? `o.level > h.level
+            or (o.level = h.level and (
+            ${aheadOnValue}
+            ))`
+      : aheadOnValue;
+
   return `(
         select count(*) + 1
         from ${view} o
         where o.profile = h.profile
           and o.type = h.type
           and (
-            o.value > h.value
-            or (o.value = h.value and (
-              o.date < h.date
-              or (o.date = h.date and o.account_id < h.account_id)
-            ))
+            ${ahead}
           )
       )::int`;
 }
