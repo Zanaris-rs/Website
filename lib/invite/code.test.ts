@@ -8,9 +8,9 @@ import {
   normalizeInviteCode,
 } from "./code";
 
-// The same vectors are pinned in the engine's test/InviteCode.test.ts: staff
-// mint codes from the shell with account.ts, players mint them here, and the
-// CHECK constraint in migration 6 is what both answer to.
+// Codes are only minted here, and the CHECK constraint in engine migration 6
+// is what they must pass. These vectors pin the bit order, so a refactor that
+// changes which characters a given set of bytes becomes is caught.
 const VECTORS: [number[], string][] = [
   [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "0000000000000000"],
   [[255, 255, 255, 255, 255, 255, 255, 255, 255, 255], "ZZZZZZZZZZZZZZZZ"],

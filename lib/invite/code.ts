@@ -5,8 +5,9 @@
  * L, O or U, and a typed I, L or O is read as the digit it looks like. Stored
  * ungrouped and upper-case, shown in four groups of four.
  *
- * The engine's `src/util/InviteCode.ts` is the same contract with the same test
- * vectors, and the CHECK constraint in migration 6 is what both answer to.
+ * This is the only place codes are made: staff tools in the engine can switch
+ * inviting on and off but never mint a link. The CHECK constraint in engine
+ * migration 6 (`^[0-9A-HJKMNP-TV-Z]{16}$`) is what every code must pass.
  *
  * No Node imports here, so the form components can use the parsing and
  * formatting; the random bytes come from `code-server.ts`.

@@ -839,8 +839,10 @@ which names the player who made the link and spends it only when the account
 is created.
 
 - Every account has `invites_enabled`, **off by default**. Staff switch it on
-  at `/staff/invites` (password re-typed) or with
-  `npm run account -- invite-enable <name>` in the engine repo.
+  at `/staff/invites` (password re-typed), including for their own account, or
+  with `npm run account -- invite-enable <name>` in the engine repo. The very
+  first staff account comes from the engine's `npm run account -- create-staff`;
+  everything after that can be done here.
 - An enabled account mints links at `/account/invites`: single-use, fourteen
   days, at most twenty unused at a time and a hundred a day.
 - A ban switches inviting off and cancels the account's unused links (a
@@ -848,8 +850,9 @@ is created.
 - The citizen number is `account.id`. It is public (account centre, hiscores);
   who invited whom is shown only to the two players and to staff.
 - Codes are sixteen Crockford base32 characters from ten random bytes
-  (`lib/invite/code.ts`, the same contract as the engine's
-  `src/util/InviteCode.ts`).
+  (`lib/invite/code.ts`). Only the website mints them; the engine's staff
+  tools can switch inviting on and off and list an account's links, but never
+  create one, so the caps above always apply.
 
 A leaked `website` credential does not get open registration back, but it is
 not nothing. `invite_create` takes no password - only a username and a
