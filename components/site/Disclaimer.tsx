@@ -30,33 +30,34 @@ export default function Disclaimer({ menuLink }: { menuLink: boolean }) {
     <>
       <TitleBox title="Non-Affiliation Disclaimer" menu={menuLink} />
 
-      <Panel align="left">
+      <Panel align="left" className={styles.disclaimerPanel}>
         <div className={styles.lead}>
-          <b>
-            This is a free, open-source, community-run project, with the goal of
-            preserving a moment in time for posterity.
+          This is a{" "}
+          <b className={colourClass.green}>
+            free, open-source, community-run project
           </b>
+          , with the goal of preserving a moment in time for posterity.
         </div>
 
         <p>
           {SITE_NAME} runs the open-source <b>Lost City</b> server, written from
           scratch by{" "}
-          <a href={LOSTCITY_URL} className={frame.link}>
+          <a href={LOSTCITY_URL} className={frame.linkGreen}>
             the Lost City team
           </a>{" "}
           after many hours of research. We are a rehost of their work, not its
           authors; our fork is at{" "}
-          <a href={SOURCE_URL} className={frame.link}>
+          <a href={SOURCE_URL} className={frame.linkGreen}>
             github.com/Zanaris-rs
           </a>{" "}
           and everything you see is transparently open source (MIT).
         </p>
 
         <p>
-          <b>Thank you to the Lost City team.</b> Everything you can play here
-          exists because of their years of research and care, and they are
-          still improving it every week. We are grateful to be able to stand on
-          their work.
+          <b className={colourClass.green}>Thank you to the Lost City team.</b>{" "}
+          Everything you can play here exists because of their years of research
+          and care, and they are still improving it every week. We are grateful
+          to be able to stand on their work.
         </p>
 
         <p>
@@ -64,16 +65,16 @@ export default function Disclaimer({ menuLink }: { menuLink: boolean }) {
           and where contributions belong, not here:
         </p>
         <div className={styles.linkRow}>
-          <a href={LOSTCITY_SITE_URL} className={frame.link}>
+          <a href={LOSTCITY_SITE_URL} className={frame.linkGreen}>
             Lost City website
           </a>
-          <a href={LOSTCITY_URL} className={frame.link}>
+          <a href={LOSTCITY_URL} className={frame.linkGreen}>
             Source code on GitHub
           </a>
-          <a href={LOSTCITY_DISCORD_URL} className={frame.link}>
+          <a href={LOSTCITY_DISCORD_URL} className={frame.linkGreen}>
             Discord
           </a>
-          <a href={LOSTCITY_FORUMS_URL} className={frame.link}>
+          <a href={LOSTCITY_FORUMS_URL} className={frame.linkGreen}>
             Forums
           </a>
         </div>
@@ -83,33 +84,36 @@ export default function Disclaimer({ menuLink }: { menuLink: boolean }) {
 
         <p>
           {SITE_NAME} is not affiliated with, endorsed by, or authorized by{" "}
-          <a href={JAGEX_URL} className={frame.link}>
+          <a href={JAGEX_URL} className={frame.linkGreen}>
             Jagex Ltd.
           </a>{" "}
           RuneScape and the game assets are the property of Jagex Ltd.
         </p>
 
-        <p className={colourClass.red}>
-          You <b className={colourClass.red}>cannot</b> play Old School
-          RuneScape here, buy RuneScape gold, or access any of the official
-          game&apos;s services!
+        <p>
+          <b className={colourClass.red}>
+            You <em>cannot</em> play Old School RuneScape here, buy RuneScape
+            gold, or access any of the official game&apos;s services!
+          </b>
         </p>
 
-        <p className={colourClass.red}>
-          As a reminder: never use the same passwords between any online
-          service.
+        <p>
+          <b className={colourClass.red}>
+            As a reminder: never use the same passwords between any online
+            service.
+          </b>
         </p>
 
         <hr className={styles.rule} />
 
         <p>
-          <b>What version of the game is this?</b>
+          <b className={colourClass.green}>What version of the game is this?</b>
           <br />
           Currently {GAME_VERSION.date} (revision {GAME_VERSION.revision}).
         </p>
 
         <p>
-          <b>How do I pay for membership?</b>
+          <b className={colourClass.green}>How do I pay for membership?</b>
           <br />
           You don&apos;t! $0/lifetime, this project exists to preserve and share
           history for all. The distinction between &quot;f2p&quot; and

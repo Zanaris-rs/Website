@@ -87,7 +87,7 @@ export default async function Title() {
           </div>
           <div className={styles.newsFooter}>
             To view a full list of news and updates,{" "}
-            <a href={listHref()} className={frame.link}>
+            <a href={listHref()} className={frame.linkGreen}>
               Click Here
             </a>
             .
@@ -109,14 +109,14 @@ export default async function Title() {
               variant="red"
               href="/register"
               image="/img/title/mm_player.jpg"
-              caption="Invited? Claim Your Place"
-              blurb={`${SITE_NAME} is invite-only. Bring the link a player sent you.`}
+              caption="Invited?"
+              blurb="Claim your invite."
             />
             <MenuTile
               href="/hiscores"
               image="/img/title/mm_chalice.jpg"
               caption="Hiscores Table"
-              blurb="Is your character in the top 500,000?"
+              blurb="See how you compare to other players!"
             />
           </div>
         </StonePanel>
@@ -168,18 +168,18 @@ export default async function Title() {
               caption="World Map"
               blurb="Great for finding your way around."
             />
-            {/* The two transparency pages, side by side, and no pictures:
-                there is no 2004 tile for either of them, and borrowing one
-                already on this page would put the same picture in two places.
-                LostHQ has been without one since it was added, so an
-                unillustrated tile is already part of this section's look. */}
+            {/* The two transparency pages and LostHQ have no 2004 picture of
+                their own, so all three borrow the news scroll: each is a
+                record to be read, which is what the scroll stands for. */}
             <MenuTile
               href="/bans"
+              image="/img/title/mm_scroll.jpg"
               caption="Ban Record"
               blurb="Every ban and mute, permanently public."
             />
             <MenuTile
               href="/economy"
+              image="/img/title/mm_scroll.jpg"
               caption="The Economy"
               blurb="What exists in the game, counted every hour."
             />
@@ -188,6 +188,7 @@ export default async function Title() {
                 three. */}
             <MenuTile
               href={LOSTHQ_URL}
+              image="/img/title/mm_scroll.jpg"
               caption="LostHQ"
               blurb="Community guides, quest walkthroughs, calculators and item database."
               linkText="Visit"

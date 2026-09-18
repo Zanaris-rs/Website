@@ -106,17 +106,24 @@
 .content {
   position: relative;
   z-index: 2;
+  /* A new block formatting context, so the first child's top margin (the
+     title box's 1em) stays inside the body. Without it the margin collapsed
+     through `.content` and `.body`, pushed the body 13px down the page and
+     left a strip of bare black between the corner tiles' chains and the side
+     chains below them. */
+  display: flow-root;
 }
 
-/* --- the footer: on a phone the note sits above the chain, full width; from
-   600px it goes back between the corner tiles where 2004 put it --- */
+/* --- the footer: on a phone the note sits under the chain, full width, so the
+   corner tiles meet the side chains and the frame closes; from 600px it goes
+   back between the corner tiles where 2004 put it --- */
 
 .footer {
   display: grid;
   grid-template-columns: 100px minmax(0, 1fr) 100px;
   grid-template-areas:
-    "note note note"
-    "left strip right";
+    "left strip right"
+    "note note note";
   align-items: end;
   line-height: 0;
 }
@@ -195,6 +202,19 @@
   text-decoration: underline;
 }
 
+/* The green link: the "Click Here", "Login" and the like under the title
+   screen's tiles and the news, every link in the disclaimer, and the links in
+   a news post. Underlined only on hover, like `.link`. */
+.linkGreen {
+  color: var(--link-green);
+  text-decoration: none;
+}
+
+.linkGreen:hover {
+  color: var(--link-green-hover);
+  text-decoration: underline;
+}
+
 /* `<font color=yellow>`: the searched-for row, and the name in a heading. */
 .highlight {
   color: #ff0;
@@ -207,7 +227,7 @@ a.highlight:hover {
 }
 
 /* `.b2` in the original: the red bezel, used for the "do this now" stone
-   buttons (Play Game, Invited? Claim Your Place, I Understand) and nothing
+   buttons (Play Game, Invited?, I Understand) and nothing
    else. */
 .stoneRed {
   border-style: outset;

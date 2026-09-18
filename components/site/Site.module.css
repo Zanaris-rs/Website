@@ -28,6 +28,21 @@
   margin: 0 auto;
 }
 
+/* More room than `.panel`'s 4px, which is the title box's and the hiscores
+   tables' padding and stays theirs. Doubled for the same reason as
+   `.captionInner`: `.panel` is in Frame.module.css, and CSS module files have
+   no guaranteed order between them. A phone gets a little less at the sides,
+   where every pixel is a pixel of text. */
+.panelInner.panelInner {
+  padding: 10px 12px;
+}
+
+@media (min-width: 600px) {
+  .panelInner.panelInner {
+    padding: 12px 16px;
+  }
+}
+
 .panelCenter {
   text-align: center;
 }
@@ -303,6 +318,21 @@
 }
 
 /* --- disclaimer --- */
+
+/* The disclaimer keeps its own palette: white text, green for the lines that
+   matter most (`.green` in Frame.module.css), bold red for the warnings, green
+   links, and a brown border that matches the rust chains round it. Doubled
+   like `.panelInner`, so it beats `.panel` in whichever order the files land. */
+.disclaimerPanel.disclaimerPanel {
+  border-color: #382418;
+  color: #fff;
+}
+
+/* Its rules are a light line you can see, like the browser's own `<hr>`,
+   rather than the site's near-black one. */
+.disclaimerPanel .rule {
+  border-top: 2px solid #bdbdbd;
+}
 
 /* The original's `<hr>`, which inherited the page's border colour. */
 .rule {
