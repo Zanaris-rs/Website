@@ -15,8 +15,10 @@ import Tile from "./Tile";
  * "Secure Services" look); from 900px the picture is on the left at full size
  * with the caption and blurb beside it (the "Main Features" look).
  *
- * `image` is optional. A tile without one — the LostHQ wiki, which has no
- * 2004 picture to borrow — is just its caption and blurb.
+ * `image` is optional. A tile without one is just its caption and blurb.
+ *
+ * The link under the blurb ("Click Here", "Login") is green: it is the thing
+ * on the tile that asks to be followed.
  */
 export default function MenuTile({
   href,
@@ -62,7 +64,7 @@ export default function MenuTile({
         <div className={styles.tileBlurb}>
           {blurb}
           <br />
-          <a href={href} className={frame.link}>
+          <a href={href} className={frame.linkGreen}>
             {linkText}
           </a>
         </div>
