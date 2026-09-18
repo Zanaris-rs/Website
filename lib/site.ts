@@ -37,6 +37,16 @@ export const LOSTCITY_FORUMS_URL = "https://lostcity.rs";
 /** The community wiki: guides, quests, calculators, an item database. */
 export const LOSTHQ_URL = "https://2004.losthq.rs/";
 
+/**
+ * Zanaris Kit, our desktop client. The link is GitHub's list of releases, not
+ * a file: a visitor sees the source and the release notes beside the
+ * installers and picks the one for their system, rather than being handed an
+ * unsigned installer straight from this site. `/releases` rather than
+ * `/releases/latest`, because `latest` skips pre-releases.
+ */
+export const KIT_RELEASES_URL =
+  "https://github.com/Zanaris-rs/Zanaris-kit/releases";
+
 /** The rights holder in the assets and trademarks this project preserves. */
 export const JAGEX_URL = "https://www.jagex.com/";
 

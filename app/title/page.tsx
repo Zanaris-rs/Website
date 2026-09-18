@@ -10,7 +10,7 @@ import Wordmark from "@/components/site/Wordmark";
 import { readSession } from "@/lib/account/session-server";
 import { latest } from "@/lib/news";
 import { formatShortDate, listHref, postHref } from "@/lib/news/parse";
-import { LOSTHQ_URL, SITE_NAME } from "@/lib/site";
+import { KIT_RELEASES_URL, LOSTHQ_URL, SITE_NAME } from "@/lib/site";
 import { loadStaff } from "@/lib/staff/staff-server";
 import { countPlayers, worldList } from "@/lib/title/fetch";
 import { playingSentence } from "@/lib/title/players";
@@ -183,17 +183,20 @@ export default async function Title() {
               caption="The Economy"
               blurb="What exists in the game, counted every hour."
             />
-            {/* Last, because it is the one link that leaves the site. Five
-                tiles land differently at the grid's two widths: in two
-                columns this one is the odd tile out and the grid centres it
-                across a row of its own, while in three it simply follows The
-                Economy on the second row, leaving the third column empty as
-                any trailing row does. */}
+            {/* Last, because these two are the links that leave the site.
+                Six tiles fill both grids: three rows of two, or two of
+                three. */}
             <MenuTile
               href={LOSTHQ_URL}
               caption="LostHQ"
               blurb="Community guides, quest walkthroughs, calculators and item database."
               linkText="Visit"
+            />
+            <MenuTile
+              href={KIT_RELEASES_URL}
+              caption="Zanaris Kit"
+              blurb="Our open-source desktop client, still early. Pick your download on GitHub."
+              linkText="Download"
             />
           </div>
         </StonePanel>
