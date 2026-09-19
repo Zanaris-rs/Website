@@ -1,3 +1,4 @@
+import ItemIcon from "@/components/game/ItemIcon";
 import { itemName } from "@/lib/items/names";
 import type { Block } from "@/lib/public/economy";
 import { formatNumber } from "@/lib/public/format";
@@ -69,8 +70,14 @@ export default function EconomyGroups({ blocks }: { blocks: readonly Block[] }) 
             <table className={styles.table}>
               <tbody>
                 {block.items.map((item) => (
-                  <tr key={item.id} className={item.count === 0 ? styles.none : undefined}>
-                    <td>{itemName(item.id)}</td>
+                  <tr
+                    key={item.id}
+                    className={item.count === 0 ? `${styles.itemRow} ${styles.none}` : styles.itemRow}
+                  >
+                    <td>
+                      <ItemIcon id={item.id} />
+                      {itemName(item.id)}
+                    </td>
                     <td className={styles.groupCount}>{formatNumber(item.count)}</td>
                   </tr>
                 ))}

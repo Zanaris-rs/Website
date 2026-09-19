@@ -41,6 +41,7 @@ npm run build                # a real Next build
 npm run db:check             # prove DATABASE_URL connects and is the right role
 npm run assets:vendor        # re-vendor the 2004 graphics (see "2004 assets")
 npm run worldmap:update      # rebuild the map applet and map data (see "World map assets")
+npm run icons:update         # redraw the item and skill icons from the cache (see "Game icons")
 ```
 
 Without a `DATABASE_URL` the site still runs: the hiscores API answers 503 and
@@ -1302,10 +1303,44 @@ pinned to the revision the fleet runs — move it with `GAME_VERSION` in
 moment it was packed, so a content change that moves anything on the map will
 not show here until someone re-runs the script and commits the result.
 
+## Game icons
+
+The pictures beside item and skill names (`/economy`, `/hiscores`) are the
+game's own, all committed:
+
+| File | What |
+| --- | --- |
+| `public/img/game/items/<id>.png` | 32x32 inventory icon per object id, drop shadow and all |
+| `public/img/game/skills/<stat>.png` | 25x25 stats-tab icon per engine stat id |
+| `lib/items/icons.json` | the pack's object count, and the ids the client draws as nothing |
+
+```sh
+npm run icons:update             # ENGINE_DIR=../Server/engine, CLIENT_BRANCH=274
+```
+
+Skill icons are sprites stored in the cache. Item icons are not: the 2004
+client draws each one from its 3D model at runtime, so the script runs the
+client's own renderer (`ObjType.getSprite`, from the same Client-TS clone as
+the map applet) under `bun`, fed from the engine's pack. The header of
+`scripts/update-game-icons.sh` has the details. Two skill icons, Agility and
+Thieving, are recoloured the way the 2004 site's hiscores recoloured them,
+because their black silhouettes vanish on black panels.
+
+Pages use `<ItemIcon id>` / `<SkillIcon stat>` (`components/game/`) or
+`itemIconSrc` / `skillIconSrc` (`lib/items/icons.ts`, `lib/skills/icons.ts`),
+never a hand-built path. `.claude/skills/game-icons/SKILL.md` is the short
+version for agents.
+
+**Icons go stale like the map.** Repack the engine after a content bump, then
+re-run `items:update` and `icons:update` and commit what they write. The
+script only packs when the pack is missing, so check the date on its `pack`
+line.
+
 ## 2004 assets
 
 `public/img/` is the original 2004 site graphics — the page chrome, the stone
-frame, the menu tiles, the twelve rule illustrations.
+frame, the menu tiles, the twelve rule illustrations — apart from
+`public/img/game/`, which is drawn from the cache (see "Game icons").
 
 ```sh
 npm run assets:vendor            # ENGINE_DIR=../Server/engine

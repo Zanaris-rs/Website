@@ -1,0 +1,17 @@
+/*
+ * A game icon sitting inline before a name. The sprites are pixel art, so an
+ * icon drawn bigger than its file keeps hard pixels; one drawn smaller (the
+ * hiscores list's 16px, the 2004 geometry) is left to the browser's
+ * smoothing, which reads better than dropped pixels at that size.
+ */
+
+.icon {
+  display: inline-block;
+  flex: none;
+  vertical-align: middle;
+  margin-right: 0.35em;
+}
+
+.upscaled {
+  image-rendering: pixelated;
+}
