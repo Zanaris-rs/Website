@@ -262,3 +262,14 @@
 .none {
   color: var(--text-muted);
 }
+
+/* The icon dims with the name. */
+.none img {
+  opacity: 0.5;
+}
+
+/* A row led by a 32px item icon: every cell centres on the icon, so the
+   count sits level with the name rather than at the top of the row. */
+.table .itemRow td {
+  vertical-align: middle;
+}

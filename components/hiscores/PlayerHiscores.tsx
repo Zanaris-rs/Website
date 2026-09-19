@@ -10,7 +10,9 @@ import { categoryName } from "@/lib/hiscores/categories";
 import { formatNumber } from "@/lib/hiscores/format";
 import { DEFAULT_PROFILE } from "@/lib/hiscores/params";
 import { formatCitizen } from "@/lib/invite/format";
+import { statOfCategory } from "@/lib/skills/icons";
 
+import SkillIcon from "@/components/game/SkillIcon";
 import frame from "@/components/site/Frame.module.css";
 
 import HiscoresHeader from "./HiscoresHeader";
@@ -123,6 +125,7 @@ export default function PlayerHiscores({ username }: { username: string }) {
                 {state.data.skills.map((skill) => (
                   <tr key={skill.category}>
                     <th scope="row" className={styles.skill}>
+                      <SkillIcon stat={statOfCategory(skill.category)} size={16} />
                       <a
                         className={frame.link}
                         href={`/hiscores?username=${encodeURIComponent(state.data.username)}&category=${skill.category}`}

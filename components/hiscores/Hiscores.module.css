@@ -94,11 +94,15 @@
     height: 400px;
   }
 
+  /* As in 2004: the column of icon + name is centred in the panel as a block,
+     and the rows inside it line up on the left. */
   .categoryList {
+    width: auto;
     height: 380px;
     flex-direction: column;
     flex-wrap: nowrap;
     justify-content: space-between;
+    align-items: flex-start;
     gap: 0;
     padding: 0;
   }

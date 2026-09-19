@@ -8,6 +8,7 @@ import {
 } from "@/lib/hiscores/api";
 import { CATEGORIES, categoryName } from "@/lib/hiscores/categories";
 import { formatNumber } from "@/lib/hiscores/format";
+import { statOfCategory } from "@/lib/skills/icons";
 import {
   DEFAULT_PROFILE,
   parseTableParams,
@@ -16,6 +17,7 @@ import {
 } from "@/lib/hiscores/params";
 import { useSearchParams } from "next/navigation";
 
+import SkillIcon from "@/components/game/SkillIcon";
 import frame from "@/components/site/Frame.module.css";
 
 import HiscoresHeader from "./HiscoresHeader";
@@ -108,6 +110,9 @@ export default function HiscoresTable() {
             <ul className={styles.categoryList}>
               {CATEGORIES.map((entry) => (
                 <li key={entry.id}>
+                  {/* 16px, and a blank one beside Overall: the 2004 list's
+                      geometry, twenty rows in 380px. */}
+                  <SkillIcon stat={statOfCategory(entry.id)} size={16} />
                   {/* Plain `?category=N`, as the 2004 site had it: switching
                       table clears the search rather than carrying a rank from
                       one skill to another, where it means something else. */}

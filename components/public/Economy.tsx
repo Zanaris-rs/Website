@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import ItemIcon from "@/components/game/ItemIcon";
 import { colourClass } from "@/components/site/colour";
 import frame from "@/components/site/Frame.module.css";
 import Panel from "@/components/site/Panel";
@@ -251,6 +252,7 @@ export default function Economy({ economy }: { economy: EconomyData }) {
                   const colour = flowColour(item.delta);
                   return (
                     <li key={item.itemId}>
+                      <ItemIcon id={item.itemId} />
                       {itemName(item.itemId)} —{" "}
                       <span className={colour ? colourClass[colour] : undefined}>
                         {flowSentence(item.delta)}
@@ -285,11 +287,14 @@ export default function Economy({ economy }: { economy: EconomyData }) {
           </thead>
           <tbody>
             {(spawns ?? []).map((spawn, index) => (
-              <tr key={`${spawn.createdAt}-${spawn.itemId}-${index}`}>
+              <tr key={`${spawn.createdAt}-${spawn.itemId}-${index}`} className={styles.itemRow}>
                 <td className={styles.when}>
                   {formatShortWhen(spawn.createdAt)}
                 </td>
-                <td>{itemName(spawn.itemId)}</td>
+                <td>
+                  <ItemIcon id={spawn.itemId} />
+                  {itemName(spawn.itemId)}
+                </td>
                 <td className={styles.figure}>{formatNumber(spawn.count)}</td>
                 <td className={styles.figure}>{spawn.world ?? "—"}</td>
               </tr>
