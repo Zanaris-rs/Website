@@ -16,14 +16,10 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-# The fleet runs revision 274 (ec2-setup/fleet.sh ENGINE_REVISION=274), so the
-# map applet is built from the matching client branch. Move this with
-# GAME_VERSION in lib/site.ts.
-CLIENT_BRANCH="${CLIENT_BRANCH:-274}"
-CLIENT_REMOTE="${CLIENT_REMOTE:-https://github.com/Zanaris-rs/Client-TS.git}"
-CLIENT_FALLBACK="${CLIENT_FALLBACK:-https://github.com/LostCityRS/Client-TS.git}"
+# The client branch, its remotes and the clone's location (CLIENT_BRANCH,
+# CACHE_DIR, ...) are shared with update-game-icons.sh.
+source scripts/lib/client-ts.sh
 ENGINE_DIR="${ENGINE_DIR:-../Server/engine}"
-CACHE_DIR="${CACHE_DIR:-.cache/Client-TS}"
 
 if ! command -v bun > /dev/null; then
   echo "error: bun is required to bundle the client (https://bun.sh)" >&2
@@ -32,24 +28,7 @@ fi
 
 # --- the applet ---------------------------------------------------------
 
-if [ -d "$CACHE_DIR/.git" ]; then
-  echo "refresh  $CACHE_DIR"
-  git -C "$CACHE_DIR" fetch --depth 1 origin "$CLIENT_BRANCH"
-  git -C "$CACHE_DIR" checkout -q FETCH_HEAD
-else
-  mkdir -p "$(dirname "$CACHE_DIR")"
-  if git clone --depth 1 --branch "$CLIENT_BRANCH" "$CLIENT_REMOTE" "$CACHE_DIR" 2> /dev/null; then
-    echo "clone    $CLIENT_REMOTE ($CLIENT_BRANCH)"
-  else
-    # Our fork may not carry this branch yet; upstream always does.
-    echo "note     $CLIENT_REMOTE has no branch $CLIENT_BRANCH, falling back"
-    git clone --depth 1 --branch "$CLIENT_BRANCH" "$CLIENT_FALLBACK" "$CACHE_DIR"
-    echo "clone    $CLIENT_FALLBACK ($CLIENT_BRANCH)"
-  fi
-fi
-
-CLIENT_COMMIT="$(git -C "$CACHE_DIR" rev-parse HEAD)"
-echo "client   $CLIENT_COMMIT"
+ensure_client_ts
 
 (cd "$CACHE_DIR" && bun install --frozen-lockfile && bun run bundle.ts)
 
