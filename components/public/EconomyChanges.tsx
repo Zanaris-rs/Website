@@ -4,7 +4,7 @@ import frame from "@/components/site/Frame.module.css";
 import Panel from "@/components/site/Panel";
 import { groupRoster } from "@/lib/items/groups";
 import { itemName } from "@/lib/items/names";
-import { dailyFlows } from "@/lib/public/economy";
+import { dailyFlows, netFlows } from "@/lib/public/economy";
 import { flowColour, flowSentence, formatShortWhen } from "@/lib/public/format";
 import type { EconomyChanges as ChangesData } from "@/lib/public/read-server";
 
@@ -39,6 +39,7 @@ export default function EconomyChanges({ changes }: { changes: ChangesData }) {
   const flows = changes.flows === null ? null : dailyFlows(changes.flows);
   const days = flows === null ? null : flows.days;
   const tracked = groupRoster("rares") ?? [];
+  const moved = changes.lastDay === null ? null : netFlows(changes.lastDay);
 
   return (
     <>
@@ -70,6 +71,36 @@ export default function EconomyChanges({ changes }: { changes: ChangesData }) {
           ))}
         </ul>
       </Panel>
+
+      {window.days === 1 ? null : (
+        <Panel align="left" width="var(--panel-prose)">
+          <div className={styles.blockTitle}>In the last 24 hours</div>
+          {moved === null ? (
+            <div className={styles.empty}>This could not be read just now.</div>
+          ) : moved.length === 0 ? (
+            <div className={styles.empty}>
+              No rare has entered or left the game in the last 24 hours.
+            </div>
+          ) : (
+            <ul className={styles.dayList}>
+              {moved.map((item) => {
+                const colour = flowColour(item.delta);
+                return (
+                  <li key={item.itemId}>
+                    <ItemIcon id={item.itemId} />
+                    <span>
+                      {itemName(item.itemId)} -{" "}
+                      <span className={colour ? colourClass[colour] : undefined}>
+                        {flowSentence(item.delta)}
+                      </span>
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </Panel>
+      )}
 
       <Panel align="left" width="var(--panel-prose)">
         <EconomyWindows current={window} section="rares" />

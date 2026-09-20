@@ -3,7 +3,6 @@ import "server-only";
 import { unstable_cache } from "next/cache";
 
 import { isConfigured, query } from "@/lib/db";
-import { groupIdMap } from "@/lib/items/groups";
 
 import {
   BANS_PAGE_SIZE,
@@ -11,18 +10,15 @@ import {
   ECONOMY_DEFAULT_WINDOW,
   type EconomyWindow,
   type Flow,
-  type GroupRange,
   type PunishmentPage,
   type Snapshot,
   type StaffSpawn,
   parseCensus,
   parseFlows,
-  parseGroupRanges,
   parsePunishmentPage,
   parseSnapshots,
   parseStaffSpawns,
   publicEconomyFlowStatement,
-  publicEconomyGroupRangeStatement,
   publicEconomyLatestStatement,
   publicEconomyStatement,
   publicPunishmentsStatement,
@@ -164,19 +160,16 @@ export async function loadSpawnRecord(
 export type EconomyOverview = {
   readonly window: EconomyWindow;
   readonly snapshots: readonly Snapshot[];
-  /** One day of movement for the teaser, not the window's — see `EconomyOverview`. */
-  readonly lastDay: readonly Flow[] | null;
+  /** The newest census, for the handful of categories the overview shows. */
+  readonly census: Census | null;
   readonly spawns: SpawnRecord;
 };
 
 /**
  * The top of the census: the totals, the two charts, and the two claims.
  *
- * The flows read is fixed at one day however wide the window is, because the
- * teaser says "in the last 24 hours" and means it. `dailyFlows` only works out
- * a partial day when the read was truncated, so the newest day in a thirty-day
- * list is always printed as though it were a whole one — fine in a list, a lie
- * in a headline.
+ * The census is soft here and fatal on `/economy/items`: half a dozen
+ * categories are a block on this page and they *are* that one.
  *
  * The spawn claim is read over the widest window the SQL allows and not over
  * the one the tabs are set to: it is a statement about the whole record, and
@@ -187,9 +180,9 @@ export type EconomyOverview = {
 export async function loadEconomyOverview(
   window: EconomyWindow = ECONOMY_DEFAULT_WINDOW,
 ): Promise<Load<EconomyOverview>> {
-  const [snapshots, lastDay, spawns] = await Promise.all([
+  const [snapshots, census, spawns] = await Promise.all([
     read("economy", publicEconomyStatement(window.days), parseSnapshots),
-    read("economy flow, one day", publicEconomyFlowStatement(1), parseFlows),
+    read("economy census", publicEconomyLatestStatement(), parseCensus),
     // Not `window.days`. "Items ever created by staff" is a claim about the
     // whole history, and a claim that shrank to a week because the reader
     // clicked the 7-day tab would be a different claim wearing the same words.
@@ -203,17 +196,14 @@ export async function loadEconomyOverview(
     data: {
       window,
       snapshots: snapshots.data,
-      lastDay: lastDay.status === "ok" ? lastDay.data : null,
+      census: census.status === "ok" ? census.data : null,
       spawns,
     },
   };
 }
 
-type RangePair = readonly [string, GroupRange];
-
 export type EconomyCatalogue = {
   readonly census: Census;
-  readonly ranges: ReadonlyMap<string, GroupRange> | null;
 };
 
 /**
@@ -232,69 +222,71 @@ export type EconomyCatalogue = {
  * ranges, which is the expensive read on these pages. With it, the searching is
  * repeated per request and the reading is not.
  *
- * The ranges are read at the default window and nowhere else. This page has no
- * window tabs — `public_economy_latest()` takes no window by design, because how
- * much iron ore exists has one answer whichever tab is open — so the low and
- * high lines have to name the window they came from rather than leave a reader
- * to assume. It is also the expensive read on these pages, and this is the only
- * one of the four that wants it.
+ * This page has no window tabs: `public_economy_latest()` takes no window by
+ * design, because how much iron ore exists has one answer whichever tab is
+ * open.
  */
 const readCatalogue = unstable_cache(
   async () => {
-    const [census, ranges] = await Promise.all([
-      read("economy census", publicEconomyLatestStatement(), parseCensus),
-      read(
-        "economy group range",
-        publicEconomyGroupRangeStatement(
-          ECONOMY_DEFAULT_WINDOW.days,
-          groupIdMap(),
-        ),
-        parseGroupRanges,
-      ),
-    ]);
+    // The group ranges used to be read here for a low-and-high line under each
+    // category. Nothing renders one now — it reported a range over a window
+    // the page could not draw — so the read is gone with it. It was the
+    // expensive one: a hash join over up to 2,400 snapshots against every id
+    // in the game, for two numbers.
+    const census = await read(
+      "economy census",
+      publicEconomyLatestStatement(),
+      parseCensus,
+    );
 
-    return {
-      census: census.status === "ok" ? census.data : null,
-      // Pairs, not the Map. `unstable_cache` stores what it is given as JSON,
-      // and a Map through `JSON.stringify` is `{}` — so a cached read would
-      // hand back an empty range for every category, on every request after
-      // the first, and each block would quietly drop its low and high line.
-      ranges:
-        ranges.status === "ok" ? ([...ranges.data.entries()] as RangePair[]) : null,
-    };
+    return { census: census.status === "ok" ? census.data : null };
   },
   ["economy-catalogue"],
   { revalidate: 300, tags: ["economy"] },
 );
 
 export async function loadEconomyCatalogue(): Promise<Load<EconomyCatalogue>> {
-  const { census, ranges } = await readCatalogue();
+  const { census } = await readCatalogue();
 
   if (census === null) return { status: "unavailable" };
 
-  return {
-    status: "ok",
-    data: { census, ranges: ranges === null ? null : new Map(ranges) },
-  };
+  return { status: "ok", data: { census } };
 }
 
 export type EconomyChanges = {
   readonly window: EconomyWindow;
   readonly flows: readonly Flow[] | null;
+  /**
+   * The last day on its own, not sliced out of the window above.
+   *
+   * `dailyFlows` groups by calendar day and only works a partial day out when
+   * the read was truncated, so the newest day in a thirty-day list is printed
+   * as though it were a whole one. That is fine in a list and wrong as a
+   * heading, and "the last 24 hours" has to mean the last 24 hours.
+   */
+  readonly lastDay: readonly Flow[] | null;
 };
 
 /** What entered and left the game over the window: the rares, and only those. */
 export async function loadEconomyChanges(
   window: EconomyWindow = ECONOMY_DEFAULT_WINDOW,
 ): Promise<Load<EconomyChanges>> {
-  const flows = await read(
-    "economy flow",
-    publicEconomyFlowStatement(window.days),
-    parseFlows,
-  );
+  const [flows, lastDay] = await Promise.all([
+    read("economy flow", publicEconomyFlowStatement(window.days), parseFlows),
+    // One read, not a slice of the other, and skipped when the window already
+    // *is* one day: the 24-hour tab would otherwise ask the same question
+    // twice and print the answer twice.
+    window.days === 1
+      ? Promise.resolve({ status: "unavailable" } as Load<Flow[]>)
+      : read("economy flow, one day", publicEconomyFlowStatement(1), parseFlows),
+  ]);
 
   return {
     status: "ok",
-    data: { window, flows: flows.status === "ok" ? flows.data : null },
+    data: {
+      window,
+      flows: flows.status === "ok" ? flows.data : null,
+      lastDay: lastDay.status === "ok" ? lastDay.data : null,
+    },
   };
 }

@@ -38,7 +38,7 @@ export type EconomySection = {
 
 export const ECONOMY_SECTIONS: readonly EconomySection[] = [
   { key: "overview", slug: "", label: "Overview", windowed: true },
-  { key: "items", slug: "items", label: "Every item", windowed: false },
+  { key: "items", slug: "items", label: "Items", windowed: false },
   { key: "rares", slug: "rares", label: "Rares", windowed: true },
   { key: "about", slug: "about", label: "How this works", windowed: false },
 ];

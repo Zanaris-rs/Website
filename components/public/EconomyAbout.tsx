@@ -21,7 +21,7 @@ function Source({ path, children }: { path: string; children: string }) {
 }
 
 /**
- * How the census works, and — the part that matters — what it cannot show.
+ * How the census works, and - the part that matters - what it cannot show.
  *
  * This used to be eleven point-size text at the bottom of an eight-screen page,
  * under everything it explained. It is the page now, because the notes are the
@@ -32,7 +32,7 @@ function Source({ path, children }: { path: string; children: string }) {
  * The last block is the one this site would rather not write and is the reason
  * the page is worth having. We cannot prove what code the server is running.
  * Saying so, precisely, and saying what *would* prove it, is worth more than a
- * page of assurances — anybody can write assurances, and a reader who finds one
+ * page of assurances - anybody can write assurances, and a reader who finds one
  * overstatement here is right to discount all of it.
  */
 export default function EconomyAbout({ spawns }: { spawns: SpawnRecord }) {
@@ -48,15 +48,15 @@ export default function EconomyAbout({ spawns }: { spawns: SpawnRecord }) {
         <div className={styles.prose}>
           <p>
             Once an hour, every save file on the server is read and everything
-            in it is counted. That is the whole of it — there is no separate
+            in it is counted. That is the whole of it - there is no separate
             ledger, and nothing adds up totals as the game is played. The census
             opens the same files the game writes and counts what is inside them.
           </p>
           <ul>
             <li>
-              It reads <b>save files</b>, once an hour. A player who is logged
-              in is counted as their last save, so anything they have picked up
-              since then appears at their next save, not immediately.
+              It reads <b>save files</b>, once an hour. Every player who is
+              logged in is saved every fifteen minutes, so what somebody is
+              carrying right now can be up to that far behind.
             </li>
             <li>
               It reads <b>every</b> save file, staff accounts among them.
@@ -65,8 +65,9 @@ export default function EconomyAbout({ spawns }: { spawns: SpawnRecord }) {
             </li>
             <li>
               Items in <b>shop stock</b> and items lying on the <b>ground</b>{" "}
-              are not in anybody&apos;s save and are not counted. Nor is
-              anything held by an account that never logs out again.
+              are not in anybody&apos;s save and are not counted. An item
+              dropped on the floor leaves these totals until somebody picks it
+              up.
             </li>
             <li>
               A <b>noted</b> item is counted as the item it is a note for. A
@@ -78,78 +79,80 @@ export default function EconomyAbout({ spawns }: { spawns: SpawnRecord }) {
               <b>Shop value</b> is the price the game&apos;s own configuration
               gives an item, before a shop&apos;s stock multiplier and before
               anything a player would actually pay. It is not a market price and
-              nobody trades at it. Many items declare no price at all — the
-              holiday rares, bones, grimy herbs and dragonhides among them — so
-              they are <i>counted</i> but not <i>valued</i>.
-            </li>
-            <li>
-              <b>Rares entering and leaving the game</b> is the difference
-              between one census and the next, for the fifteen tracked rares and
-              nothing else. A trade moves an item between two saves and changes
-              nothing there, which is the point.
+              nobody trades at it.
             </li>
           </ul>
-          <p>
-            Nobody&apos;s name appears anywhere on these pages and nobody&apos;s
-            bank is shown. The census counts objects, not owners.
-          </p>
+          <p>The census counts items, not owners.</p>
         </div>
       </Panel>
 
       <Panel align="left" width="var(--panel-prose)">
-        <div className={styles.blockTitle}>How items could enter the game</div>
+        <div className={styles.blockTitle}>How items enter the game</div>
         <div className={styles.prose}>
           <p>
-            Items are supposed to enter the game by being played for. A staff
-            member can also conjure one out of nothing, and there would be no
-            point counting anything if that were not said plainly, so:
+            Almost everything in the game got there by being played for: mined,
+            caught, killed for, bought from a shop. There are two other ways,
+            and they are the reason this page exists.
+          </p>
+
+          <p>
+            <b>1. An admin can create items with a cheat.</b>
+          </p>
+          <p>
+            Zanaris runs as a <b>production server</b>, and that setting decides
+            what is possible. On a production server the item cheats are
+            restricted to <b>admin</b> accounts - a moderator cannot use them -
+            and every one of them is written to the log below. There are four:
           </p>
           <ul>
             <li>
-              The cheats <code>::give</code>, <code>::givecrap</code>,{" "}
-              <code>::givemany</code> and <code>::giveother</code> create items
-              directly. Each one writes a row to the spawn log that this page
-              prints below — the item, how many, and which world.{" "}
-              <Source path={ENGINE_SOURCES.spawns}>
-                notifyStaffSpawn, in World.ts
-              </Source>{" "}
-              is the function that does it.
+              <code>::give</code> - puts an item, or several, straight into the
+              admin&apos;s own backpack.
             </li>
             <li>
-              It logs what was <i>actually</i> created rather than what was
-              asked for: a full backpack turns a request for a thousand into
-              nothing, and nothing is not a spawn.
-            </li>
-          </ul>
-          <p>Four ways an item could be created without a row appearing here:</p>
-          <ul>
-            <li>
-              <b>A world not marked as production.</b> The log is skipped on dev
-              worlds, so that somebody testing on their own machine does not
-              write to the live record.
+              <code>::givemany</code> - the same thing, up to a thousand at
+              once.
             </li>
             <li>
-              <b>Editing the database directly.</b> Save files and rows can be
-              changed by anyone with the credentials, and nothing in the game
-              sees it happen.
+              <code>::givecrap</code> - fills the admin&apos;s backpack with
+              twenty-eight random items.
             </li>
             <li>
-              <b>Editing the content pack.</b> Shop stock, drop rates and
-              spawn points are configuration rather than code. Changing them
-              changes how much enters the game without creating a single item
-              by hand.
-            </li>
-            <li>
-              <b>Running a modified build,</b> or restoring an old backup over
-              the current saves.
+              <code>::giveother</code> - puts an item into{" "}
+              <b>another player&apos;s</b> backpack. They must be logged in at
+              the time.
             </li>
           </ul>
           <p>
-            The hourly census is the backstop for all four. An item that appears
-            without a row still moves the totals on these pages, and those totals
-            are published every hour whether or not anybody wants them to be. It
-            would not say who, but it would say <i>something</i>, which is more
-            than a log that can be avoided offers on its own.
+            All four put items into a <b>backpack</b>. There is no cheat that
+            puts an item on the floor. An admin can of course then drop it like
+            any player, and anybody who walks past can pick it up - which is
+            exactly why the item is logged the moment it is created, and not
+            when it moves.
+          </p>
+          <p>
+            The log records what actually arrived, not what was asked for. A
+            request for a thousand into a backpack with four free slots creates
+            four, and four is what it says.
+          </p>
+
+          <p>
+            <b>2. Whoever runs the server can edit a save file.</b>
+          </p>
+          <p>
+            Every account is a file on the server, and the person who owns the
+            machine can open one and change the numbers in it. Nothing in the
+            game happens, so nothing in the game logs it. The same is true of
+            the database behind it, of the files that set shop stock and drop
+            rates, and of restoring an old backup over the current saves.
+          </p>
+          <p>
+            There is no log that can catch that, because the log lives inside
+            the thing being edited. What catches it is this page. The census
+            reads the save files an hour later and counts what is in them, so
+            items that appeared from nowhere still turn up in the totals - and
+            the totals are published whether or not anybody wants them to be. It
+            cannot say who did it. It can say that it happened.
           </p>
         </div>
       </Panel>
@@ -158,9 +161,9 @@ export default function EconomyAbout({ spawns }: { spawns: SpawnRecord }) {
         <div className={styles.blockTitle}>{claim.label}</div>
         <div className={styles.prose}>
           <p>
-            Every row the spawn log holds, oldest rules first: no window, no cap.
+            Every row the spawn log holds, newest first: no window, no cap.
             It is meant to be empty, so there is nothing to paginate and nothing
-            to summarise — a row here is a thing to look at rather than a
+            to summarise - a row here is a thing to look at rather than a
             statistic.
           </p>
         </div>
@@ -195,7 +198,7 @@ export default function EconomyAbout({ spawns }: { spawns: SpawnRecord }) {
                     <td className={styles.figure}>
                       {formatNumber(spawn.count)}
                     </td>
-                    <td className={styles.figure}>{spawn.world ?? "—"}</td>
+                    <td className={styles.figure}>{spawn.world ?? "-"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -208,29 +211,21 @@ export default function EconomyAbout({ spawns }: { spawns: SpawnRecord }) {
         <div className={styles.blockTitle}>The code that counts</div>
         <div className={styles.prose}>
           <p>
-            Everything above is done by four files, and they are worth more to
+            Everything above is done by three files, and they are worth more to
             you than this page is:
           </p>
           <ul>
             <li>
-              <Source path={ENGINE_SOURCES.census}>SaveCensus.ts</Source> — what
+              <Source path={ENGINE_SOURCES.census}>SaveCensus.ts</Source> - what
               runs every hour.
             </li>
             <li>
-              <Source path={ENGINE_SOURCES.saves}>SaveReader.ts</Source> — how a
+              <Source path={ENGINE_SOURCES.saves}>SaveReader.ts</Source> - how a
               save file is read.
             </li>
             <li>
-              <Source path={ENGINE_SOURCES.counting}>economy.ts</Source> — how
+              <Source path={ENGINE_SOURCES.counting}>economy.ts</Source> - how
               the contents are counted and written.
-            </li>
-            <li>
-              <Source path={ENGINE_SOURCES.sql}>
-                the migration
-              </Source>{" "}
-              — the database functions this website is allowed to call, and the
-              exact columns they return. It is the reason no name can appear on
-              these pages: the functions do not return one.
             </li>
           </ul>
         </div>
@@ -249,26 +244,27 @@ export default function EconomyAbout({ spawns }: { spawns: SpawnRecord }) {
             something else, and a server that reports its own version is
             reporting a string somebody chose to print. There is no arrangement
             of a server you control that makes its own claims about itself
-            trustworthy — that is a property of who holds the keys, not of how
+            trustworthy - that is a property of who holds the keys, not of how
             carefully the page is written.
           </p>
           <p>
-            The one technique that genuinely proves what a machine is running is
-            hardware attestation, where the processor or the hosting platform
-            signs a measurement of the loaded image with a key the operator does
-            not hold. It is real and it is used in earnest elsewhere. It is also
-            far out of proportion to a game server, and it would still not cover
-            the content pack, or an administrator simply playing the game and
-            earning things the ordinary way.
+            <b>The past is not yet tamper-evident.</b> Today these pages show
+            you the newest count. If we quietly changed an older one, you would
+            have nothing to check it against.
           </p>
           <p>
-            <b>The past is not yet tamper-evident.</b> What is achievable, and
-            is not in place today, is to chain each hourly census to the one
-            before it and publish the running total somewhere we cannot rewrite.
-            That would not prove what the server is doing now, but it would make
-            quietly editing what it did last week detectable — which is the more
-            useful of the two guarantees for an economy, and the honest thing to
-            say is that we have not built it yet.
+            That part we can fix, and intend to. We will publish an API that
+            hands out each hourly census as it was taken, so anybody can keep
+            their own copy of the record rather than trusting ours. Once enough
+            people hold copies, changing history stops being something we can do
+            quietly - it becomes something that disagrees with everybody
+            else&apos;s copy. We would rather provide the tool that does the
+            checking too, so it takes one command and not an afternoon.
+          </p>
+          <p>
+            That still would not prove what the server is doing right now.
+            Nothing we can build will. It would prove we have not been editing
+            what it already did, which is the part worth having.
           </p>
           <p>
             Until then, what these pages offer is narrower and still worth

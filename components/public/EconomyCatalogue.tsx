@@ -67,15 +67,9 @@ export default function EconomyCatalogue({
   catalogue: CatalogueData;
   query: string;
 }) {
-  const { census, ranges } = catalogue;
+  const { census } = catalogue;
 
-  const blocks = economyBlocks(
-    census.items,
-    ranges,
-    SPECS,
-    CATALOGUE,
-    OTHER_GROUP,
-  );
+  const blocks = economyBlocks(census.items, null, SPECS, CATALOGUE, OTHER_GROUP);
   const isCoins = (block: Block) => block.key === "coins";
 
   const counts = new Map(census.items.map((item) => [item.id, item.count]));
@@ -107,9 +101,10 @@ export default function EconomyCatalogue({
         </form>
         {results === null ? (
           <p className={styles.note}>
-            By name, by the id the game uses, or by the name it uses internally
-            — &quot;partyhat&quot;, &quot;1042&quot;, &quot;iron_ore&quot;.
-            Every object in the game is here, including the ones nobody owns.
+            Search by name, in-game id or internal name e.g.
+            &quot;partyhat&quot;, &quot;1042&quot; or &quot;iron_ore&quot;.
+            Every item in the game is here, including the items nobody yet owns
+            (or can even obtain!).
           </p>
         ) : null}
       </Panel>
@@ -182,9 +177,7 @@ export default function EconomyCatalogue({
         <div className={styles.blockTitle}>Everything in the game</div>
         <p className={styles.note}>
           Counted {formatWhen(census.takenAt)} across{" "}
-          {formatNumber(census.players ?? 0)} save files. Low and high are over{" "}
-          {ECONOMY_DEFAULT_WINDOW.label}; a category showing its top rows says
-          so, and the search above reaches the rest.
+          {formatNumber(census.players ?? 0)} save files.
         </p>
         <div className={styles.blocks}>
           <EconomyGroups blocks={blocks.filter((block) => !isCoins(block))} />

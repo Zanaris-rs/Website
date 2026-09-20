@@ -1,33 +1,77 @@
 import type { ReactNode } from "react";
 
-import ItemIcon from "@/components/game/ItemIcon";
 import { colourClass } from "@/components/site/colour";
 import frame from "@/components/site/Frame.module.css";
 import Panel from "@/components/site/Panel";
+import { GROUPS, OTHER_GROUP, groupOf, groupRoster } from "@/lib/items/groups";
 import { itemName } from "@/lib/items/names";
+import { baseIdOf, itemCost } from "@/lib/items/objects";
 import {
   alignedSeries,
   chartSeries,
   dailyChange,
+  economyBlocks,
   latestSnapshot,
-  netFlows,
 } from "@/lib/public/economy";
 import {
   flowColour,
-  flowSentence,
   formatNumber,
   formatWhen,
   signed,
 } from "@/lib/public/format";
-import { ECONOMY_WIDEST_WINDOW, type Snapshot } from "@/lib/public/queries";
+import {
+  type Census,
+  ECONOMY_WIDEST_WINDOW,
+  type Snapshot,
+} from "@/lib/public/queries";
 import type { EconomyOverview as OverviewData } from "@/lib/public/read-server";
 import { staffSpawnClaim } from "@/lib/public/spawns";
 
 import EconomyChart from "./EconomyChart";
+import EconomyGroups from "./EconomyGroups";
 import { CrosshairProvider } from "./EconomyCrosshair";
 import EconomySections from "./EconomySections";
 import EconomyWindows from "./EconomyWindows";
 import styles from "./Public.module.css";
+
+/**
+ * The categories worth putting on the front page.
+ *
+ * Six of the eleven, in the order a player would think of them: what is rare,
+ * what is mined and smelted, and what is cut and caught. The rest are a click
+ * away on `/economy/items`, which has all of them and a search as well — these
+ * are here so that "what exists in the game" is something you can see rather
+ * than something you have to go and look for.
+ */
+const OVERVIEW_GROUPS = ["rares", "runes", "ores", "bars", "logs", "fish"];
+
+const CATALOGUE = {
+  groupOf,
+  baseIdOf,
+  name: itemName,
+  cost: itemCost,
+};
+
+/** The six overview categories, counted from the newest census. */
+function overviewBlocks(census: Census | null) {
+  if (census === null) return null;
+  const specs = OVERVIEW_GROUPS.map((key) => {
+    const group = GROUPS.find((candidate) => candidate.key === key);
+    return {
+      key,
+      label: group?.label ?? key,
+      headline: group?.headline,
+      roster: groupRoster(key),
+    };
+  });
+  // `economyBlocks` always appends a residual block for everything no spec
+  // claimed, which here would be the other five categories in one heap. It is
+  // dropped by key rather than by position, so a change to that function's
+  // ordering cannot quietly put three thousand items on the front page.
+  return economyBlocks(census.items, null, specs, CATALOGUE, OTHER_GROUP).filter(
+    (block) => OVERVIEW_GROUPS.includes(block.key),
+  );
+}
 
 /** A total, or a dash — a census that counted nothing must not print a zero. */
 function figure(value: number | null): string {
@@ -45,9 +89,6 @@ function change(value: number | null): ReactNode {
     </span>
   );
 }
-
-/** How many movements to print before the rest are on their own page. */
-const TEASER_ROWS = 3;
 
 /**
  * The top of the census: what exists, and the two claims worth leading with.
@@ -74,7 +115,7 @@ export default function EconomyOverview({ economy }: { economy: OverviewData }) 
   const [coinPoints, playerPoints] = alignedSeries(snapshots, [coins, players]);
 
   const claim = staffSpawnClaim(spawns.total, spawns.spawns, ECONOMY_WIDEST_WINDOW);
-  const moved = economy.lastDay === null ? null : netFlows(economy.lastDay);
+  const census = overviewBlocks(economy.census);
 
   return (
     <>
@@ -84,10 +125,12 @@ export default function EconomyOverview({ economy }: { economy: OverviewData }) 
         <div className={styles.intro}>
           <p>
             Once an hour, every save file on the server is read and everything
-            in it is counted — every coin, every ore, every rune, in every
-            backpack, bank and set of worn equipment. Nobody&apos;s name appears
-            on these pages and nobody&apos;s bank is shown; only the totals, and
-            how far they have moved.
+            inside is counted. Nobody&apos;s name appears on these pages and
+            nobody&apos;s bank is shown. This is the server totals.{" "}
+            <a href="/economy/about" className={frame.link}>
+              Learn more
+            </a>
+            .
           </p>
         </div>
       </Panel>
@@ -160,41 +203,19 @@ export default function EconomyOverview({ economy }: { economy: OverviewData }) 
         </p>
       </Panel>
 
-      <Panel align="left" width="var(--panel-prose)">
-        <div className={styles.blockTitle}>Rares, in the last 24 hours</div>
-        {moved === null ? (
-          <div className={styles.empty}>This could not be read just now.</div>
-        ) : moved.length === 0 ? (
-          <div className={styles.empty}>
-            No rare has entered or left the game in the last 24 hours.
-          </div>
-        ) : (
-          <ul className={styles.dayList}>
-            {moved.slice(0, TEASER_ROWS).map((item) => {
-              const colour = flowColour(item.delta);
-              return (
-                <li key={item.itemId}>
-                  <ItemIcon id={item.itemId} />
-                  <span>
-                    {itemName(item.itemId)} —{" "}
-                    <span className={colour ? colourClass[colour] : undefined}>
-                      {flowSentence(item.delta)}
-                    </span>
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-        <p className={styles.note}>
-          <a href="/economy/rares" className={frame.link}>
-            Rares entering and leaving the game
-          </a>{" "}
-          {moved !== null && moved.length > TEASER_ROWS
-            ? `— the other ${moved.length - TEASER_ROWS}, and ${window.label}.`
-            : `— day by day, over ${window.label}.`}
-        </p>
-      </Panel>
+      {census === null ? null : (
+        <Panel align="left" width="var(--panel-wide)">
+          <div className={styles.blockTitle}>What exists in the game</div>
+          <EconomyGroups blocks={census} />
+          <p className={styles.note}>
+            <a href="/economy/items" className={frame.link}>
+              Every item in the game
+            </a>{" "}
+            - all 3,883 of them, with a search over the lot.
+          </p>
+        </Panel>
+      )}
+
     </>
   );
 }

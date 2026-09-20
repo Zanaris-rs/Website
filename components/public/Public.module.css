@@ -144,7 +144,7 @@
 .chartCanvas {
   display: block;
   width: 100%;
-  height: 60px;
+  height: 110px;
   border: 1px solid var(--panel-border);
   background: #000;
 }
@@ -248,16 +248,21 @@
 /* --- one category of the census --- */
 
 .group {
-  padding-bottom: 10px;
+  padding-bottom: 14px;
 }
 
 .group:last-child {
   padding-bottom: 0;
 }
 
+/* A category heading has to win against a wrapping row of forty-eight tiles
+   under it, so it gets a rule of its own rather than only being bold. */
 .groupTitle {
   font-weight: bold;
   color: #fff;
+  font-size: 14px;
+  border-bottom: 1px solid var(--panel-border);
+  padding-bottom: 1px;
 }
 
 /* "16,989 items · shop value 496,028 gp", under the heading and smaller: the
@@ -273,16 +278,47 @@
   color: var(--text-muted);
 }
 
-/* The count column of a category table. Narrow enough that the name column
-   takes the slack, so two blocks side by side in the same panel line up. */
-.groupCount {
-  width: 30%;
-  text-align: right;
+/* A category's items, across rather than down: each one an icon, its name and
+   how many exist, wrapping to as many rows as the category needs. */
+.tiles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tiles li {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 5px 1px 2px;
+  border: 1px solid var(--panel-border);
+  background: rgba(255, 255, 255, 0.03);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.tileName {
   white-space: nowrap;
 }
 
-/* An item the census counted none of. Only a roster block prints one — the
-   zero is the interesting part, so it is dimmed rather than hidden. */
+/* The figure is the reason the tile exists, so it is the bright part. */
+.tileCount {
+  color: #fff;
+  white-space: nowrap;
+}
+
+/* An item the census counted none of. Only a roster block prints one, and the
+   nought is the interesting part, so the whole tile recedes rather than
+   disappearing. */
+.tiles li.none,
+.tiles li.none .tileCount {
+  color: var(--text-muted);
+}
+
+/* A row for something the census counted none of, in the search results. */
 .none {
   color: var(--text-muted);
 }
@@ -308,10 +344,18 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 2px 14px;
+  gap: 2px;
   padding: 0 0 6px;
   margin-bottom: 8px;
   border-bottom: 1px solid var(--panel-border);
+}
+
+/* One row of four equal cells. `min-width` rather than a `flex` basis so they
+   stay the same size as each other on a phone, where they wrap into two rows
+   of two instead of stretching to fill one. */
+.sections > * {
+  min-width: 118px;
+  text-align: center;
 }
 
 .sectionCurrent {
@@ -396,11 +440,10 @@
 
 /* Eleven categories down one column was four screens of scrolling. Across the
    frame they are two or three, and each block still reads top to bottom. */
+/* The categories stack now rather than sitting in columns: each one is a
+   wrapping row of its own and wants the full width to wrap into. */
 .blocks {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 0 24px;
-  align-items: start;
+  display: block;
 }
 
 /* A row for an item nobody has any of. The nought is the interesting part on

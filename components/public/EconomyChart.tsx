@@ -25,7 +25,7 @@ import styles from "./Public.module.css";
  * own ranges each fill the box: a trend well below its readings would be drawn
  * straight through them and the picture would be a lie about a real thing.
  *
- * The box is 300x60 stretched to the panel's width (`preserveAspectRatio` is
+ * The box is 300x110 stretched to the panel's width (`preserveAspectRatio` is
  * off, and the strokes are `non-scaling-stroke` so they are not stretched into
  * wedges), which is why there are no numbers inside the picture: text in a
  * stretched viewBox would be stretched too. The scale is printed underneath
@@ -41,7 +41,7 @@ const COLOURS = {
 } as const;
 
 const WIDTH = 300;
-const HEIGHT = 60;
+const HEIGHT = 110;
 
 export default function EconomyChart({
   title,
