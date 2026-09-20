@@ -1380,6 +1380,12 @@ re-run `items:update` and `icons:update` and commit what they write. The
 script only packs when the pack is missing, so check the date on its `pack`
 line.
 
+`next.config.ts` caches `/img/game/*` for a day, with a week of
+stale-while-revalidate behind it: a page can carry over a hundred of these,
+and a static file's default is a re-check per file per page view. The cost is
+that a regenerated icon can take a day to reach a reader who already has the
+old one.
+
 ## 2004 assets
 
 `public/img/` is the original 2004 site graphics — the page chrome, the stone

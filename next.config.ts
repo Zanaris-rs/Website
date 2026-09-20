@@ -50,6 +50,30 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      {
+        // The game icons (see "Game icons" in the README). Static files
+        // default to `max-age=0`, which is one re-check per file per page
+        // view, and /economy puts about 130 of them on a page — so the
+        // default costs a hundred-odd requests for pictures that change only
+        // when someone repacks the engine and re-runs `icons:update`.
+        //
+        // Cached for a day, then served stale for a week while a new copy is
+        // fetched. Longer than the map's hour because there are two orders of
+        // magnitude more files, and because a stale icon is a cosmetic
+        // mismatch rather than a wrong answer: the worst case after a content
+        // bump is a day of the old picture beside the right name. The names
+        // themselves come from the page, not from here.
+        //
+        // The filenames are ids, not content hashes, so `immutable` would be
+        // wrong: an id's picture does change when its model does.
+        source: "/img/game/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=86400, stale-while-revalidate=604800",
+          },
+        ],
+      },
       // Nothing signed in may be framed. `SameSite=Lax` keeps the session
       // cookie out of a frame on *another* site, but not out of one on a
       // sibling host: `www.zanaris.rs` and the `*.04.zanaris.rs` worlds are
