@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 
-import Economy from "@/components/public/Economy";
+import EconomyOverview from "@/components/public/EconomyOverview";
 import Panel from "@/components/site/Panel";
 import TitleBox from "@/components/site/TitleBox";
 import { ECONOMY_DEFAULT_WINDOW } from "@/lib/public/queries";
-import { loadEconomy } from "@/lib/public/read-server";
+import { loadEconomyOverview } from "@/lib/public/read-server";
 
 export const metadata: Metadata = {
   title: "The Economy",
@@ -24,7 +24,7 @@ export const revalidate = 300;
 export default async function EconomyPage() {
   // The default window has one URL, and this is it — `/economy/30-days` is a
   // 404, and `app/economy/[window]/page.tsx` refuses to answer to it.
-  const load = await loadEconomy(ECONOMY_DEFAULT_WINDOW);
+  const load = await loadEconomyOverview(ECONOMY_DEFAULT_WINDOW);
 
   if (load.status !== "ok") {
     return (
@@ -37,5 +37,5 @@ export default async function EconomyPage() {
     );
   }
 
-  return <Economy economy={load.data} />;
+  return <EconomyOverview economy={load.data} />;
 }

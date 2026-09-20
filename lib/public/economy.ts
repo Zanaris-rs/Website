@@ -22,6 +22,16 @@ export type Chart = {
   readonly path: string;
   /** The same points as a closed shape down to the baseline, for a soft fill. */
   readonly area: string;
+  /**
+   * Where each point was drawn vertically, in the box's own units.
+   *
+   * The hover readout puts a dot on the line, and it puts it here rather than
+   * recomputing the scale in the browser: two implementations of the same
+   * arithmetic are two chances to disagree, and a dot floating beside the line
+   * it is supposed to be on is the kind of wrong a reader notices and cannot
+   * explain. Rounded exactly as the path is, so they cannot drift apart.
+   */
+  readonly ys: readonly number[];
   readonly min: number;
   readonly max: number;
   readonly first: Point;
@@ -143,12 +153,21 @@ export function chartPath(
   width: number,
   height: number,
   inset = 1,
+  /**
+   * Scale to this instead of the points' own range.
+   *
+   * Two lines in one box have to be measured against the same ruler. Drawn
+   * separately they each fill the box, so a trend line sitting well below the
+   * readings it averages would be drawn right through the middle of them — the
+   * picture would be of two series that agree, which is not what happened.
+   */
+  range?: { min: number; max: number },
 ): Chart | null {
   if (points.length === 0) return null;
 
   const values = points.map((point) => point.value);
-  const min = Math.min(...values);
-  const max = Math.max(...values);
+  const min = range ? range.min : Math.min(...values);
+  const max = range ? range.max : Math.max(...values);
   const top = inset;
   const bottom = height - inset;
 
@@ -160,9 +179,8 @@ export function chartPath(
       : bottom - ((value - min) / (max - min)) * (bottom - top);
 
   const round = (n: number) => Math.round(n * 100) / 100;
-  const steps = points.map(
-    (point, index) => `${round(x(index))} ${round(y(point.value))}`,
-  );
+  const ys = points.map((point) => round(y(point.value)));
+  const steps = points.map((point, index) => `${round(x(index))} ${ys[index]}`);
 
   // A single sample has no line to draw, so it gets a short horizontal one
   // through its own point: an invisible chart reads as a broken one.
@@ -176,6 +194,7 @@ export function chartPath(
   return {
     path,
     area,
+    ys,
     min,
     max,
     first: points[0],
@@ -395,6 +414,75 @@ export type Block = {
 };
 
 /** How many rows a block prints before it says "top N of M". */
+/**
+ * What each item did over a set of flow rows, added up.
+ *
+ * `dailyFlows` groups by calendar day and is right for a list; this is for the
+ * one line on the overview that says what moved in the last twenty-four hours,
+ * where a day boundary in the middle would be an artefact of the clock rather
+ * than a fact about the game.
+ *
+ * An item that went out and came back is not movement and is dropped: two
+ * censuses apart, a partyhat that left one save and joined another nets to
+ * nought, and printing "Blue partyhat, no change" as movement would be noise.
+ *
+ * Ordered by how far something moved rather than which way, because the
+ * interesting row is the largest one either way.
+ */
+export function netFlows(
+  flows: readonly Flow[],
+): { itemId: number; delta: number }[] {
+  const totals = new Map<number, number>();
+  for (const flow of flows) {
+    totals.set(flow.itemId, (totals.get(flow.itemId) ?? 0) + flow.delta);
+  }
+
+  return [...totals.entries()]
+    .filter(([, delta]) => delta !== 0)
+    .map(([itemId, delta]) => ({ itemId, delta }))
+    .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta) || a.itemId - b.itemId);
+}
+
+/**
+ * How many readings the trend line averages over.
+ *
+ * Twelve hours: long enough that an hour where one player banked their whole
+ * inventory does not become a feature of the shape, short enough that a day's
+ * real movement still shows. The census is hourly, so this is the same span
+ * whichever window is open — a trend that meant twelve hours on one tab and a
+ * fortnight on another would not be one thing.
+ */
+export const TREND_SPAN = 12;
+
+/**
+ * The trailing average of each point and the ones before it.
+ *
+ * One point out for every point in, keeping each point's own instant, so it can
+ * be drawn over the series it smooths and share its axis and its crosshair.
+ *
+ * The first few average what there is rather than nothing — a trend line that
+ * begins twelve hours into a chart looks like the census started late. It is
+ * trailing rather than centred because a centred average at the right-hand edge
+ * would have to invent the readings after the last one, and the right-hand edge
+ * is where a reader looks first.
+ */
+export function movingAverage(
+  points: readonly Point[],
+  span: number = TREND_SPAN,
+): Point[] {
+  const out: Point[] = [];
+  let sum = 0;
+
+  for (let i = 0; i < points.length; i++) {
+    sum += points[i].value;
+    if (i >= span) sum -= points[i - span].value;
+    const over = Math.min(i + 1, span);
+    out.push({ at: points[i].at, value: sum / over });
+  }
+
+  return out;
+}
+
 export const BLOCK_ROWS = 48;
 
 /**

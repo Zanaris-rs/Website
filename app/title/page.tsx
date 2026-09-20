@@ -181,7 +181,7 @@ export default async function Title() {
               href="/economy"
               image="/img/title/mm_scroll.jpg"
               caption="The Economy"
-              blurb="What exists in the game, counted every hour."
+              blurb="Every item in the game, counted every hour."
             />
             {/* Last, because these two are the links that leave the site.
                 Six tiles fill both grids: three rows of two, or two of

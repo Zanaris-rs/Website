@@ -1,14 +1,26 @@
 /*
- * The two public transparency pages: the ban record and the economy census.
+ * The public transparency pages: the ban record, and the four the economy
+ * census is made of.
  *
- * Both are tables of numbers inside the 500px black panel, so they borrow the
- * news list's table shape rather than inventing one — 1px vertical padding,
- * 4px horizontal, headings bold and everything else normal weight. What is new
- * here is the chart, which is an inline SVG drawn at whatever width the panel
- * gives it, and the "day" blocks under it.
+ * They borrow the news list's table shape rather than inventing one — 1px
+ * vertical padding, 4px horizontal, headings bold and everything else normal
+ * weight. What is new here is the chart, an inline SVG drawn at whatever width
+ * the panel gives it, and the blocks under it.
  *
- * No breakpoints: the layout viewport is pinned to 600px in `app/layout.tsx`,
- * so every reader gets the same page and a phone scales it.
+ * **Three widths, and which one a panel takes is a decision about its
+ * contents.** `--panel-max` (500px) is the original's panel and is right for a
+ * table of two columns. `--panel-prose` (640px) is for text that is the page
+ * rather than a note on it, which is most of /economy/about. `--panel-wide`
+ * (100%, so 880px at the frame's cap) is for the catalogue, where eleven
+ * categories down a 500px column was four screens of scrolling in a 960px
+ * frame.
+ *
+ * Anything wide needs `.scroll` around it. `html, body` are
+ * `overflow-x: hidden`, so a table wider than the frame is clipped rather than
+ * reachable — the hiscores results panel solves it the same way.
+ *
+ * No breakpoints, still: the pages reflow on their own and the grid below
+ * picks its own column count.
  */
 
 .table {
@@ -146,11 +158,17 @@
   vector-effect: non-scaling-stroke;
 }
 
-/* The same shape closed to the baseline, faint, so a flat line still reads as
-   a quantity rather than as a scratch on the panel. */
-.area {
-  stroke: none;
-  opacity: 0.15;
+/* The trailing average through the readings. Dashed and white so that it reads
+   as worked out rather than counted — the readings are the coloured line, and a
+   second solid line in a second hue would be two measurements rather than one
+   measurement and a trend through it. */
+.trend {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
+  opacity: 0.75;
+  vector-effect: non-scaling-stroke;
 }
 
 /* Two of the original's nine link colours, as a stroke and a fill. They are
@@ -383,4 +401,107 @@
    this page, so it is dimmed rather than dropped. */
 .itemRow td {
   vertical-align: middle;
+}
+
+/* --- the chart key and its hover readout --- */
+
+/* Two lines in one box need saying which is which. It sits under the scale
+   rather than over the picture: at 60px tall there is no room inside for a
+   legend that is not covering data. */
+.key {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0 14px;
+  font-size: 11px;
+  padding-top: 2px;
+}
+
+.key span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* A swatch drawn as the line it stands for, not as a block of colour: the
+   difference between the two series is dash and weight, so a square would
+   leave the key saying less than the chart does. */
+.keyLine {
+  display: inline-block;
+  width: 14px;
+  height: 0;
+  border-top: 2px solid;
+  /* `.yellow`/`.lblue` paint SVG, so the key takes its colour from `fill`. */
+  border-top-color: currentColor;
+  color: inherit;
+}
+
+.yellow.keyLine {
+  border-top-color: #ffe139;
+}
+
+.lblue.keyLine {
+  border-top-color: #9db8c3;
+}
+
+.keyTrend {
+  border-top: 1px dashed #fff;
+  opacity: 0.75;
+}
+
+/* The layer the crosshair is drawn on, exactly over the SVG. */
+.chartHover {
+  position: relative;
+  touch-action: pan-y;
+}
+
+.crosshair {
+  position: absolute;
+  top: 1px;
+  bottom: 1px;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.45);
+  pointer-events: none;
+}
+
+.crosshairDot {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  margin: -2px 0 0 -2px;
+  background: #fff;
+  pointer-events: none;
+}
+
+/* The figure under the cursor. It flips to the other side of the crosshair
+   past the middle so it is never clipped by the panel's right edge. */
+.readout {
+  position: absolute;
+  top: 2px;
+  margin-left: 6px;
+  padding: 1px 4px;
+  background: rgba(0, 0, 0, 0.85);
+  border: 1px solid var(--panel-border);
+  font-size: 11px;
+  line-height: 1.3;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.readoutLeft {
+  margin-left: 0;
+  transform: translateX(calc(-100% - 6px));
+}
+
+/* The staff-spawn figure. The same shape as a total above it, because it is
+   the same kind of statement — and it is the one the page is really making. */
+.claim {
+  text-align: center;
+  padding: 2px 0 4px;
+}
+
+.claimValue {
+  font-size: 24px;
+  font-weight: bold;
+  color: #fff;
 }

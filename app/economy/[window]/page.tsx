@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import Economy from "@/components/public/Economy";
+import EconomyOverview from "@/components/public/EconomyOverview";
 import Panel from "@/components/site/Panel";
 import TitleBox from "@/components/site/TitleBox";
 import {
@@ -10,7 +10,7 @@ import {
   type EconomyWindow,
   economyWindow,
 } from "@/lib/public/queries";
-import { loadEconomy } from "@/lib/public/read-server";
+import { loadEconomyOverview } from "@/lib/public/read-server";
 
 /** Five minutes, like `/economy` itself and for the same reason. */
 export const revalidate = 300;
@@ -59,7 +59,7 @@ export default async function EconomyWindowPage({
   params,
 }: PageProps<"/economy/[window]">) {
   const { window } = await params;
-  const load = await loadEconomy(windowOf(window));
+  const load = await loadEconomyOverview(windowOf(window));
 
   if (load.status !== "ok") {
     return (
@@ -72,5 +72,5 @@ export default async function EconomyWindowPage({
     );
   }
 
-  return <Economy economy={load.data} />;
+  return <EconomyOverview economy={load.data} />;
 }

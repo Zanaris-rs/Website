@@ -10,6 +10,8 @@ import {
   economyBlocks,
   foldNotes,
   latestSnapshot,
+  movingAverage,
+  netFlows,
   rangeOf,
   alignedSeries,
   seriesOf,
@@ -539,5 +541,138 @@ describe("chartSeries", () => {
 
   it("counts nothing as nothing", () => {
     expect(chartSeries([], 720)).toEqual([]);
+  });
+});
+
+describe("netFlows", () => {
+  const flow = (itemId: number, delta: number, at = "2026-09-20T01:00:00Z") => ({
+    takenAt: at,
+    itemId,
+    delta,
+  });
+
+  it("adds an item's movement up across the censuses it moved in", () => {
+    expect(
+      netFlows([flow(1042, 2), flow(1042, -1), flow(1050, 3)]),
+    ).toEqual([
+      { itemId: 1050, delta: 3 },
+      { itemId: 1042, delta: 1 },
+    ]);
+  });
+
+  it("leaves out an item that came back to where it started", () => {
+    expect(netFlows([flow(1042, 2), flow(1042, -2)])).toEqual([]);
+  });
+
+  it("orders by how far something moved, not which way", () => {
+    expect(netFlows([flow(1, 1), flow(2, -9)]).map((f) => f.itemId)).toEqual([
+      2, 1,
+    ]);
+  });
+
+  it("counts nothing as nothing", () => {
+    expect(netFlows([])).toEqual([]);
+  });
+});
+
+describe("chartPath ys", () => {
+  it("hands back the y it drew each point at, so nothing has to work it out twice", () => {
+    const chart = chartPath(
+      [
+        { at: "a", value: 10 },
+        { at: "b", value: 20 },
+        { at: "c", value: 15 },
+      ],
+      100,
+      20,
+      0,
+    );
+    expect(chart?.ys).toEqual([20, 0, 10]);
+  });
+
+  it("agrees with the path it drew, point for point", () => {
+    const chart = chartPath(
+      [
+        { at: "a", value: 3 },
+        { at: "b", value: 41 },
+        { at: "c", value: 17 },
+        { at: "d", value: 8 },
+      ],
+      300,
+      60,
+    );
+    const drawn = chart!.path
+      .replace(/^M /, "")
+      .split(" L ")
+      .map((step) => Number(step.split(" ")[1]));
+    expect(chart?.ys).toEqual(drawn);
+  });
+
+  it("puts a lone point where the line through it goes", () => {
+    const chart = chartPath([{ at: "a", value: 5 }], 100, 20, 0);
+    expect(chart?.ys).toEqual([10]);
+  });
+});
+
+describe("movingAverage", () => {
+  const at = (i: number) => `2026-09-01T${String(i).padStart(2, "0")}:00:00Z`;
+  const series = (values: number[]) =>
+    values.map((value, i) => ({ at: at(i), value }));
+
+  it("keeps a point for every point, so it can be drawn over the line it smooths", () => {
+    expect(movingAverage(series([1, 2, 3, 4]), 2)).toHaveLength(4);
+  });
+
+  it("averages what there is at the start rather than leaving a gap", () => {
+    expect(movingAverage(series([10, 20]), 4).map((p) => p.value)).toEqual([
+      10, 15,
+    ]);
+  });
+
+  it("averages the span behind each point", () => {
+    expect(
+      movingAverage(series([1, 2, 3, 10]), 2).map((p) => p.value),
+    ).toEqual([1, 1.5, 2.5, 6.5]);
+  });
+
+  it("keeps each point's own instant, so both series share an axis", () => {
+    expect(movingAverage(series([1, 2, 3]), 2).map((p) => p.at)).toEqual([
+      at(0),
+      at(1),
+      at(2),
+    ]);
+  });
+
+  it("counts nothing as nothing", () => {
+    expect(movingAverage([], 4)).toEqual([]);
+  });
+});
+
+describe("chartPath over a shared range", () => {
+  it("scales to a range it is given, so two lines can be drawn over each other", () => {
+    const given = { min: 0, max: 100 };
+    const a = chartPath([{ at: "x", value: 50 }], 100, 20, 0, given);
+    const b = chartPath(
+      [
+        { at: "x", value: 50 },
+        { at: "y", value: 100 },
+      ],
+      100,
+      20,
+      0,
+      given,
+    );
+    // The same value must land at the same height in both, which it cannot do
+    // when each series scales to its own min and max.
+    expect(a?.ys[0]).toBe(b?.ys[0]);
+  });
+
+  it("still reports the range it was given as its own scale", () => {
+    const chart = chartPath([{ at: "x", value: 5 }], 100, 20, 0, {
+      min: 0,
+      max: 10,
+    });
+    expect(chart?.min).toBe(0);
+    expect(chart?.max).toBe(10);
   });
 });

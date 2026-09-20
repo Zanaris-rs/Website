@@ -19,5 +19,5 @@ export const metadata: Metadata = {
 export const revalidate = 300;
 
 export default async function EconomyAboutPage() {
-  return <EconomyAbout spawns={await loadSpawnRecord()} />;
+  return <EconomyAbout spawns={await loadSpawnRecord({ rows: true })} />;
 }

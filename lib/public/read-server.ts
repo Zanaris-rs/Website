@@ -85,93 +85,6 @@ export function loadPunishments(
   );
 }
 
-export type Economy = {
-  readonly window: EconomyWindow;
-  readonly snapshots: readonly Snapshot[];
-  /**
-   * The newest census, whole: every id in the game, which is what the category
-   * blocks are counted from.
-   *
-   * `null` covers two things the page can tell apart on its own, from whether
-   * `snapshots` has anything in it: no census has run yet, or this read failed.
-   * Either way the category blocks cannot be drawn and the rest of the page
-   * still can, which is the whole reason this is not fatal — see `loadEconomy`.
-   */
-  readonly census: Census | null;
-  /**
-   * `null` when the read failed, which is **not** the same as an empty list.
-   * "Nothing entered or left the game" and "we could not find out" are
-   * different sentences, and a page that prints the first when it means the
-   * second is telling the reader something untrue about the economy.
-   */
-  readonly flows: readonly Flow[] | null;
-  readonly spawns: readonly StaffSpawn[] | null;
-  /**
-   * Each category's lowest and highest total across the window, keyed by group,
-   * with `"*"` for everything no group named. `null` if the read failed.
-   */
-  readonly ranges: ReadonlyMap<string, GroupRange> | null;
-};
-
-/**
- * One window of census, in five reads that go together.
- *
- * They are one `Promise.all` because they are one page and five round trips in
- * series would be five times the latency for no benefit. `lib/db.ts` keeps a
- * pool of two, so they do not all leave at once — and that is fine: every one
- * of these pages is `revalidate = 300`, so the queueing costs a background
- * regeneration a few hundred milliseconds and costs a reader nothing. A bigger
- * pool would buy latency nobody is waiting on, at the price of idle sockets on
- * every serverless instance the site scales out to.
- *
- * The failures are kept apart. The snapshots and the census are the page, so
- * losing either is losing the page; the flows, the staff spawns and the ranges
- * are blocks *on* it — one of them failing should cost that block and not the
- * totals above it — and the block says "could not be read", never "nothing
- * happened".
- *
- * `groupIdMap()` is called here rather than in `queries.ts` so that the
- * statement builders stay testable without the 3,883-entry object table.
- */
-export async function loadEconomy(
-  window: EconomyWindow = ECONOMY_DEFAULT_WINDOW,
-): Promise<Load<Economy>> {
-  const days = window.days;
-
-  const [snapshots, census, flows, spawns, ranges] = await Promise.all([
-    read("economy", publicEconomyStatement(days), parseSnapshots),
-    read("economy census", publicEconomyLatestStatement(), parseCensus),
-    read("economy flow", publicEconomyFlowStatement(days), parseFlows),
-    read("staff spawns", publicStaffSpawnsStatement(days), parseStaffSpawns),
-    read(
-      "economy group range",
-      publicEconomyGroupRangeStatement(days, groupIdMap()),
-      parseGroupRanges,
-    ),
-  ]);
-
-  // Only the snapshots are the page. The census is *not*, deliberately: it is
-  // the one read that depends on migration 5, and the site deploys on a push
-  // while the migration is applied by hand at a psql prompt. Between those two
-  // events `public_economy_latest()` does not exist, and a fatal read would
-  // turn /economy into a blank "unavailable" panel for the whole window rather
-  // than the page it was the day before, minus its newest block.
-  if (snapshots.status !== "ok") return { status: "unavailable" };
-
-  return {
-    status: "ok",
-    data: {
-      window,
-      snapshots: snapshots.data,
-      census: census.status === "ok" ? census.data : null,
-      flows: flows.status === "ok" ? flows.data : null,
-      spawns: spawns.status === "ok" ? spawns.data : null,
-      ranges: ranges.status === "ok" ? ranges.data : null,
-    },
-  };
-}
-
-
 /* --- the census, one section at a time --- */
 
 /**
@@ -186,6 +99,12 @@ export async function loadEconomy(
  */
 
 /** The whole staff-spawn table, or the ninety-day window when it cannot be had. */
+type SpawnRead = {
+  /** Whether the caller renders the log, or only the figure over it. */
+  readonly rows?: boolean;
+  readonly days?: number;
+};
+
 export type SpawnRecord = {
   /** The all-time aggregate, or `null` before migration 7 is applied. */
   readonly total: StaffSpawnTotal | null;
@@ -196,27 +115,35 @@ export type SpawnRecord = {
 /**
  * What staff have created, preferring the answer that covers everything.
  *
- * Two reads in series rather than in parallel, which is the one place on these
- * pages that is worth it: the second only happens when the first found no
- * function to call, and after migration 7 is applied it never happens again.
- * Asking for both every time would spend a query forever to save a round trip
- * on a page that is regenerated once every five minutes.
+ * `rows` is whether the caller needs the log itself or only the figure. The
+ * overview prints one number and `/economy/about` prints the list, and asking
+ * for rows nobody renders is a connection out of a pool of two — which during
+ * a build, with five census pages prerendering at once, is the difference
+ * between a read and a connection timeout.
+ *
+ * The fallback read only happens when the all-time function is not there,
+ * which is until migration 7 is applied by hand and never again after.
  */
 export async function loadSpawnRecord(
-  days: number = ECONOMY_WIDEST_WINDOW.days,
+  { rows = false, days = ECONOMY_WIDEST_WINDOW.days }: SpawnRead = {},
 ): Promise<SpawnRecord> {
   const [total, all] = await Promise.all([
     read("staff spawn total", publicStaffSpawnTotalStatement(), parseStaffSpawnTotal),
-    read("staff spawns, all", publicStaffSpawnsAllStatement(), parseStaffSpawns),
+    rows
+      ? read("staff spawns, all", publicStaffSpawnsAllStatement(), parseStaffSpawns)
+      : Promise.resolve({ status: "unavailable" } as Load<StaffSpawn[]>),
   ]);
 
-  if (total.status === "ok" && all.status === "ok") {
-    return { total: total.data, spawns: all.data };
+  if (total.status === "ok" && (!rows || all.status === "ok")) {
+    return {
+      total: total.data,
+      spawns: all.status === "ok" ? all.data : null,
+    };
   }
 
-  // Migration 7 has not been applied yet, so neither function exists. Fall back
-  // to the windowed read the page has always had — and the page says ninety
-  // days, because ninety days is all this saw.
+  // Migration 7 has not been applied, so neither function exists. Fall back to
+  // the windowed read the page has always had — and the page says ninety days,
+  // because ninety days is all this saw.
   const windowed = await read(
     "staff spawns",
     publicStaffSpawnsStatement(days),
@@ -251,6 +178,10 @@ export type EconomyOverview = {
  * list is always printed as though it were a whole one — fine in a list, a lie
  * in a headline.
  *
+ * The spawn claim is read over the widest window the SQL allows and not over
+ * the one the tabs are set to: it is a statement about the whole record, and
+ * the window tabs move the charts, not the promise.
+ *
  * Only the snapshots are the page. Everything else is a line on it.
  */
 export async function loadEconomyOverview(
@@ -259,7 +190,10 @@ export async function loadEconomyOverview(
   const [snapshots, lastDay, spawns] = await Promise.all([
     read("economy", publicEconomyStatement(window.days), parseSnapshots),
     read("economy flow, one day", publicEconomyFlowStatement(1), parseFlows),
-    loadSpawnRecord(window.days),
+    // Not `window.days`. "Items ever created by staff" is a claim about the
+    // whole history, and a claim that shrank to a week because the reader
+    // clicked the 7-day tab would be a different claim wearing the same words.
+    loadSpawnRecord(),
   ]);
 
   if (snapshots.status !== "ok") return { status: "unavailable" };

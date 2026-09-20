@@ -757,14 +757,55 @@ across every permanent inventory. So:
 The page says all three out loud, because a total without its definition is
 worse than no total.
 
-The charts are inline SVG rendered on the server: a `d` attribute, no client
-bundle and no charting dependency. `chartPath` in `lib/public/economy.ts` does
-the arithmetic and `components/public/EconomyChart.tsx` only draws — the box is
-300x60 stretched to the panel with `preserveAspectRatio="none"` and a
+The census is four pages, not one: `/economy` is the totals and the charts,
+`/economy/items` every object in the game with a search over it,
+`/economy/rares` what has entered and left, and `/economy/about` how all of it
+is counted and what it cannot prove. `ECONOMY_SECTIONS` in
+`lib/public/sections.ts` holds them, and a test keeps their slugs disjoint from
+the window slugs — `/economy/[window]` and `/economy/items` are siblings, so a
+section named `24-hours` would silently shadow a tab.
+
+The charts are inline SVG rendered on the server: a `d` attribute and no
+charting dependency. `chartPath` in `lib/public/economy.ts` does the arithmetic
+and `components/public/EconomyChart.tsx` only draws — the box is 300x60
+stretched to the panel with `preserveAspectRatio="none"` and a
 `non-scaling-stroke`, which is why the scale is printed underneath in words
 rather than drawn inside a stretched viewBox. The vertical scale is the data's
 own range rather than zero: an hourly coin total against a zero baseline is a
 flat line whatever it did.
+
+Each chart draws two lines over one shared range: what the census counted, and
+`movingAverage`'s trailing twelve-hour trend through it, with a key naming
+both. It used to draw the one series twice — a line, and the same path closed
+to the baseline as a faint fill — which read as two series and invited a
+question there was nothing to answer with.
+
+`EconomyCrosshair.tsx` is the page's **one client component**, and it is a
+progressive enhancement: the SVG, its `aria-label` and the printed scale are
+complete without it, and the overlay renders nothing on the server so there is
+nothing to mismatch on hydration. Everything it draws is HTML positioned over
+the SVG rather than elements inside it, because x is stretched about threefold
+at full width and y is not — a `<circle>` in there is an ellipse. The dot's
+height is `chartPath`'s own `ys`, handed back down, so the browser never
+recomputes a scale the server already decided.
+
+Both charts share one crosshair through a context, which is only meaningful
+because `alignedSeries` gives them one axis. `seriesOf` drops the hours *its
+own* pick could not read, and coins and players are independently nullable, so
+the two series could be different lengths — and since `chartPath` spaces points
+by index, the same index was not necessarily the same hour in both.
+
+`/economy/items` is the only page here that is not a cached page: reading `?q=`
+is a request-time API, so the route renders per request whatever `revalidate`
+says. The reads are wrapped in `unstable_cache` instead. Note that it stores
+JSON, so the group ranges go in as pairs and come back out as a `Map` — handed
+a `Map` directly it returns `{}`, and every category would quietly lose its low
+and high line.
+
+Search walks the **object table**, not the census. `toCounts` in the engine
+fills zeros only for the tracked rares, so an object nobody owns is absent from
+`economy_snapshot.items` rather than present at nought — and "Blue partyhat 0"
+is the most interesting row the page can print.
 
 Daily change compares the newest census with the newest one a full day older,
 not with the row 24 back, so a missed hour cannot become a wrong figure.
@@ -1136,7 +1177,10 @@ fetches the file in the browser and picks it up immediately.
 | `app/staff/reports/page.tsx` | Report Abuse rows, `?since=<ISO>` |
 | `app/staff/handbook/page.tsx` | the moderation handbook, from `content/staff` |
 | `app/bans/page.tsx`, `app/bans/page/[n]/page.tsx` | the public ban record, ISR at 5m |
-| `app/economy/page.tsx` | the public economy census, ISR at 5m |
+| `app/economy/page.tsx` | the census overview: totals and charts, ISR at 5m |
+| `app/economy/items/page.tsx` | every object in the game, and the search over it (dynamic; reads cached) |
+| `app/economy/rares/page.tsx` | what has entered and left the game, ISR at 5m |
+| `app/economy/about/page.tsx` | how the count works, and what it cannot prove |
 | `app/api/hiscores/route.ts` | the table API |
 | `app/api/hiscores/player/[username]/route.ts` | the personal API |
 | `app/api/account/register/route.ts` | registration through an invite, Node runtime, `no-store` |
@@ -1154,7 +1198,7 @@ fetches the file in the browser and picks it up immediately.
 | `components/account/` | `LoginForm`, `AccountCentre`, `LogoutButton`, `ChangePasswordForm`, `ChangeEmailForm` |
 | `components/messages/` | the inbox, one message, a thread, the reply box, the ticket form |
 | `components/staff/` | the inbox table, the staff thread and reply box, the notice form, the reports table, the report page, the handbook |
-| `components/public/` | the ban record, the economy page and its server-rendered SVG chart |
+| `components/public/` | the ban record, the four census pages and their server-rendered SVG charts |
 | `components/WorldTable.tsx` | the world list itself |
 | `lib/site.ts` | the site name, the revision, the credit line, the URLs |
 | `lib/news/` | frontmatter and filename parsing, categories, pagination, dates, Markdown |
