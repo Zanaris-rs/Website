@@ -6,7 +6,7 @@
  * of the least-privilege role: refused on every table it must never read
  * (`account`, `login_attempt`, `session`, `account_login`, the Message
  * Centre's own five, the three transparency tables, and migration 6's two
- * invite tables), `EXECUTE` on the forty-two `accounts.*` functions it needs
+ * invite tables), `EXECUTE` on the forty-four `accounts.*` functions it needs
  * and **not** on `throttled`, `record_failure` or `is_staff` — the rate
  * limiter's own machinery and the staff check, none of which is an API. Those
  * checks are the ones worth having: a URL that connects as `postgres` looks
@@ -35,12 +35,15 @@ import {
   parseGroupRanges,
   parsePunishmentPage,
   parseSnapshots,
+  parseStaffSpawnTotal,
   parseStaffSpawns,
   publicEconomyFlowStatement,
   publicEconomyGroupRangeStatement,
   publicEconomyLatestStatement,
   publicEconomyStatement,
   publicPunishmentsStatement,
+  publicStaffSpawnTotalStatement,
+  publicStaffSpawnsAllStatement,
   publicStaffSpawnsStatement,
   type Statement,
 } from "../lib/public/queries.ts";
@@ -185,6 +188,14 @@ async function main(): Promise<void> {
     "accounts.public_economy(int)",
     "accounts.public_economy_flow(int)",
     "accounts.public_staff_spawns(int)",
+    // 7_staff_spawn_total. The windowed read above clamps to ninety days and
+    // caps at five hundred rows, both silently, so it cannot answer "ever"
+    // however large an argument it is passed. These two can, and the headline
+    // on /economy is the sentence they exist for. Neither returns
+    // `staff_account_id` or `target_account_id`, which is the trade the whole
+    // feature rests on: the page names a number and never an account.
+    "accounts.public_staff_spawn_total()",
+    "accounts.public_staff_spawns_all()",
     // 5_economy_categories: the rest of the census. `public_economy_latest`
     // returns the `items` column the four above deliberately do not.
     "accounts.public_economy_latest()",
@@ -534,6 +545,11 @@ async function checkPublicPages(): Promise<void> {
       (rows) => parseStaffSpawns(rows),
     ],
     [
+      "public_staff_spawns_all",
+      publicStaffSpawnsAllStatement(),
+      (rows) => parseStaffSpawns(rows),
+    ],
+    [
       "public_economy_latest",
       publicEconomyLatestStatement(),
       // One row or none, and `parseCensus` answers with one object or `null`.
@@ -573,6 +589,35 @@ async function checkPublicPages(): Promise<void> {
       );
       process.exitCode = 1;
     }
+  }
+
+  // `public_staff_spawn_total` gets its own check rather than a row in the
+  // table above, because the property worth proving is one the row-count
+  // comparison cannot see: it must return **exactly one row** on an empty
+  // table, not none.
+  //
+  // That is the contract the /economy headline is built on. A row of zeroes
+  // means nobody has ever conjured an item into the economy; no row at all
+  // means the read failed. They look identical by the time they reach a page
+  // and they are opposite claims, so the page prints the first as "0 items
+  // ever created by staff" and the second as an error. If this function ever
+  // became `RETURNS SETOF` over the table, or grew a `WHERE` that filtered the
+  // aggregate away, the page would start printing a nought it had not read —
+  // and that is the single worst failure this site has, because it is the one
+  // that lies quietly.
+  const total = await query(publicStaffSpawnTotalStatement().text);
+  if (total.length !== 1) {
+    console.error(
+      `FAIL: public_staff_spawn_total returned ${total.length} rows; it must always return exactly one, even over an empty table.`,
+    );
+    process.exitCode = 1;
+  } else if (parseStaffSpawnTotal(total) === null) {
+    console.error(
+      "FAIL: public_staff_spawn_total returned a row the parser could not read; the RETURNS TABLE has drifted.",
+    );
+    process.exitCode = 1;
+  } else {
+    console.log("accounts.public_staff_spawn_total(): 1 row, readable (expected)");
   }
 }
 
