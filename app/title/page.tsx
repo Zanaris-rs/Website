@@ -13,6 +13,7 @@ import { formatShortDate, listHref, postHref } from "@/lib/news/parse";
 import { KIT_RELEASES_URL, LOSTHQ_URL, SITE_NAME } from "@/lib/site";
 import { loadStaff } from "@/lib/staff/staff-server";
 import { countPlayers, worldList } from "@/lib/title/fetch";
+import { titleTileSrc } from "@/lib/title/tiles";
 import { playingSentence } from "@/lib/title/players";
 import { showsStaffTile } from "@/lib/title/staff";
 
@@ -168,33 +169,41 @@ export default async function Title() {
               caption="World Map"
               blurb="Great for finding your way around."
             />
-            {/* The two transparency pages and LostHQ have no 2004 picture of
-                their own, so all three borrow the news scroll: each is a
-                record to be read, which is what the scroll stands for. */}
+            {/* Two pictures 2004 drew for pages it had and we do not, put to
+                work on two pages we have and it did not: a chest with a
+                padlock through its hasp, and scales over a ledger of coins. */}
             <MenuTile
               href="/bans"
-              image="/img/title/mm_scroll.jpg"
+              image="/img/title/mm_vote.jpg"
               caption="Ban Record"
               blurb="Every ban and mute, permanently public."
             />
             <MenuTile
               href="/economy"
-              image="/img/title/mm_casket.jpg"
+              image="/img/title/mm_accman.jpg"
               caption="The Economy"
               blurb="Every item in the game, counted every hour."
             />
             {/* Last, because these two are the links that leave the site.
                 Six tiles fill both grids: three rows of two, or two of
-                three. */}
+                three.
+
+                Nothing in the 2004 set is about either of them, so both are
+                drawn from the game itself (`scripts/game-icons/render.ts`):
+                a sextant for the wiki that works out where you are, and the
+                staff you have to be holding to reach Zanaris. Both go through
+                `titleTileSrc`, which versions the URL — everything under
+                /img/game is cached for a year. */}
             <MenuTile
               href={LOSTHQ_URL}
-              image="/img/title/mm_scroll.jpg"
+              image={titleTileSrc("sextant") ?? undefined}
               caption="LostHQ"
               blurb="Community guides, quest walkthroughs, calculators and item database."
               linkText="Visit"
             />
             <MenuTile
               href={KIT_RELEASES_URL}
+              image={titleTileSrc("dramen-staff") ?? undefined}
               caption="Zanaris Kit"
               blurb="Our open-source desktop client, still early. Pick your download on GitHub."
               linkText="Download"

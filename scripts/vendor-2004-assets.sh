@@ -92,6 +92,12 @@ for f in background2.jpg edge_a.jpg edge_c.jpg edge_d.jpg edge_g2.jpg edge_h2.jp
   keep_only "$f"
 done
 
+# 2004's ballot chest, which the ban record borrows, moved fifteen pixels up
+# its frame so the chest sits where the subjects beside it sit instead of
+# hanging low in the tile. The history copy is the unshifted one, so this is a
+# graphic of ours now and the script must not reach past it.
+keep_only "title/mm_vote.jpg"
+
 # The page chrome itself.
 for f in blank.gif background.jpg nextpage.gif prevpage.gif; do
   recover "$f"
@@ -99,12 +105,17 @@ done
 
 # The title page: the 9-slice stone frame, the menu tiles and the two hover
 # highlights.
+#
+# `mm_accman` is a tile 2004 drew for a page we do not have, borrowed for one
+# we do: scales over a ledger of coins, carrying the economy. Its companion,
+# `mm_vote`, is below with the graphics this repo owns.
 for f in \
   blank.gif \
   fm_top.gif fm_middle.gif fm_bottom.gif fm_top2.gif fm_bottom2.gif \
   fm_left.gif fm_right.gif \
   fm_topleft.gif fm_topright.gif fm_bottomleft.gif fm_bottomright.gif \
   mm_sword.jpg mm_player.jpg mm_chalice.jpg mm_scroll.jpg mm_rules.jpg \
+  mm_accman.jpg \
   shinystonered.jpg ssredbright.jpg ssgreybright.png; do
   recover "title/$f"
 done
@@ -129,5 +140,5 @@ if [ "$missing" -gt 0 ]; then
 fi
 echo
 echo "sanity:"
-echo "  title tiles at 77x120: $(file public/img/title/*.jpg | grep -c 77x120) (expect 8)"
+echo "  title tiles at 77x120: $(file public/img/title/*.jpg | grep -c 77x120) (expect 10)"
 echo "  rule images at 100x75: $(file public/img/rules/*.jpg | grep -c 100x75) (expect 12)"

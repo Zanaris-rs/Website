@@ -1360,7 +1360,9 @@ game's own, all committed:
 | --- | --- |
 | `public/img/game/items/<id>.png` | 32x32 inventory icon per object id, drop shadow and all |
 | `public/img/game/skills/<stat>.png` | 25x25 stats-tab icon per engine stat id |
+| `public/img/game/tiles/<name>.png` | 77x120 menu tile drawn from one object's model |
 | `lib/items/icons.json` | the pack's object count, and the ids the client draws as nothing |
+| `lib/title/tiles.json` | the tiles' version and the names the generator drew |
 
 ```sh
 npm run icons:update             # ENGINE_DIR=../Server/engine, CLIENT_BRANCH=274
@@ -1374,9 +1376,16 @@ the map applet) under `bun`, fed from the engine's pack. The header of
 Thieving, are recoloured the way the 2004 site's hiscores recoloured them,
 because their black silhouettes vanish on black panels.
 
+The two menu tiles are drawn the same way, for the same reason. `/title` gives
+every tile a picture and 2004 drew none for a wiki or for a desktop client, so
+`render.ts` poses those objects' own models instead — the sextant for LostHQ,
+the Dramen staff for Zanaris Kit — at four times tile size, averaged down,
+which is where their smooth edges come from beside the 2004 photographs. Its
+`TILES` table is where the object, the angle and the framing live.
+
 Pages use `<ItemIcon id>` / `<SkillIcon stat>` (`components/game/`) or
-`itemIconSrc` / `skillIconSrc` (`lib/items/icons.ts`, `lib/skills/icons.ts`),
-never a hand-built path. `.claude/skills/game-icons/SKILL.md` is the short
+`itemIconSrc` / `skillIconSrc` / `titleTileSrc` (`lib/items/icons.ts`,
+`lib/skills/icons.ts`, `lib/title/tiles.ts`), never a hand-built path. `.claude/skills/game-icons/SKILL.md` is the short
 version for agents.
 
 **Icons go stale like the map.** Repack the engine after a content bump, then
@@ -1390,9 +1399,10 @@ helpers put the generated set's version in the URL —
 and a static file's default is a re-check per file per page view, so the year
 is worth having; the version is what keeps it honest, since the filenames are
 object ids rather than content hashes and nothing can purge a browser cache.
-The version is a hash of the set's bytes, written into `lib/items/icons.json`
-and `lib/skills/icons.json` by the generator. Items and skills are hashed
-apart, so a run that only moves an item model leaves the skill icons cached.
+The version is a hash of the set's bytes, written into `lib/items/icons.json`,
+`lib/skills/icons.json` and `lib/title/tiles.json` by the generator. The three
+sets are hashed apart, so a run that only moves an item model leaves the skill
+icons and the menu tiles cached.
 
 A regeneration therefore reaches readers immediately, at the cost of their
 re-downloading the icons on the pages they open — about 90 KB for `/economy`.

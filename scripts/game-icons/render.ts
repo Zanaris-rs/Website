@@ -39,19 +39,53 @@ type Sprite = {
 
 type JagFileClass = new (src: Uint8Array) => Jag;
 type Pix32Class = { depack(jag: Jag, name: string, sprite: number): Sprite };
+type Pix2DClass = {
+  setPixels(pixels: Int32Array, width: number, height: number): void;
+  fillRect(x: number, y: number, width: number, height: number, rgb: number): void;
+};
 type Pix3DClass = {
   lowMem: boolean;
+  lowDetail: boolean;
+  originX: number;
+  originY: number;
+  sinTable: Int32Array;
+  cosTable: Int32Array;
   unpackTextures(textures: Jag): void;
   initColourTable(brightness: number): void;
   initPool(size: number): void;
+  setRenderClipping(): void;
 };
 type ModelClass = {
   init(total: number, provider: { requestModel(id: number): void }): void;
   unpack(id: number, src: Uint8Array | null): void;
 };
+/** The slice of a drawable model the icon pose needs. */
+type ObjModel = {
+  minY: number;
+  objRender(
+    pitch: number,
+    yaw: number,
+    roll: number,
+    eyePitch: number,
+    eyeX: number,
+    eyeY: number,
+    eyeZ: number,
+  ): void;
+};
+/** One object's own idea of how it should be drawn, from the config archive. */
+type Obj = {
+  zoom2d: number;
+  xan2d: number;
+  yan2d: number;
+  zan2d: number;
+  xof2d: number;
+  yof2d: number;
+  getModelLit(count: number): ObjModel | null;
+};
 type ObjTypeClass = {
   numDefinitions: number;
   init(config: Jag, members: boolean): void;
+  list(id: number): Obj;
   getSprite(id: number, count: number, outlineRgb: number): Sprite | null;
 };
 
@@ -76,6 +110,7 @@ async function client<T>(file: string): Promise<T> {
 
 const JagFile = await client<JagFileClass>("io/JagFile.ts");
 const Pix32 = await client<Pix32Class>("graphics/Pix32.ts");
+const Pix2D = await client<Pix2DClass>("graphics/Pix2D.ts");
 const Pix3D = await client<Pix3DClass>("dash3d/Pix3D.ts");
 const Model = await client<ModelClass>("dash3d/Model.ts");
 const ObjType = await client<ObjTypeClass>("config/ObjType.ts");
@@ -259,6 +294,165 @@ writeFileSync(
   }) + "\n",
 );
 console.log(`wrote    lib/items/icons.json, lib/skills/icons.json`);
+
+// --- menu tiles -----------------------------------------------------------
+
+/**
+ * The title screen's menu pictures are 77x120 (`components/site/MenuTile.tsx`).
+ * 2004's own are photographs of props Jagex modelled for its website, and
+ * `scripts/vendor-2004-assets.sh` recovers those. Two of our pages are pages
+ * 2004 never had, and no tile it drew is about them, so we draw the game's own
+ * answer instead: an object's model, lit and posed exactly as its inventory
+ * icon is, in a tile-shaped box on black.
+ *
+ * The client draws icons into 32x32, and a tile straight from it would be a
+ * handful of fat pixels next to smooth neighbours. Each one is drawn at
+ * SUPERSAMPLE times the final size and averaged down, which is where the
+ * smooth edges come from. Deterministic like everything else here: the same
+ * pack writes the same bytes.
+ *
+ * They are a third versioned set, hashed apart from the icons: `lib/title/
+ * tiles.json` carries the version and `titleTileSrc` puts it in the URL,
+ * because /img/game is cached for a year (`next.config.ts`).
+ */
+
+const TILE_WIDTH = 77;
+const TILE_HEIGHT = 120;
+const SUPERSAMPLE = 4;
+
+type TileSpec = {
+  /** Written to `public/img/game/tiles/<file>.png`. */
+  file: string;
+  obj: number;
+  /** The object's name, for the log line and for reading this table. */
+  what: string;
+  /** Size in inventory icons: 1 draws it 32 tile-pixels across, 2 draws 64. */
+  scale: number;
+  /** Turntable angle (0-2047) when the icon's own pose is not the best one. */
+  yan?: number;
+  /** Roll (0-2047): the angle it leans at on the page, anticlockwise. */
+  zan?: number;
+  /** Camera pitch (0-2047): lower looks at it more from the side. */
+  xan?: number;
+  /** Nudge in tile pixels, positive right and down. */
+  x?: number;
+  y?: number;
+};
+
+const TILES: readonly TileSpec[] = [
+  // LostHQ, a wiki: an instrument for working out where you are, which is
+  // what its guides and calculators are for. Lifted, because the icon hangs
+  // it in the bottom of the frame.
+  { file: "sextant", obj: 2574, what: "Sextant", scale: 2.6, y: -14 },
+  // Zanaris Kit, a client: the staff you have to be holding to reach Zanaris
+  // at all. Rolled up out of the icon's lazy diagonal and dropped a little,
+  // so it climbs the tall tile with its gnarled head high and clear; the
+  // icon's steep camera looks along a staff and makes a stick of it, so this
+  // one stands further back and catches the light down its length.
+  {
+    file: "dramen-staff",
+    obj: 772,
+    what: "Dramen staff",
+    scale: 3.0,
+    zan: 170,
+    xan: 100,
+    y: -4,
+  },
+];
+
+/** One tile at SUPERSAMPLE size, straight out of the client's renderer. */
+function drawTile(spec: TileSpec): Int32Array {
+  const obj = ObjType.list(spec.obj);
+  const model = obj.getModelLit(1);
+  if (!model) {
+    throw new Error(`object ${spec.obj} (${spec.what}) has no model`);
+  }
+
+  const width = TILE_WIDTH * SUPERSAMPLE;
+  const height = TILE_HEIGHT * SUPERSAMPLE;
+  const pixels = new Int32Array(width * height);
+
+  Pix3D.lowDetail = false;
+  Pix2D.setPixels(pixels, width, height);
+  Pix2D.fillRect(0, 0, width, height, BLACK);
+  Pix3D.setRenderClipping();
+  Pix3D.originX += Math.round((spec.x ?? 0) * SUPERSAMPLE);
+  Pix3D.originY += Math.round((spec.y ?? 0) * SUPERSAMPLE);
+
+  // Size is the camera's distance and nothing else: the object's own zoom is
+  // the one that fills 32 pixels, so dividing it by the number of 32-pixel
+  // widths we asked for (times the supersample) fills that instead. The
+  // object's centring offsets are in front of the camera, so they shrink with
+  // it; `minY` is the model's own height and does not.
+  const fill = spec.scale * SUPERSAMPLE;
+  const pitch = spec.xan ?? obj.xan2d;
+  const zoom = Math.max(1, (obj.zoom2d / fill) | 0);
+  const sinPitch = (Pix3D.sinTable[pitch] * zoom) >> 16;
+  const cosPitch = (Pix3D.cosTable[pitch] * zoom) >> 16;
+  const xof = (obj.xof2d / fill) | 0;
+  const yof = (obj.yof2d / fill) | 0;
+
+  model.objRender(
+    0,
+    spec.yan ?? obj.yan2d,
+    spec.zan ?? obj.zan2d,
+    pitch,
+    xof,
+    sinPitch + ((model.minY / 2) | 0) + yof,
+    cosPitch + yof,
+  );
+  Pix3D.lowDetail = true;
+
+  return pixels;
+}
+
+/** Average each SUPERSAMPLE x SUPERSAMPLE block down to one pixel. */
+function shrink(pixels: Int32Array): Int32Array {
+  const width = TILE_WIDTH * SUPERSAMPLE;
+  const block = SUPERSAMPLE * SUPERSAMPLE;
+  const out = new Int32Array(TILE_WIDTH * TILE_HEIGHT);
+  for (let y = 0; y < TILE_HEIGHT; y++) {
+    for (let x = 0; x < TILE_WIDTH; x++) {
+      let red = 0;
+      let green = 0;
+      let blue = 0;
+      for (let dy = 0; dy < SUPERSAMPLE; dy++) {
+        const row = (y * SUPERSAMPLE + dy) * width + x * SUPERSAMPLE;
+        for (let dx = 0; dx < SUPERSAMPLE; dx++) {
+          const rgb = pixels[row + dx];
+          red += (rgb >> 16) & 0xff;
+          green += (rgb >> 8) & 0xff;
+          blue += rgb & 0xff;
+        }
+      }
+      const rgb =
+        (((red / block) | 0) << 16) |
+        (((green / block) | 0) << 8) |
+        ((blue / block) | 0);
+      // A tile is opaque: 0 is the encoder's transparent, so black is 1.
+      out[x + y * TILE_WIDTH] = rgb === 0 ? BLACK : rgb;
+    }
+  }
+  return out;
+}
+
+const tileFiles: [string, Buffer][] = TILES.map((spec) => [
+  `${spec.file}.png`,
+  encodePng(shrink(drawTile(spec)), TILE_WIDTH, TILE_HEIGHT),
+]);
+const tilesVersion = writeSet(fresh("public/img/game/tiles"), tileFiles);
+writeFileSync(
+  path.join(OUT_DIR, "lib/title/tiles.json"),
+  JSON.stringify({
+    version: tilesVersion,
+    names: TILES.map((spec) => spec.file),
+  }) + "\n",
+);
+console.log(
+  `tiles    ${TILES.length} -> public/img/game/tiles/<name>.png?v=${tilesVersion} (${TILE_WIDTH}x${TILE_HEIGHT}): ` +
+    TILES.map((tile) => tile.what).join(", "),
+);
+console.log(`wrote    lib/title/tiles.json`);
 
 // --- cross-check against the names the economy pages print -----------------
 
