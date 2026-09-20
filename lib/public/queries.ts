@@ -186,8 +186,11 @@ export const ECONOMY_SNAPSHOT_ROW_LIMIT = 2400;
  *
  * The windowed `public_staff_spawns` clamps its argument to ninety days, so it
  * cannot answer "ever" however large a number it is passed. That is what these
- * are for, and why the page falls back to ninety days and *says* ninety days
- * until they exist.
+ * are for. It is still defined and still granted, and `loadSpawnRecord` still
+ * falls back to it — the page then says ninety days, because ninety days is
+ * what it looked at. Keep it: it is the rollback target for migration 7, and
+ * the fallback is what let the headline change from "in the last 90 days" to
+ * "ever" the moment the migration was applied, with no deploy.
  */
 export function publicStaffSpawnsAllStatement(): Statement {
   return { text: "select * from accounts.public_staff_spawns_all()", values: [] };

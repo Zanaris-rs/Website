@@ -3,8 +3,7 @@ import frame from "@/components/site/Frame.module.css";
 import Panel from "@/components/site/Panel";
 import { itemName } from "@/lib/items/names";
 import { formatNumber, formatShortWhen } from "@/lib/public/format";
-import type { SpawnRecord } from "@/lib/public/read-server";
-import { staffSpawnClaim } from "@/lib/public/spawns";
+import { type SpawnRecord, staffSpawnClaim } from "@/lib/public/spawns";
 import { ECONOMY_DEFAULT_WINDOW, ECONOMY_WIDEST_WINDOW } from "@/lib/public/queries";
 import { ENGINE_SOURCES, engineFile } from "@/lib/site";
 
@@ -36,7 +35,7 @@ function Source({ path, children }: { path: string; children: string }) {
  * overstatement here is right to discount all of it.
  */
 export default function EconomyAbout({ spawns }: { spawns: SpawnRecord }) {
-  const claim = staffSpawnClaim(spawns.total, spawns.spawns, ECONOMY_WIDEST_WINDOW);
+  const claim = staffSpawnClaim(spawns, ECONOMY_WIDEST_WINDOW);
   const rows = spawns.spawns ?? [];
 
   return (
@@ -163,18 +162,15 @@ export default function EconomyAbout({ spawns }: { spawns: SpawnRecord }) {
         <div className={styles.blockTitle}>{claim.label}</div>
         <div className={styles.prose}>
           <p>
-            Every row the spawn log holds, newest first: no window, no cap.
+            {spawns.allTime
+              ? "Every row the spawn log holds, newest first: no window, no cap."
+              : `The newest rows only, from ${ECONOMY_WIDEST_WINDOW.label}: the unwindowed read did not come back, so this list may be short of older rows.`}{" "}
             It is meant to be empty, so there is nothing to paginate and nothing
             to summarise - a row here is drama to be farmed.
           </p>
         </div>
         {rows.length === 0 ? (
-          <p className={styles.empty}>
-            {claim.items === null
-              ? "This could not be read just now."
-              : claim.detail ??
-                `Nothing has been created by staff in ${ECONOMY_WIDEST_WINDOW.label}.`}
-          </p>
+          <p className={styles.empty}>{claim.detail}</p>
         ) : (
           <div className={styles.scroll}>
             <table className={styles.table}>

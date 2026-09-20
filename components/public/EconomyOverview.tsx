@@ -114,7 +114,7 @@ export default function EconomyOverview({ economy }: { economy: OverviewData }) 
   const players = (snapshot: Snapshot) => snapshot.players;
   const [coinPoints, playerPoints] = alignedSeries(snapshots, [coins, players]);
 
-  const claim = staffSpawnClaim(spawns.total, spawns.spawns, ECONOMY_WIDEST_WINDOW);
+  const claim = staffSpawnClaim(spawns, ECONOMY_WIDEST_WINDOW);
   const census = overviewBlocks(economy.census);
 
   return (
@@ -195,7 +195,7 @@ export default function EconomyOverview({ economy }: { economy: OverviewData }) 
           <div className={styles.totalLabel}>{claim.label}</div>
         </div>
         <p className={styles.note}>
-          {claim.detail ?? "Nothing has been created by staff."}{" "}
+          {claim.detail}{" "}
           <a href="/economy/about" className={frame.link}>
             Every record, and how one is made
           </a>
