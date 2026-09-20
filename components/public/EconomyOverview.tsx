@@ -121,7 +121,7 @@ export default function EconomyOverview({ economy }: { economy: OverviewData }) 
     <>
       <EconomySections current="overview" window={window} />
 
-      <Panel align="left" width="var(--panel-prose)">
+      <Panel align="left">
         <div className={styles.intro}>
           <p>
             Once an hour, every save file on the server is read and everything
@@ -135,7 +135,7 @@ export default function EconomyOverview({ economy }: { economy: OverviewData }) 
         </div>
       </Panel>
 
-      <Panel width="var(--panel-prose)">
+      <Panel>
         <EconomyWindows current={window} />
 
         {totals === null ? (
@@ -189,7 +189,7 @@ export default function EconomyOverview({ economy }: { economy: OverviewData }) 
         )}
       </Panel>
 
-      <Panel width="var(--panel-prose)">
+      <Panel>
         <div className={styles.claim}>
           <div className={styles.claimValue}>{figure(claim.items)}</div>
           <div className={styles.totalLabel}>{claim.label}</div>
@@ -204,7 +204,7 @@ export default function EconomyOverview({ economy }: { economy: OverviewData }) 
       </Panel>
 
       {census === null ? null : (
-        <Panel align="left" width="var(--panel-wide)">
+        <Panel align="left">
           <div className={styles.blockTitle}>What exists in the game</div>
           <EconomyGroups blocks={census} />
           <p className={styles.note}>

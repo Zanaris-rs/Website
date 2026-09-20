@@ -7,13 +7,9 @@
  * weight. What is new here is the chart, an inline SVG drawn at whatever width
  * the panel gives it, and the blocks under it.
  *
- * **Three widths, and which one a panel takes is a decision about its
- * contents.** `--panel-max` (500px) is the original's panel and is right for a
- * table of two columns. `--panel-prose` (640px) is for text that is the page
- * rather than a note on it, which is most of /economy/about. `--panel-wide`
- * (100%, so 880px at the frame's cap) is for the catalogue, where eleven
- * categories down a 500px column was four screens of scrolling in a 960px
- * frame.
+ * **The census pages are one column at one width**, set once by `.stack` at
+ * the bottom of this file rather than panel by panel. `--panel-max` (500px) is
+ * the original's panel and still what the rest of the site uses.
  *
  * Anything wide needs `.scroll` around it. `html, body` are
  * `overflow-x: hidden`, so a table wider than the frame is clipped rather than
@@ -524,4 +520,28 @@
   font-size: 24px;
   font-weight: bold;
   color: #fff;
+}
+
+/* --- the census's own column --- */
+
+/*
+ * One width for every panel on the four census pages, and air between them.
+ *
+ * `--panel-max` is what `Site.module.css` sizes a `Panel` from, so redefining
+ * it here sets the width of everything inside without a single page having to
+ * pass one. The census is a column of separate statements — what exists, what
+ * staff have created, what moved — and at 500px with no gap they ran together
+ * into one tall box, with the widest of them sticking out past the rest.
+ */
+.stack {
+  --panel-max: var(--panel-prose);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+/* The title box brings its own margin; the gap is for the panels under it. */
+.stack > *:first-child {
+  margin-bottom: -4px;
 }

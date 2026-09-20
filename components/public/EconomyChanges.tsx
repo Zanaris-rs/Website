@@ -45,7 +45,7 @@ export default function EconomyChanges({ changes }: { changes: ChangesData }) {
     <>
       <EconomySections current="rares" window={window} />
 
-      <Panel align="left" width="var(--panel-prose)">
+      <Panel align="left">
         <div className={styles.blockTitle}>
           Rares entering and leaving the game
         </div>
@@ -73,7 +73,7 @@ export default function EconomyChanges({ changes }: { changes: ChangesData }) {
       </Panel>
 
       {window.days === 1 ? null : (
-        <Panel align="left" width="var(--panel-prose)">
+        <Panel align="left">
           <div className={styles.blockTitle}>In the last 24 hours</div>
           {moved === null ? (
             <div className={styles.empty}>This could not be read just now.</div>
@@ -102,7 +102,7 @@ export default function EconomyChanges({ changes }: { changes: ChangesData }) {
         </Panel>
       )}
 
-      <Panel align="left" width="var(--panel-prose)">
+      <Panel align="left">
         <EconomyWindows current={window} section="rares" />
         {days === null ? (
           <div className={styles.empty}>This could not be read just now.</div>

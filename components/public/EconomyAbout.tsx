@@ -43,7 +43,7 @@ export default function EconomyAbout({ spawns }: { spawns: SpawnRecord }) {
     <>
       <EconomySections current="about" window={ECONOMY_DEFAULT_WINDOW} />
 
-      <Panel align="left" width="var(--panel-prose)">
+      <Panel align="left">
         <div className={styles.blockTitle}>What the count includes</div>
         <div className={styles.prose}>
           <p>
@@ -86,7 +86,7 @@ export default function EconomyAbout({ spawns }: { spawns: SpawnRecord }) {
         </div>
       </Panel>
 
-      <Panel align="left" width="var(--panel-prose)">
+      <Panel align="left">
         <div className={styles.blockTitle}>How items enter the game</div>
         <div className={styles.prose}>
           <p>
@@ -157,7 +157,7 @@ export default function EconomyAbout({ spawns }: { spawns: SpawnRecord }) {
         </div>
       </Panel>
 
-      <Panel align="left" width="var(--panel-prose)">
+      <Panel align="left">
         <div className={styles.blockTitle}>{claim.label}</div>
         <div className={styles.prose}>
           <p>
@@ -207,7 +207,7 @@ export default function EconomyAbout({ spawns }: { spawns: SpawnRecord }) {
         )}
       </Panel>
 
-      <Panel align="left" width="var(--panel-prose)">
+      <Panel align="left">
         <div className={styles.blockTitle}>The code that counts</div>
         <div className={styles.prose}>
           <p>
@@ -231,7 +231,7 @@ export default function EconomyAbout({ spawns }: { spawns: SpawnRecord }) {
         </div>
       </Panel>
 
-      <Panel align="left" width="var(--panel-prose)">
+      <Panel align="left">
         <div className={styles.blockTitle}>What these pages cannot prove</div>
         <div className={styles.prose}>
           <p>

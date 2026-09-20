@@ -81,7 +81,7 @@ export default function EconomyCatalogue({
     <>
       <EconomySections current="items" window={ECONOMY_DEFAULT_WINDOW} />
 
-      <Panel width="var(--panel-wide)">
+      <Panel>
         <form action="/economy/items" className={styles.search}>
           <div className={frame.stone}>
             <b>Find an item</b>
@@ -110,7 +110,7 @@ export default function EconomyCatalogue({
       </Panel>
 
       {results === null ? null : (
-        <Panel align="left" width="var(--panel-wide)">
+        <Panel align="left">
           <div className={styles.blockTitle}>
             {results.total === 0
               ? `Nothing matches “${query}”`
@@ -173,7 +173,7 @@ export default function EconomyCatalogue({
       )}
 
       {results !== null ? null : (
-      <Panel align="left" width="var(--panel-wide)">
+      <Panel align="left">
         <div className={styles.blockTitle}>Everything in the game</div>
         <p className={styles.note}>
           Counted {formatWhen(census.takenAt)} across{" "}

@@ -24,15 +24,11 @@
   --frame-edge: 32px;
   --frame-gutter: 8px;
   --panel-max: 500px;
-  /* Prose that is the page rather than a note on it — /economy/about. 500px is
-     the original's panel and the right width for a paragraph between tables;
-     it is a narrow column for four screens of reading, and the frame has the
-     room. */
+  /* The census's column, and the width of any prose that is the page rather
+     than a note on it. 500px is the original's panel and the right width for a
+     paragraph between tables; it is a narrow column for four screens of
+     reading, and the frame has the room. */
   --panel-prose: 640px;
-  /* A table the frame's whole width, for the census catalogue. `.body` takes
-     40px a side off `--frame-max`, so this is 880px at the cap and the screen
-     below it. */
-  --panel-wide: 100%;
   --title-max: 250px;
 
   --text: #e4e4e4;
