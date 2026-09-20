@@ -334,35 +334,6 @@
   vertical-align: middle;
 }
 
-/* --- the census's four pages --- */
-
-/* The section nav, under the title box and above everything else on all four
-   pages. Wider spacing than `.tabs` and a line under it: these change the page,
-   where the window tabs change a number on it, and a reader should be able to
-   tell the two rows apart at a glance. */
-.sections {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 2px;
-  padding: 0 0 6px;
-  margin-bottom: 8px;
-  border-bottom: 1px solid var(--panel-border);
-}
-
-/* One row of four equal cells. `min-width` rather than a `flex` basis so they
-   stay the same size as each other on a phone, where they wrap into two rows
-   of two instead of stretching to fill one. */
-.sections > * {
-  min-width: 118px;
-  text-align: center;
-}
-
-.sectionCurrent {
-  font-weight: bold;
-  color: #fff;
-}
-
 /* Body text on /economy/about, which is prose rather than figures: the 11px
    caveat type this page used to whisper its notes in is unreadable as a page. */
 .prose p:first-child {

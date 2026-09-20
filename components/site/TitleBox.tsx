@@ -6,6 +6,13 @@ export type TitleBoxLink = {
   text: string;
   /** Put this link on its own line instead of after a ` - ` separator. */
   br?: boolean;
+  /**
+   * The page this box is on: rendered as text rather than as a link to itself.
+   *
+   * For a box whose links are a section nav, where one of them is always the
+   * page you are already reading — /economy does this with its four pages.
+   */
+  current?: boolean;
 };
 
 /**
@@ -16,13 +23,22 @@ export default function TitleBox({
   title,
   menu = true,
   links = [],
+  width,
 }: {
   title: string;
   menu?: boolean;
   links?: TitleBoxLink[];
+  /**
+   * Wider than `--title-max`, for a box carrying a section nav rather than one
+   * or two links out. `Panel` takes the same escape hatch for the same reason.
+   */
+  width?: number | string;
 }) {
   return (
-    <div className={styles.titleBox}>
+    <div
+      className={styles.titleBox}
+      style={width === undefined ? undefined : { width }}
+    >
       <div className={frame.panel}>
         <b>{title}</b>
         <br />
@@ -39,9 +55,15 @@ export default function TitleBox({
           return (
             <span key={link.href}>
               {first ? null : link.br ? <br /> : " - "}
-              <a href={link.href} className={frame.link}>
-                {link.text}
-              </a>
+              {link.current ? (
+                <span className={styles.titleBoxCurrent} aria-current="page">
+                  {link.text}
+                </span>
+              ) : (
+                <a href={link.href} className={frame.link}>
+                  {link.text}
+                </a>
+              )}
             </span>
           );
         })}

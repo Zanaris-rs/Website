@@ -179,7 +179,7 @@ export default async function Title() {
             />
             <MenuTile
               href="/economy"
-              image="/img/title/mm_scroll.jpg"
+              image="/img/title/mm_coins.jpg"
               caption="The Economy"
               blurb="Every item in the game, counted every hour."
             />
