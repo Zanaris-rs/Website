@@ -27,8 +27,8 @@ import {
   publicStaffSpawnsAllStatement,
   publicStaffSpawnsStatement,
   parseStaffSpawnTotal,
-  type StaffSpawnTotal,
 } from "./queries";
+import type { SpawnRecord } from "./spawns";
 
 /**
  * The reads behind /bans and /economy.
@@ -101,13 +101,6 @@ type SpawnRead = {
   readonly days?: number;
 };
 
-export type SpawnRecord = {
-  /** The all-time aggregate, or `null` before migration 7 is applied. */
-  readonly total: StaffSpawnTotal | null;
-  /** The rows to list. All of them, or the newest window of them. */
-  readonly spawns: readonly StaffSpawn[] | null;
-};
-
 /**
  * What staff have created, preferring the answer that covers everything.
  *
@@ -117,29 +110,42 @@ export type SpawnRecord = {
  * a build, with five census pages prerendering at once, is the difference
  * between a read and a connection timeout.
  *
- * The fallback read only happens when the all-time function is not there,
- * which is until migration 7 is applied by hand and never again after.
+ * The aggregate and the rows are separate functions over one table, so this
+ * reads both and reports what came back rather than assuming they agree. The
+ * windowed read is the last resort and costs a third connection, so it only
+ * happens when neither all-time read covered the table.
  */
 export async function loadSpawnRecord(
   { rows = false, days = ECONOMY_WIDEST_WINDOW.days }: SpawnRead = {},
 ): Promise<SpawnRecord> {
-  const [total, all] = await Promise.all([
+  const [aggregate, all] = await Promise.all([
     read("staff spawn total", publicStaffSpawnTotalStatement(), parseStaffSpawnTotal),
     rows
       ? read("staff spawns, all", publicStaffSpawnsAllStatement(), parseStaffSpawns)
       : Promise.resolve({ status: "unavailable" } as Load<StaffSpawn[]>),
   ]);
 
-  if (total.status === "ok" && (!rows || all.status === "ok")) {
-    return {
-      total: total.data,
-      spawns: all.status === "ok" ? all.data : null,
-    };
+  // `parseStaffSpawnTotal` answers `null` for no rows, and no rows is not an
+  // empty table. The function aggregates, so an empty table is one row of
+  // zeroes — the contract the whole feature rests on. No row at all means the
+  // read did not happen, and it must not become the nought it looks like.
+  const total = aggregate.status === "ok" ? aggregate.data : null;
+  const everything = all.status === "ok" ? all.data : null;
+
+  // Everything the caller asked for, and all of it all-time.
+  if (total !== null && (!rows || everything !== null)) {
+    return { total, spawns: everything, allTime: everything !== null };
   }
 
-  // Migration 7 has not been applied, so neither function exists. Fall back to
-  // the windowed read the page has always had — and the page says ninety days,
-  // because ninety days is all this saw.
+  // One of the two is missing. Losing the rows still leaves the aggregate's
+  // figure; losing the aggregate still leaves every row, which is the same
+  // table and so still "ever". Either way there is nothing for a window to add.
+  if (everything !== null) {
+    return { total, spawns: everything, allTime: true };
+  }
+
+  // Neither covered the table, so fall back to the windowed read the page has
+  // always had — and say ninety days, because ninety days is all this saw.
   const windowed = await read(
     "staff spawns",
     publicStaffSpawnsStatement(days),
@@ -147,13 +153,9 @@ export async function loadSpawnRecord(
   );
 
   return {
-    total: total.status === "ok" ? total.data : null,
-    spawns:
-      all.status === "ok"
-        ? all.data
-        : windowed.status === "ok"
-          ? windowed.data
-          : null,
+    total,
+    spawns: windowed.status === "ok" ? windowed.data : null,
+    allTime: false,
   };
 }
 
