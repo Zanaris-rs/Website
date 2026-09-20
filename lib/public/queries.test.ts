@@ -22,6 +22,7 @@ import {
   publicEconomyStatement,
   publicPunishmentsStatement,
   ECONOMY_SNAPSHOT_ROW_LIMIT,
+  ECONOMY_WIDEST_WINDOW,
   ECONOMY_SPAWN_ROW_LIMIT,
   parseStaffSpawnTotal,
   publicStaffSpawnTotalStatement,
@@ -506,5 +507,14 @@ describe("parseStaffSpawnTotal", () => {
 
   it("returns null when the function gave no row at all", () => {
     expect(parseStaffSpawnTotal([])).toBeNull();
+  });
+});
+
+describe("ECONOMY_WIDEST_WINDOW", () => {
+  it("is the most the SQL will answer, which is what a fallback should ask for", () => {
+    expect(ECONOMY_WIDEST_WINDOW.days).toBe(
+      Math.max(...ECONOMY_WINDOWS.map((window) => window.days)),
+    );
+    expect(ECONOMY_WIDEST_WINDOW.days).toBe(90);
   });
 });

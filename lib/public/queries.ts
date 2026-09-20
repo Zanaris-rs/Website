@@ -92,6 +92,17 @@ export const ECONOMY_WINDOWS: readonly EconomyWindow[] = [
 
 export const ECONOMY_DEFAULT_WINDOW: EconomyWindow = ECONOMY_WINDOWS[2];
 
+/**
+ * The widest window the SQL will answer, and so the most any fallback can see.
+ *
+ * `public_staff_spawns` clamps its argument to ninety days, so a read that
+ * cannot reach the all-time function should at least ask for everything the
+ * windowed one *will* give rather than settling for the default thirty — and
+ * then say ninety days, because ninety days is what it looked at.
+ */
+export const ECONOMY_WIDEST_WINDOW: EconomyWindow =
+  ECONOMY_WINDOWS[ECONOMY_WINDOWS.length - 1];
+
 /** The window a slug names, or `null` - which the route turns into a 404. */
 export function economyWindow(slug: string): EconomyWindow | null {
   return ECONOMY_WINDOWS.find((window) => window.slug === slug) ?? null;

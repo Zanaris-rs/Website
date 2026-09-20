@@ -273,3 +273,83 @@
 .table .itemRow td {
   vertical-align: middle;
 }
+
+/* --- the census's four pages --- */
+
+/* The section nav, under the title box and above everything else on all four
+   pages. Wider spacing than `.tabs` and a line under it: these change the page,
+   where the window tabs change a number on it, and a reader should be able to
+   tell the two rows apart at a glance. */
+.sections {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2px 14px;
+  padding: 0 0 6px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.sectionCurrent {
+  font-weight: bold;
+  color: #fff;
+}
+
+/* Body text on /economy/about, which is prose rather than figures: the 11px
+   caveat type this page used to whisper its notes in is unreadable as a page. */
+.prose p:first-child {
+  margin-top: 0;
+}
+
+.prose p:last-child {
+  margin-bottom: 0;
+}
+
+.prose ul {
+  margin: 2px 0 8px;
+  padding-left: 16px;
+}
+
+.prose code {
+  color: #fff;
+}
+
+/* A table wider than the panel scrolls inside its own strip. `html, body` are
+   `overflow-x: hidden`, so without this a wide table is clipped rather than
+   reachable — the hiscores results panel does the same thing. */
+.scroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+/* The icon column: as narrow as the sprite, and never the thing that wraps. */
+.icon {
+  width: 1px;
+  white-space: nowrap;
+  padding-right: 0;
+}
+
+/* The tracked rares, listed so "the rares" is not something a reader has to
+   take on trust. A wrapping row of icon-and-name pairs rather than a column:
+   fifteen names down the page would be a table of contents for a list of
+   fifteen things. */
+.roster {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 11px;
+}
+
+.roster li,
+.dayList li {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dayList {
+  list-style: none;
+}

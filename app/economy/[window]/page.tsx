@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import Economy from "@/components/public/Economy";
-import Frame from "@/components/site/Frame";
 import Panel from "@/components/site/Panel";
 import TitleBox from "@/components/site/TitleBox";
 import {
@@ -64,18 +63,14 @@ export default async function EconomyWindowPage({
 
   if (load.status !== "ok") {
     return (
-      <Frame>
+      <>
         <TitleBox title="The Economy" />
         <Panel>
           <p>The economy census is unavailable right now. Try again shortly.</p>
         </Panel>
-      </Frame>
+      </>
     );
   }
 
-  return (
-    <Frame>
-      <Economy economy={load.data} />
-    </Frame>
-  );
+  return <Economy economy={load.data} />;
 }

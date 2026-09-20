@@ -52,3 +52,32 @@ export const JAGEX_URL = "https://www.jagex.com/";
 
 /** Shown on `/rules`; bump it whenever the wording there changes. */
 export const RULES_UPDATED = "5th September 2026";
+
+/**
+ * The engine we run, by file, for `/economy/about`.
+ *
+ * The census page makes claims — that every save file is counted hourly, that
+ * items conjured by staff are logged — and a claim about what a program does is
+ * worth what the program is worth reading. These are the files that do it, on
+ * the branch the fleet actually runs, so "here is how it works" can be a link
+ * rather than an assurance.
+ *
+ * `ENGINE_BRANCH` is the same branch `GAME_VERSION` describes and
+ * `ec2-setup/fleet.sh` pins. Move it with the others.
+ */
+export const ENGINE_URL = "https://github.com/Zanaris-rs/Engine-TS";
+export const ENGINE_BRANCH = "274-hosting";
+
+/** A file in the engine, on the branch the fleet runs. */
+export function engineFile(path: string): string {
+  return `${ENGINE_URL}/blob/${ENGINE_BRANCH}/${path}`;
+}
+
+/** The four files behind everything /economy says about itself. */
+export const ENGINE_SOURCES = {
+  census: "tools/server/SaveCensus.ts",
+  counting: "tools/server/economy.ts",
+  saves: "tools/server/SaveReader.ts",
+  spawns: "src/engine/World.ts",
+  sql: "prisma/postgres/migrations/4_evidence_and_records/migration.sql",
+} as const;
