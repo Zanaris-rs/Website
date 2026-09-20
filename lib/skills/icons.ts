@@ -1,3 +1,5 @@
+import manifest from "./icons.json";
+
 /**
  * Skill ids as icons.
  *
@@ -41,9 +43,17 @@ export const SKILLS: readonly Skill[] = [
 
 const STATS: ReadonlySet<number> = new Set(SKILLS.map((skill) => skill.id));
 
+/**
+ * The version the generator stamped on the skill icons — the same scheme as
+ * `lib/items/icons.ts`, which explains it. The two sets are hashed apart, so
+ * a regeneration that only moves an item model leaves these URLs, and the
+ * caches holding them, untouched.
+ */
+const VERSION: string = manifest.version;
+
 /** The icon's URL, or `null` for anything that is not a 2004 skill. */
 export function skillIconSrc(stat: number): string | null {
-  return STATS.has(stat) ? `/img/game/skills/${stat}.png` : null;
+  return STATS.has(stat) ? `/img/game/skills/${stat}.png?v=${VERSION}` : null;
 }
 
 /** The stat behind a hiscore category, or `null` for Overall and unknowns. */

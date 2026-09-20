@@ -50,6 +50,31 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      {
+        // The game icons (see "Game icons" in the README). Static files
+        // default to `max-age=0`, which is one re-check per file per page
+        // view, and /economy puts about 130 of them on a page — so the
+        // default costs a hundred-odd requests for pictures that change only
+        // when someone repacks the engine and re-runs `icons:update`.
+        //
+        // A year, and immutable: never re-checked. The filenames are object
+        // ids rather than content hashes, so that is only safe because
+        // `itemIconSrc` / `skillIconSrc` put the generated set's version in
+        // the URL (`?v=`). A regeneration changes the version, so it changes
+        // every URL and reaches readers at once, which a shorter max-age
+        // could not do anyway — nothing can purge a browser cache.
+        //
+        // This also covers a hand-written path with no `?v=`, which would be
+        // cached for a year and never corrected. Don't write one: the README
+        // and the icons skill both say to call the helpers.
+        source: "/img/game/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
       // Nothing signed in may be framed. `SameSite=Lax` keeps the session
       // cookie out of a frame on *another* site, but not out of one on a
       // sibling host: `www.zanaris.rs` and the `*.04.zanaris.rs` worlds are

@@ -21,7 +21,8 @@ ids have no picture.
 | hiscore category (stat + 1, 0 = Overall) | `<SkillIcon stat={statOfCategory(category)} />` | `skillIconSrc(statOfCategory(c) ?? -1)` |
 
 - Components live in `components/game/`. They render through `Tile` (the only bare `<img>`), keep an empty square when there's no icon so columns line up, and take `size` (the hiscores use 16, the 2004 geometry).
-- Files: `public/img/game/items/<id>.png`, `public/img/game/skills/<stat>.png`. `lib/items/icons.json` = `{ count, blank }` — ids past `count` or in `blank` have no file.
+- Files: `public/img/game/items/<id>.png`, `public/img/game/skills/<stat>.png`. `lib/items/icons.json` = `{ version, count, blank }` — ids past `count` or in `blank` have no file; `lib/skills/icons.json` = `{ version }`.
+- **The helpers return a versioned URL** (`…/995.png?v=f205cfb4`), because `next.config.ts` caches `/img/game/*` for a year as `immutable`. A hand-written path has no `?v=` and is then cached for a year with no way to correct it. Strip the query only to touch the file on disk (`src.split("?")[0]`), never to render it.
 - `null` means no picture (e.g. 1649 `invis_ring1`, an invisible placeholder). For a lone icon (not in a column), skip rendering on `null` instead of drawing the spacer. For anything leaving the site (CSV, email), resolve against the origin: `new URL(src, "https://zanaris.rs")`.
 
 ## Regenerating (content bump, new items, changed models)

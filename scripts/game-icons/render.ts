@@ -11,6 +11,7 @@
 
 import "./dom-shim.ts";
 
+import { createHash } from "node:crypto";
 import {
   existsSync,
   mkdirSync,
@@ -158,7 +159,28 @@ function fresh(dir: string): string {
   return full;
 }
 
-const skillsDir = fresh("public/img/game/skills");
+/**
+ * Write a set of icons and return its version: a hash of everything in it.
+ *
+ * The icons are cached for a year (`next.config.ts`), which is only safe
+ * because the helpers put this version in the URL — the filenames are object
+ * ids, so a file's bytes change when its model does, and nothing can purge a
+ * browser cache. A regeneration that changes any icon changes the version,
+ * which changes every URL in the set, and readers see the new pictures at
+ * once. The two sets are hashed apart so that a run which only moves an item
+ * model leaves the skill icons' URLs, and their caches, alone.
+ */
+function writeSet(dir: string, files: [name: string, bytes: Buffer][]): string {
+  const hash = createHash("sha256");
+  for (const [name, bytes] of files) {
+    writeFileSync(path.join(dir, name), bytes);
+    hash.update(name);
+    hash.update(bytes);
+  }
+  return hash.digest("hex").slice(0, 8);
+}
+
+const skillFiles: [string, Buffer][] = [];
 for (const [stat, sheet, index] of SKILL_SPRITES) {
   const sprite = Pix32.depack(media, sheet, index);
   const pixels = uncrop(sprite);
@@ -168,13 +190,15 @@ for (const [stat, sheet, index] of SKILL_SPRITES) {
       if (pixels[i] === BLACK) pixels[i] = colour;
     }
   }
-  writeFileSync(
-    path.join(skillsDir, `${stat}.png`),
-    encodePng(pixels, sprite.owi, sprite.ohi),
-  );
+  skillFiles.push([`${stat}.png`, encodePng(pixels, sprite.owi, sprite.ohi)]);
 }
+const skillsVersion = writeSet(fresh("public/img/game/skills"), skillFiles);
+writeFileSync(
+  path.join(OUT_DIR, "lib/skills/icons.json"),
+  JSON.stringify({ version: skillsVersion }) + "\n",
+);
 console.log(
-  `skills   ${SKILL_SPRITES.length} -> public/img/game/skills/<stat>.png`,
+  `skills   ${skillFiles.length} -> public/img/game/skills/<stat>.png?v=${skillsVersion}`,
 );
 
 // --- items ----------------------------------------------------------------
@@ -202,7 +226,7 @@ for (let id = 0; id < modelCount; id++) {
   Model.unpack(id, cache.readGzip(1, id));
 }
 
-const itemsDir = fresh("public/img/game/items");
+const itemFiles: [string, Buffer][] = [];
 const blank: number[] = [];
 for (let id = 0; id < ObjType.numDefinitions; id++) {
   // Count 1 and outline 0: an inventory slot holding one, drop shadow and all.
@@ -214,11 +238,13 @@ for (let id = 0; id < ObjType.numDefinitions; id++) {
     blank.push(id);
     continue;
   }
-  writeFileSync(path.join(itemsDir, `${id}.png`), encodePng(icon.data, 32, 32));
+  itemFiles.push([`${id}.png`, encodePng(icon.data, 32, 32)]);
 }
+const itemsVersion = writeSet(fresh("public/img/game/items"), itemFiles);
 
-const drawn = ObjType.numDefinitions - blank.length;
-console.log(`items    ${drawn} -> public/img/game/items/<id>.png`);
+console.log(
+  `items    ${itemFiles.length} -> public/img/game/items/<id>.png?v=${itemsVersion}`,
+);
 console.log(
   `         ${blank.length} drawn blank by the client: ${blank.join(", ") || "none"}`,
 );
@@ -226,9 +252,13 @@ console.log(
 const manifest = path.join(OUT_DIR, "lib/items/icons.json");
 writeFileSync(
   manifest,
-  JSON.stringify({ count: ObjType.numDefinitions, blank }) + "\n",
+  JSON.stringify({
+    version: itemsVersion,
+    count: ObjType.numDefinitions,
+    blank,
+  }) + "\n",
 );
-console.log(`wrote    lib/items/icons.json`);
+console.log(`wrote    lib/items/icons.json, lib/skills/icons.json`);
 
 // --- cross-check against the names the economy pages print -----------------
 
