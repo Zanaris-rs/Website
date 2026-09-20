@@ -1,11 +1,7 @@
 import type { Colour } from "@/lib/colour";
 import { formatNumber } from "@/lib/hiscores/format";
 import { formatShortDate } from "@/lib/news/parse";
-import {
-  ECONOMY_DEFAULT_WINDOW,
-  type Punishment,
-  type PunishmentKind,
-} from "@/lib/public/queries";
+import type { Punishment, PunishmentKind } from "@/lib/public/queries";
 
 /**
  * The words /bans and /economy put round the rows.
@@ -55,16 +51,12 @@ export function bansHref(page: number): string {
 /**
  * Where a window of the census lives: `/economy`, then `/economy/7-days`.
  *
- * `bansHref`'s rule again. The default window is `/economy` and has no slug of
- * its own, so nothing has to decide whether `/economy` or `/economy/30-days` is
- * the canonical one — the second is a 404, and `generateStaticParams` does not
- * offer it.
+ * It lives in `lib/public/sections.ts` now, because the census is four pages
+ * and the answer depends on which of them is asking — `/economy/rares/7-days`
+ * is the same question about a different section. Re-exported here so that the
+ * pages importing it from `format` alongside the words on them keep working.
  */
-export function economyHref(window: { slug: string }): string {
-  return window.slug === ECONOMY_DEFAULT_WINDOW.slug
-    ? "/economy"
-    : `/economy/${window.slug}`;
-}
+export { economyHref } from "./sections";
 
 const KIND_LABELS: Record<PunishmentKind, string> = {
   ban: "Ban",

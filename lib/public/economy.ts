@@ -44,6 +44,83 @@ export function seriesOf(
 }
 
 /**
+ * Several series over one shared time axis.
+ *
+ * Returns one `Point[]` per pick, every one the same length and naming the same
+ * instants in the same order — so index *i* is the same hour in all of them.
+ *
+ * `seriesOf` drops the hours *its own* pick could not read, and `coins` and
+ * `players` are independently nullable, so two series built with it can come
+ * back different lengths. `chartPath` spaces points by index, so index 40 would
+ * then be a different hour in each chart: two charts drawn from the same census
+ * would silently disagree about what is under a given x, and a crosshair shared
+ * between them would point at two different times.
+ *
+ * An hour is kept only when *every* pick reads a number from it. That is the
+ * intersection rather than the union, and it is the stricter choice on purpose:
+ * losing an hour from one chart because the other could not be read costs a
+ * point nobody can see, and buys two charts that are honestly comparable.
+ */
+export function alignedSeries(
+  snapshots: readonly Snapshot[],
+  picks: readonly ((snapshot: Snapshot) => number | null)[],
+): Point[][] {
+  const series: Point[][] = picks.map(() => []);
+
+  for (const snapshot of snapshots) {
+    if (snapshot.takenAt === null) continue;
+    const values = picks.map((pick) => pick(snapshot));
+    if (values.some((value) => value === null)) continue;
+    values.forEach((value, index) => {
+      series[index].push({ at: snapshot.takenAt as string, value: value as number });
+    });
+  }
+
+  return series;
+}
+
+/**
+ * How many readings a chart hands the browser.
+ *
+ * The three shorter windows are under this, so they travel whole and the
+ * crosshair can name every census the server took. Ninety days is 2,160
+ * readings and would be the largest thing on the page by a wide margin.
+ */
+export const CHART_MAX_POINTS = 720;
+
+/**
+ * At most `max` readings, evenly spaced, first and last always kept.
+ *
+ * Only the 90-day window is ever over the cap, and it reduces three to one —
+ * a reading every three hours instead of every hour. That is finer than the
+ * chart can draw it: 880 pixels across 2,160 readings is a quarter of a pixel
+ * each, so the points being dropped were already sharing a column with the
+ * ones being kept.
+ *
+ * It picks readings rather than averaging them, and that is the whole point.
+ * An average is a number the census never recorded, and the crosshair would
+ * then name an hour and show a figure that was never true of it. Every value
+ * here is one the server actually counted.
+ *
+ * Selection is by index, so two series of the same length — which is what
+ * `alignedSeries` guarantees — reduce to the same instants and stay aligned.
+ */
+export function chartSeries(
+  points: readonly Point[],
+  max: number = CHART_MAX_POINTS,
+): Point[] {
+  if (points.length <= max) return [...points];
+  if (max <= 1) return points.length === 0 ? [] : [points[points.length - 1]];
+
+  const last = points.length - 1;
+  const kept: Point[] = [];
+  for (let i = 0; i < max; i++) {
+    kept.push(points[Math.round((i / (max - 1)) * last)]);
+  }
+  return kept;
+}
+
+/**
  * A polyline through the points, scaled to fill the box.
  *
  * Two cases are not corner cases here, because until the census has run for a

@@ -4,12 +4,14 @@ import { ECONOMY_FLOW_ROW_LIMIT, type Flow, type Snapshot } from "./queries";
 import {
   BLOCK_ROWS,
   chartPath,
+  chartSeries,
   dailyChange,
   dailyFlows,
   economyBlocks,
   foldNotes,
   latestSnapshot,
   rangeOf,
+  alignedSeries,
   seriesOf,
   utcDay,
 } from "./economy";
@@ -445,5 +447,97 @@ describe("economyBlocks", () => {
     expect(ores.items).toEqual([{ id: 1, count: 15 }]);
     expect(ores.counted).toBe(1);
     expect(ores.value).toBe(15 * 17);
+  });
+});
+
+describe("alignedSeries", () => {
+  it("keeps one shared axis, so the same index is the same hour in every series", () => {
+    const [coins, players] = alignedSeries(
+      [
+        snapshot("2026-09-01T00:00:00Z", 5, 100),
+        snapshot("2026-09-01T01:00:00Z", 6, 200),
+        snapshot("2026-09-01T02:00:00Z", 7, 300),
+      ],
+      [(s) => s.coins, (s) => s.players],
+    );
+
+    expect(coins.map((point) => point.at)).toEqual(players.map((p) => p.at));
+    expect(coins.map((point) => point.value)).toEqual([100, 200, 300]);
+    expect(players.map((point) => point.value)).toEqual([5, 6, 7]);
+  });
+
+  it("drops an hour any series could not read, so neither chart shifts under the other", () => {
+    const [coins, players] = alignedSeries(
+      [
+        snapshot("2026-09-01T00:00:00Z", 5, 100),
+        { takenAt: "2026-09-01T01:00:00Z", players: 6, coins: null, tracked: [] },
+        snapshot("2026-09-01T02:00:00Z", 7, 300),
+      ],
+      [(s) => s.coins, (s) => s.players],
+    );
+
+    expect(coins).toHaveLength(2);
+    expect(players).toHaveLength(2);
+    expect(players.map((point) => point.value)).toEqual([5, 7]);
+  });
+
+  it("drops a snapshot with no timestamp to put it on the axis with", () => {
+    const [coins] = alignedSeries(
+      [
+        snapshot("2026-09-01T00:00:00Z", 5, 100),
+        { takenAt: null, players: 6, coins: 200, tracked: [] },
+      ],
+      [(s) => s.coins],
+    );
+
+    expect(coins).toHaveLength(1);
+  });
+
+  it("returns one empty series per pick when nothing was counted", () => {
+    expect(alignedSeries([], [(s) => s.coins, (s) => s.players])).toEqual([
+      [],
+      [],
+    ]);
+  });
+});
+
+describe("chartSeries", () => {
+  const points = (n: number) =>
+    Array.from({ length: n }, (_, i) => ({
+      at: `2026-09-01T${String(i).padStart(2, "0")}:00:00Z`,
+      value: i,
+    }));
+
+  it("sends every point when the window is small enough to send whole", () => {
+    const whole = points(720);
+    expect(chartSeries(whole, 720)).toEqual(whole);
+  });
+
+  it("reduces a longer window to the cap", () => {
+    expect(chartSeries(points(2160), 720)).toHaveLength(720);
+  });
+
+  it("keeps the first and last reading, so the chart still spans its window", () => {
+    const reduced = chartSeries(points(2160), 720);
+    expect(reduced[0]).toEqual({ at: "2026-09-01T00:00:00Z", value: 0 });
+    expect(reduced[reduced.length - 1].value).toBe(2159);
+  });
+
+  it("picks the same indices for two series of equal length, so they stay aligned", () => {
+    const a = chartSeries(points(2160), 720);
+    const b = chartSeries(points(2160), 720);
+    expect(a.map((p) => p.at)).toEqual(b.map((p) => p.at));
+  });
+
+  it("never invents a reading the census did not take", () => {
+    const reduced = chartSeries(points(2160), 720);
+    const real = new Set(points(2160).map((p) => `${p.at}/${p.value}`));
+    for (const point of reduced) {
+      expect(real.has(`${point.at}/${point.value}`)).toBe(true);
+    }
+  });
+
+  it("counts nothing as nothing", () => {
+    expect(chartSeries([], 720)).toEqual([]);
   });
 });
