@@ -24,6 +24,11 @@
   --frame-edge: 32px;
   --frame-gutter: 8px;
   --panel-max: 500px;
+  /* The census's column, and the width of any prose that is the page rather
+     than a note on it. 500px is the original's panel and the right width for a
+     paragraph between tables; it is a narrow column for four screens of
+     reading, and the frame has the room. */
+  --panel-prose: 640px;
   --title-max: 250px;
 
   --text: #e4e4e4;

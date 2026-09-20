@@ -1,14 +1,22 @@
 /*
- * The two public transparency pages: the ban record and the economy census.
+ * The public transparency pages: the ban record, and the four the economy
+ * census is made of.
  *
- * Both are tables of numbers inside the 500px black panel, so they borrow the
- * news list's table shape rather than inventing one — 1px vertical padding,
- * 4px horizontal, headings bold and everything else normal weight. What is new
- * here is the chart, which is an inline SVG drawn at whatever width the panel
- * gives it, and the "day" blocks under it.
+ * They borrow the news list's table shape rather than inventing one — 1px
+ * vertical padding, 4px horizontal, headings bold and everything else normal
+ * weight. What is new here is the chart, an inline SVG drawn at whatever width
+ * the panel gives it, and the blocks under it.
  *
- * No breakpoints: the layout viewport is pinned to 600px in `app/layout.tsx`,
- * so every reader gets the same page and a phone scales it.
+ * **The census pages are one column at one width**, set once by `.stack` at
+ * the bottom of this file rather than panel by panel. `--panel-max` (500px) is
+ * the original's panel and still what the rest of the site uses.
+ *
+ * Anything wide needs `.scroll` around it. `html, body` are
+ * `overflow-x: hidden`, so a table wider than the frame is clipped rather than
+ * reachable — the hiscores results panel solves it the same way.
+ *
+ * No breakpoints, still: the pages reflow on their own and the grid below
+ * picks its own column count.
  */
 
 .table {
@@ -125,6 +133,7 @@
   font-weight: bold;
   text-align: left;
   padding-bottom: 3px;
+  margin-bottom: 8px;
 }
 
 /* The SVG fills the panel and keeps its aspect; `display: block` kills the
@@ -132,7 +141,7 @@
 .chartCanvas {
   display: block;
   width: 100%;
-  height: 60px;
+  height: 110px;
   border: 1px solid var(--panel-border);
   background: #000;
 }
@@ -146,24 +155,36 @@
   vector-effect: non-scaling-stroke;
 }
 
-/* The same shape closed to the baseline, faint, so a flat line still reads as
-   a quantity rather than as a scratch on the panel. */
-.area {
-  stroke: none;
-  opacity: 0.15;
+/* The trailing average through the readings. Dashed and white so that it reads
+   as worked out rather than counted — the readings are the coloured line, and a
+   second solid line in a second hue would be two measurements rather than one
+   measurement and a trend through it. */
+.trend {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
+  opacity: 0.75;
+  vector-effect: non-scaling-stroke;
 }
 
-/* Two of the original's nine link colours, as a stroke and a fill. They are
-   repeated here rather than imported because `Frame.module.css` paints text
-   with them and an SVG needs `stroke`/`fill`. */
+/* Two of the original's nine link colours, as a stroke. They are repeated here
+   rather than imported because `Frame.module.css` paints text with them and an
+   SVG needs `stroke`.
+
+   **Stroke only.** These used to set `fill` as well, and because they are
+   written after `.line` and are no more specific, that fill won: every chart
+   line was filled to its own closing edge, under the stroke. Together with the
+   faint `.area` path that used to sit beneath it, that is what made one series
+   look like two — a solid shape and a line over it, with nothing to say which
+   was which, because neither was a thing. Anything here that wants a fill sets
+   its own. */
 .yellow {
   stroke: #ffe139;
-  fill: #ffe139;
 }
 
 .lblue {
   stroke: #9db8c3;
-  fill: #9db8c3;
 }
 
 /* The scale, printed rather than drawn: two axis labels in a 500px panel
@@ -224,23 +245,28 @@
 /* --- one category of the census --- */
 
 .group {
-  padding-bottom: 10px;
+  padding-bottom: 14px;
 }
 
 .group:last-child {
   padding-bottom: 0;
 }
 
+/* A category heading has to win against a wrapping row of forty-eight tiles
+   under it, so it gets a rule of its own rather than only being bold. */
 .groupTitle {
   font-weight: bold;
   color: #fff;
+  font-size: 14px;
+  border-bottom: 1px solid var(--panel-border);
+  padding-bottom: 2px;
 }
 
 /* "16,989 items · shop value 496,028 gp", under the heading and smaller: the
    heading names the block, this says how big it is. */
 .groupMeta {
   font-size: 11px;
-  padding-bottom: 2px;
+  padding: 3px 0 7px;
 }
 
 /* A count nobody could price, and how much of the block that was. Faint,
@@ -249,16 +275,47 @@
   color: var(--text-muted);
 }
 
-/* The count column of a category table. Narrow enough that the name column
-   takes the slack, so two blocks side by side in the same panel line up. */
-.groupCount {
-  width: 30%;
-  text-align: right;
+/* A category's items, across rather than down: each one an icon, its name and
+   how many exist, wrapping to as many rows as the category needs. */
+.tiles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tiles li {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 5px 1px 2px;
+  border: 1px solid var(--panel-border);
+  background: rgba(255, 255, 255, 0.03);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.tileName {
   white-space: nowrap;
 }
 
-/* An item the census counted none of. Only a roster block prints one — the
-   zero is the interesting part, so it is dimmed rather than hidden. */
+/* The figure is the reason the tile exists, so it is the bright part. */
+.tileCount {
+  color: #fff;
+  white-space: nowrap;
+}
+
+/* An item the census counted none of. Only a roster block prints one, and the
+   nought is the interesting part, so the whole tile recedes rather than
+   disappearing. */
+.tiles li.none,
+.tiles li.none .tileCount {
+  color: var(--text-muted);
+}
+
+/* A row for something the census counted none of, in the search results. */
 .none {
   color: var(--text-muted);
 }
@@ -272,4 +329,240 @@
    count sits level with the name rather than at the top of the row. */
 .table .itemRow td {
   vertical-align: middle;
+}
+
+/* Body text on /economy/about, which is prose rather than figures: the 11px
+   caveat type this page used to whisper its notes in is unreadable as a page. */
+.prose p:first-child {
+  margin-top: 0;
+}
+
+.prose p:last-child {
+  margin-bottom: 0;
+}
+
+.prose ul {
+  margin: 2px 0 8px;
+  padding-left: 16px;
+}
+
+.prose code {
+  color: #fff;
+}
+
+/* A table wider than the panel scrolls inside its own strip. `html, body` are
+   `overflow-x: hidden`, so without this a wide table is clipped rather than
+   reachable — the hiscores results panel does the same thing. */
+.scroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+/* The icon column: as narrow as the sprite, and never the thing that wraps. */
+.icon {
+  width: 1px;
+  white-space: nowrap;
+  padding-right: 0;
+}
+
+/* The tracked rares, listed so "the rares" is not something a reader has to
+   take on trust. A wrapping row of icon-and-name pairs rather than a column:
+   fifteen names down the page would be a table of contents for a list of
+   fifteen things. */
+.roster {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 11px;
+}
+
+.roster li,
+.dayList li {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dayList {
+  list-style: none;
+}
+
+/* --- the catalogue --- */
+
+/* The stone search box, centred over the results it produces. `frame.stone`
+   brings its own bezel; this only decides where it sits. */
+.search {
+  display: flex;
+  justify-content: center;
+  padding-bottom: 2px;
+}
+
+.searchButton {
+  margin-top: 4px;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 13px;
+}
+
+/* Eleven categories down one column was four screens of scrolling. Across the
+   frame they are two or three, and each block still reads top to bottom. */
+/* The categories stack now rather than sitting in columns: each one is a
+   wrapping row of its own and wants the full width to wrap into. */
+.blocks {
+  display: block;
+}
+
+/* A row for an item nobody has any of. The nought is the interesting part on
+   this page, so it is dimmed rather than dropped. */
+.itemRow td {
+  vertical-align: middle;
+}
+
+/* --- the chart key and its hover readout --- */
+
+/* Two lines in one box need saying which is which. It sits under the scale
+   rather than over the picture: at 60px tall there is no room inside for a
+   legend that is not covering data. */
+.key {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0 14px;
+  font-size: 11px;
+  padding-top: 2px;
+}
+
+.key span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* A swatch drawn as the line it stands for, not as a block of colour: the
+   difference between the two series is dash and weight, so a square would
+   leave the key saying less than the chart does. */
+.keyLine {
+  display: inline-block;
+  width: 14px;
+  height: 0;
+  border-top: 2px solid;
+  /* `.yellow`/`.lblue` paint SVG, so the key takes its colour from `fill`. */
+  border-top-color: currentColor;
+  color: inherit;
+}
+
+.yellow.keyLine {
+  border-top-color: #ffe139;
+}
+
+.lblue.keyLine {
+  border-top-color: #9db8c3;
+}
+
+.keyTrend {
+  border-top: 1px dashed #fff;
+  opacity: 0.75;
+}
+
+/* The layer the crosshair is drawn on, exactly over the SVG. */
+.chartHover {
+  position: relative;
+  touch-action: pan-y;
+}
+
+.crosshair {
+  position: absolute;
+  top: 1px;
+  bottom: 1px;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.45);
+  pointer-events: none;
+}
+
+.crosshairDot {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  margin: -2px 0 0 -2px;
+  background: #fff;
+  pointer-events: none;
+}
+
+/* The figure under the cursor. It flips to the other side of the crosshair
+   past the middle so it is never clipped by the panel's right edge. */
+.readout {
+  position: absolute;
+  top: 2px;
+  margin-left: 6px;
+  padding: 1px 4px;
+  background: rgba(0, 0, 0, 0.85);
+  border: 1px solid var(--panel-border);
+  font-size: 11px;
+  line-height: 1.3;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.readoutLeft {
+  margin-left: 0;
+  transform: translateX(calc(-100% - 6px));
+}
+
+/* The staff-spawn figure. The same shape as a total above it, because it is
+   the same kind of statement — and it is the one the page is really making. */
+.claim {
+  text-align: center;
+  padding: 2px 0 4px;
+}
+
+.claimValue {
+  font-size: 24px;
+  font-weight: bold;
+  color: #fff;
+}
+
+/* --- the census's own column --- */
+
+/*
+ * One width for every panel on the four census pages, and air between them.
+ *
+ * `--panel-max` is what `Site.module.css` sizes a `Panel` from, so redefining
+ * it here sets the width of everything inside without a single page having to
+ * pass one. The census is a column of separate statements — what exists, what
+ * staff have created, what moved — and at 500px with no gap they ran together
+ * into one tall box, with the widest of them sticking out past the rest.
+ */
+.stack {
+  --panel-max: var(--panel-prose);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+/* The title box brings its own margin; the gap is for the panels under it. */
+.stack > *:first-child {
+  margin-bottom: -4px;
+}
+
+
+/* A line closing a block off, under what it refers to rather than indented
+   into it: "every item in the game", "counted at 11:01 across 10 save files".
+   Centred, because it belongs to the whole block above it and not to the last
+   row of it — `.note` is indented for /bans, where a note hangs off the
+   punishment on the row above. */
+.blockNote {
+  text-align: center;
+  font-style: italic;
+  padding-top: 10px;
+}
+
+/* When the census was taken, under the heading it qualifies and above the
+   categories it describes. Not a `.blockNote`: that closes a block off, and
+   this opens one. */
+.censusStamp {
+  font-style: italic;
+  margin: -4px 0 12px;
 }

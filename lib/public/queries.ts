@@ -92,6 +92,17 @@ export const ECONOMY_WINDOWS: readonly EconomyWindow[] = [
 
 export const ECONOMY_DEFAULT_WINDOW: EconomyWindow = ECONOMY_WINDOWS[2];
 
+/**
+ * The widest window the SQL will answer, and so the most any fallback can see.
+ *
+ * `public_staff_spawns` clamps its argument to ninety days, so a read that
+ * cannot reach the all-time function should at least ask for everything the
+ * windowed one *will* give rather than settling for the default thirty — and
+ * then say ninety days, because ninety days is what it looked at.
+ */
+export const ECONOMY_WIDEST_WINDOW: EconomyWindow =
+  ECONOMY_WINDOWS[ECONOMY_WINDOWS.length - 1];
+
 /** The window a slug names, or `null` - which the route turns into a 404. */
 export function economyWindow(slug: string): EconomyWindow | null {
   return ECONOMY_WINDOWS.find((window) => window.slug === slug) ?? null;
@@ -138,6 +149,52 @@ export function publicStaffSpawnsStatement(
     text: "select * from accounts.public_staff_spawns($1)",
     values: [days],
   };
+}
+
+/**
+ * The ceiling `public_staff_spawns` returns at, mirrored from migration 4.
+ *
+ * `ECONOMY_FLOW_ROW_LIMIT`'s reason: the function is `ORDER BY created_at DESC
+ * ... LIMIT 500`, so a five-hundred-and-first row is dropped with nothing to
+ * say it happened. It has never mattered — the table is empty — and a limit
+ * that only matters on the day it is breached is exactly the one to write down
+ * before then.
+ *
+ * It applies to the *windowed* read only. `public_staff_spawns_all` has no
+ * limit and needs none; see below.
+ */
+export const ECONOMY_SPAWN_ROW_LIMIT = 500;
+
+/**
+ * The ceiling `public_economy` returns at, mirrored from migration 4.
+ *
+ * Ninety days of hourly censuses is 2,160 rows, so there are 240 to spare. A
+ * fifth window, or a census that ran more often than hourly, would silently
+ * lose the oldest hours off the widest chart — `queries.test.ts` fails first.
+ */
+export const ECONOMY_SNAPSHOT_ROW_LIMIT = 2400;
+
+/**
+ * Every staff spawn there has ever been, and the aggregate over the same rows.
+ *
+ * Both are unwindowed and unlimited, which is safe for one reason: this table
+ * should be empty. Only `notifyStaffSpawn` writes to it, only on a production
+ * world, and a row in it is a thing that ought to be looked at rather than
+ * summarised. Nothing reaps it either — `accounts.reap()` does not name it —
+ * and that is deliberate, because a record of items conjured into the economy
+ * that expires after ninety days is not a record.
+ *
+ * The windowed `public_staff_spawns` clamps its argument to ninety days, so it
+ * cannot answer "ever" however large a number it is passed. That is what these
+ * are for, and why the page falls back to ninety days and *says* ninety days
+ * until they exist.
+ */
+export function publicStaffSpawnsAllStatement(): Statement {
+  return { text: "select * from accounts.public_staff_spawns_all()", values: [] };
+}
+
+export function publicStaffSpawnTotalStatement(): Statement {
+  return { text: "select * from accounts.public_staff_spawn_total()", values: [] };
 }
 
 /**
@@ -430,6 +487,47 @@ export function parseStaffSpawn(row: unknown): StaffSpawn | null {
     itemId,
     count: asCount(r.count) ?? 0,
     world: world === null ? null : world,
+  };
+}
+
+/**
+ * The whole `staff_spawn` table in four numbers.
+ *
+ * `spawns` is rows and `items` is how many objects those rows created, which
+ * are different questions: one moderator handing out a thousand coins is one
+ * spawn and a thousand items. `firstAt` is null on an empty table and is what
+ * lets the page say *since when* it has been nought rather than just nought.
+ */
+export type StaffSpawnTotal = {
+  readonly spawns: number;
+  readonly items: number;
+  readonly firstAt: string | null;
+  readonly lastAt: string | null;
+};
+
+/**
+ * The aggregate row, or `null` when there was not one.
+ *
+ * A table with nothing in it still returns a row, of zeroes and nulls — that is
+ * the function's contract and it is the whole point of having it. No row at all
+ * means the read did not happen, which the page must not print as "nought".
+ */
+export function parseStaffSpawnTotal(
+  rows: readonly unknown[],
+): StaffSpawnTotal | null {
+  const row = rows[0];
+  if (typeof row !== "object" || row === null) return null;
+  const r = row as Record<string, unknown>;
+
+  const spawns = asCount(r.spawns);
+  const items = asCount(r.items);
+  if (spawns === null || items === null) return null;
+
+  return {
+    spawns,
+    items,
+    firstAt: asIso(r.first_at),
+    lastAt: asIso(r.last_at),
   };
 }
 

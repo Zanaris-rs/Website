@@ -36,13 +36,21 @@ function value(block: Block) {
 }
 
 /**
- * One category of the census: what it holds, what that is worth, and how far it
- * has moved over the window.
+ * One category of the census: what it holds, and how much of each.
  *
- * The low and high line is the same `.chartScale` the charts print their own
- * scale in, because it is the same idea — the numbers either side of what is
- * being shown. A block whose range could not be read prints no line rather than
- * printing zeroes.
+ * Laid out **across** rather than down. A column of two-cell rows works when
+ * every category is the same length and these are not: eleven of them at
+ * wildly different heights left the page full of ragged whitespace, the
+ * headings lost among their own rows, and a reader scrolling past a category
+ * with two items in it to reach one with forty-eight. Wrapped rows of
+ * icon-name-count sit at whatever height each category needs and put the
+ * headings where they can be seen.
+ *
+ * No low and high line. It reported a range over a window this page cannot
+ * show, printed between two categories where it looked like it belonged to
+ * either, and said nothing a reader could do anything with — the shape over
+ * time is what that wanted to be, and `public_economy` does not return the
+ * per-category history it would need.
  *
  * Rows are already ordered and capped by `economyBlocks`; nothing here decides
  * anything, which is why none of it needs a test of its own.
@@ -67,29 +75,18 @@ export default function EconomyGroups({ blocks }: { blocks: readonly Block[] }) 
           {block.items.length === 0 ? (
             <div className={styles.empty}>Nothing of this kind exists yet.</div>
           ) : (
-            <table className={styles.table}>
-              <tbody>
-                {block.items.map((item) => (
-                  <tr
-                    key={item.id}
-                    className={item.count === 0 ? `${styles.itemRow} ${styles.none}` : styles.itemRow}
-                  >
-                    <td>
-                      <ItemIcon id={item.id} />
-                      {itemName(item.id)}
-                    </td>
-                    <td className={styles.groupCount}>{formatNumber(item.count)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-
-          {block.low === null || block.high === null ? null : (
-            <div className={styles.chartScale}>
-              <span>low {formatNumber(block.low)}</span>
-              <span>high {formatNumber(block.high)}</span>
-            </div>
+            <ul className={styles.tiles}>
+              {block.items.map((item) => (
+                <li
+                  key={item.id}
+                  className={item.count === 0 ? styles.none : undefined}
+                >
+                  <ItemIcon id={item.id} />
+                  <span className={styles.tileName}>{itemName(item.id)}</span>
+                  <b className={styles.tileCount}>{formatNumber(item.count)}</b>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
       ))}

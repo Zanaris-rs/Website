@@ -21,6 +21,14 @@
   text-align: center;
 }
 
+/* The link that is the page you are on, in a box whose links are a section
+   nav. White and bold so it reads as the chosen one, without a border or a
+   background to draw. */
+.titleBoxCurrent {
+  font-weight: bold;
+  color: #fff;
+}
+
 /* --- 500px content panel --- */
 
 .panelBox {

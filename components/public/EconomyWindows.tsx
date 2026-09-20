@@ -1,5 +1,5 @@
 import frame from "@/components/site/Frame.module.css";
-import { economyHref } from "@/lib/public/format";
+import { economyHref } from "@/lib/public/sections";
 import { ECONOMY_WINDOWS, type EconomyWindow } from "@/lib/public/queries";
 
 import styles from "./Public.module.css";
@@ -15,8 +15,20 @@ import styles from "./Public.module.css";
  *
  * The current window renders as text with `aria-current`, not as a link to the
  * page you are already on.
+ *
+ * The tabs stay inside their section: on `/economy/rares` they point at
+ * `/economy/rares/7-days`, not back to the overview. `economyHref` owns that,
+ * and owns dropping the default window's slug so each section has one URL for
+ * it rather than two.
  */
-export default function EconomyWindows({ current }: { current: EconomyWindow }) {
+export default function EconomyWindows({
+  current,
+  section = "overview",
+}: {
+  current: EconomyWindow;
+  /** Which section's tabs these are: they stay inside it. */
+  section?: string;
+}) {
   return (
     <nav className={styles.tabs} aria-label="Census window">
       {ECONOMY_WINDOWS.map((window) =>
@@ -25,7 +37,7 @@ export default function EconomyWindows({ current }: { current: EconomyWindow }) 
             {window.short}
           </span>
         ) : (
-          <a key={window.slug} href={economyHref(window)} className={frame.link}>
+          <a key={window.slug} href={economyHref(window, section)} className={frame.link}>
             {window.short}
           </a>
         ),

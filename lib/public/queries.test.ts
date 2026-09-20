@@ -21,6 +21,12 @@ import {
   publicEconomyLatestStatement,
   publicEconomyStatement,
   publicPunishmentsStatement,
+  ECONOMY_SNAPSHOT_ROW_LIMIT,
+  ECONOMY_WIDEST_WINDOW,
+  ECONOMY_SPAWN_ROW_LIMIT,
+  parseStaffSpawnTotal,
+  publicStaffSpawnTotalStatement,
+  publicStaffSpawnsAllStatement,
   publicStaffSpawnsStatement,
 } from "./queries";
 
@@ -35,6 +41,8 @@ describe("the statements", () => {
       publicStaffSpawnsStatement(),
       publicEconomyLatestStatement(),
       publicEconomyGroupRangeStatement(30, { ores: [440] }),
+      publicStaffSpawnsAllStatement(),
+      publicStaffSpawnTotalStatement(),
     ];
 
     expect(calls.map((call) => squash(call.text))).toEqual([
@@ -44,6 +52,8 @@ describe("the statements", () => {
       "select * from accounts.public_staff_spawns($1)",
       "select * from accounts.public_economy_latest()",
       "select * from accounts.public_economy_group_range($1, $2)",
+      "select * from accounts.public_staff_spawns_all()",
+      "select * from accounts.public_staff_spawn_total()",
     ]);
   });
 
@@ -454,5 +464,57 @@ describe("parseGroupRanges", () => {
     ]);
 
     expect([...ranges.keys()]).toEqual(["logs"]);
+  });
+});
+
+describe("the row limits the SQL imposes", () => {
+  it("leaves room for every hour of the widest window", () => {
+    const widest = Math.max(...ECONOMY_WINDOWS.map((window) => window.days));
+    expect(widest * 24).toBeLessThan(ECONOMY_SNAPSHOT_ROW_LIMIT);
+  });
+
+  it("knows what the windowed spawn read stops at", () => {
+    expect(ECONOMY_SPAWN_ROW_LIMIT).toBe(500);
+  });
+});
+
+describe("parseStaffSpawnTotal", () => {
+  it("reads the whole-table aggregate", () => {
+    expect(
+      parseStaffSpawnTotal([
+        {
+          spawns: 2,
+          items: 15,
+          first_at: "2026-09-05T00:00:00.000Z",
+          last_at: "2026-09-06T00:00:00.000Z",
+        },
+      ]),
+    ).toEqual({
+      spawns: 2,
+      items: 15,
+      firstAt: "2026-09-05T00:00:00.000Z",
+      lastAt: "2026-09-06T00:00:00.000Z",
+    });
+  });
+
+  it("reads an empty table as a real nought, not as a missing answer", () => {
+    expect(
+      parseStaffSpawnTotal([
+        { spawns: 0, items: 0, first_at: null, last_at: null },
+      ]),
+    ).toEqual({ spawns: 0, items: 0, firstAt: null, lastAt: null });
+  });
+
+  it("returns null when the function gave no row at all", () => {
+    expect(parseStaffSpawnTotal([])).toBeNull();
+  });
+});
+
+describe("ECONOMY_WIDEST_WINDOW", () => {
+  it("is the most the SQL will answer, which is what a fallback should ask for", () => {
+    expect(ECONOMY_WIDEST_WINDOW.days).toBe(
+      Math.max(...ECONOMY_WINDOWS.map((window) => window.days)),
+    );
+    expect(ECONOMY_WIDEST_WINDOW.days).toBe(90);
   });
 });
