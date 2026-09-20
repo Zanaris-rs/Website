@@ -57,20 +57,21 @@ const nextConfig: NextConfig = {
         // default costs a hundred-odd requests for pictures that change only
         // when someone repacks the engine and re-runs `icons:update`.
         //
-        // Cached for a day, then served stale for a week while a new copy is
-        // fetched. Longer than the map's hour because there are two orders of
-        // magnitude more files, and because a stale icon is a cosmetic
-        // mismatch rather than a wrong answer: the worst case after a content
-        // bump is a day of the old picture beside the right name. The names
-        // themselves come from the page, not from here.
+        // A year, and immutable: never re-checked. The filenames are object
+        // ids rather than content hashes, so that is only safe because
+        // `itemIconSrc` / `skillIconSrc` put the generated set's version in
+        // the URL (`?v=`). A regeneration changes the version, so it changes
+        // every URL and reaches readers at once, which a shorter max-age
+        // could not do anyway — nothing can purge a browser cache.
         //
-        // The filenames are ids, not content hashes, so `immutable` would be
-        // wrong: an id's picture does change when its model does.
+        // This also covers a hand-written path with no `?v=`, which would be
+        // cached for a year and never corrected. Don't write one: the README
+        // and the icons skill both say to call the helpers.
         source: "/img/game/:path*",
         headers: [
           {
             key: "Cache-Control",
-            value: "public, max-age=86400, stale-while-revalidate=604800",
+            value: "public, max-age=31536000, immutable",
           },
         ],
       },

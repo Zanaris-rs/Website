@@ -17,11 +17,21 @@ import manifest from "./icons.json";
 const COUNT: number = manifest.count;
 const BLANK: ReadonlySet<number> = new Set(manifest.blank);
 
+/**
+ * The version the generator stamped on this set of icons: a hash of their
+ * bytes, carried by every URL. The files are named by object id rather than
+ * by their contents, so an id's picture does change when its model does.
+ * The version is what lets `next.config.ts` cache them for a year and still
+ * have a regeneration reach a reader who is holding the old one — nothing
+ * can purge a browser cache, but a new URL sidesteps it.
+ */
+const VERSION: string = manifest.version;
+
 /** The icon's URL, or `null` for an id with no icon to show. */
 export function itemIconSrc(id: number): string | null {
   if (!Number.isInteger(id) || id < 0 || id >= COUNT || BLANK.has(id))
     return null;
-  return `/img/game/items/${id}.png`;
+  return `/img/game/items/${id}.png?v=${VERSION}`;
 }
 
 /** Every icon is this square; the client's inventory grid is too. */

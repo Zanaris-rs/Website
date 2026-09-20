@@ -1380,11 +1380,20 @@ re-run `items:update` and `icons:update` and commit what they write. The
 script only packs when the pack is missing, so check the date on its `pack`
 line.
 
-`next.config.ts` caches `/img/game/*` for a day, with a week of
-stale-while-revalidate behind it: a page can carry over a hundred of these,
-and a static file's default is a re-check per file per page view. The cost is
-that a regenerated icon can take a day to reach a reader who already has the
-old one.
+`next.config.ts` caches `/img/game/*` for a year as `immutable`, because the
+helpers put the generated set's version in the URL —
+`/img/game/items/995.png?v=f205cfb4`. A page can carry over a hundred icons,
+and a static file's default is a re-check per file per page view, so the year
+is worth having; the version is what keeps it honest, since the filenames are
+object ids rather than content hashes and nothing can purge a browser cache.
+The version is a hash of the set's bytes, written into `lib/items/icons.json`
+and `lib/skills/icons.json` by the generator. Items and skills are hashed
+apart, so a run that only moves an item model leaves the skill icons cached.
+
+A regeneration therefore reaches readers immediately, at the cost of their
+re-downloading the icons on the pages they open — about 90 KB for `/economy`.
+This is also why a hand-written path is a bug rather than a shortcut: with no
+`?v=` it is cached for a year and never corrected.
 
 ## 2004 assets
 
