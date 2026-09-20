@@ -1341,7 +1341,11 @@ npm run worldmap:update          # ENGINE_DIR=../Server/engine, CLIENT_BRANCH=27
 The script clones or refreshes the client into `.cache/` (gitignored), bundles
 it with `bun`, and copies both files into `public/`. The client branch is
 pinned to the revision the fleet runs — move it with `GAME_VERSION` in
-`lib/site.ts` when the fleet moves.
+`lib/site.ts` when the fleet moves. `scripts/lib/client-ts.sh` holds that
+step, shared with `icons:update`: if the clone already there points at another
+remote — a `CLIENT_REMOTE` override outlives the run that set it — or cannot
+be fetched, it says so in one line and re-clones rather than failing in the
+middle of a build.
 
 **`worldmap.jag` goes stale.** It is a snapshot of the content maps at the
 moment it was packed, so a content change that moves anything on the map will
