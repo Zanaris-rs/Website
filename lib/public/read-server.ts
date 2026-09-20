@@ -1,5 +1,7 @@
 import "server-only";
 
+import { unstable_cache } from "next/cache";
+
 import { isConfigured, query } from "@/lib/db";
 import { groupIdMap } from "@/lib/items/groups";
 
@@ -273,6 +275,8 @@ export async function loadEconomyOverview(
   };
 }
 
+type RangePair = readonly [string, GroupRange];
+
 export type EconomyCatalogue = {
   readonly census: Census;
   readonly ranges: ReadonlyMap<string, GroupRange> | null;
@@ -287,6 +291,13 @@ export type EconomyCatalogue = {
  * degraded page, it is an empty one, and it should say so in the panel the rest
  * of the site uses for that.
  *
+ * It is the one loader wrapped in `unstable_cache`, because it is the one page
+ * that cannot be a cached *page*: `?q=` is a request-time API and reading it
+ * opts the route into rendering per request. Without this, every search would
+ * be two database round trips through a pool of two — including the group
+ * ranges, which is the expensive read on these pages. With it, the searching is
+ * repeated per request and the reading is not.
+ *
  * The ranges are read at the default window and nowhere else. This page has no
  * window tabs — `public_economy_latest()` takes no window by design, because how
  * much iron ore exists has one answer whichever tab is open — so the low and
@@ -294,26 +305,42 @@ export type EconomyCatalogue = {
  * to assume. It is also the expensive read on these pages, and this is the only
  * one of the four that wants it.
  */
-export async function loadEconomyCatalogue(): Promise<Load<EconomyCatalogue>> {
-  const [census, ranges] = await Promise.all([
-    read("economy census", publicEconomyLatestStatement(), parseCensus),
-    read(
-      "economy group range",
-      publicEconomyGroupRangeStatement(ECONOMY_DEFAULT_WINDOW.days, groupIdMap()),
-      parseGroupRanges,
-    ),
-  ]);
+const readCatalogue = unstable_cache(
+  async () => {
+    const [census, ranges] = await Promise.all([
+      read("economy census", publicEconomyLatestStatement(), parseCensus),
+      read(
+        "economy group range",
+        publicEconomyGroupRangeStatement(
+          ECONOMY_DEFAULT_WINDOW.days,
+          groupIdMap(),
+        ),
+        parseGroupRanges,
+      ),
+    ]);
 
-  if (census.status !== "ok" || census.data === null) {
-    return { status: "unavailable" };
-  }
+    return {
+      census: census.status === "ok" ? census.data : null,
+      // Pairs, not the Map. `unstable_cache` stores what it is given as JSON,
+      // and a Map through `JSON.stringify` is `{}` — so a cached read would
+      // hand back an empty range for every category, on every request after
+      // the first, and each block would quietly drop its low and high line.
+      ranges:
+        ranges.status === "ok" ? ([...ranges.data.entries()] as RangePair[]) : null,
+    };
+  },
+  ["economy-catalogue"],
+  { revalidate: 300, tags: ["economy"] },
+);
+
+export async function loadEconomyCatalogue(): Promise<Load<EconomyCatalogue>> {
+  const { census, ranges } = await readCatalogue();
+
+  if (census === null) return { status: "unavailable" };
 
   return {
     status: "ok",
-    data: {
-      census: census.data,
-      ranges: ranges.status === "ok" ? ranges.data : null,
-    },
+    data: { census, ranges: ranges === null ? null : new Map(ranges) },
   };
 }
 

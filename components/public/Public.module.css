@@ -353,3 +353,34 @@
 .dayList {
   list-style: none;
 }
+
+/* --- the catalogue --- */
+
+/* The stone search box, centred over the results it produces. `frame.stone`
+   brings its own bezel; this only decides where it sits. */
+.search {
+  display: flex;
+  justify-content: center;
+  padding-bottom: 2px;
+}
+
+.searchButton {
+  margin-top: 4px;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 13px;
+}
+
+/* Eleven categories down one column was four screens of scrolling. Across the
+   frame they are two or three, and each block still reads top to bottom. */
+.blocks {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 0 24px;
+  align-items: start;
+}
+
+/* A row for an item nobody has any of. The nought is the interesting part on
+   this page, so it is dimmed rather than dropped. */
+.itemRow td {
+  vertical-align: middle;
+}
