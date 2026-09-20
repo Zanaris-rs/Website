@@ -171,17 +171,23 @@
   vector-effect: non-scaling-stroke;
 }
 
-/* Two of the original's nine link colours, as a stroke and a fill. They are
-   repeated here rather than imported because `Frame.module.css` paints text
-   with them and an SVG needs `stroke`/`fill`. */
+/* Two of the original's nine link colours, as a stroke. They are repeated here
+   rather than imported because `Frame.module.css` paints text with them and an
+   SVG needs `stroke`.
+
+   **Stroke only.** These used to set `fill` as well, and because they are
+   written after `.line` and are no more specific, that fill won: every chart
+   line was filled to its own closing edge, under the stroke. Together with the
+   faint `.area` path that used to sit beneath it, that is what made one series
+   look like two — a solid shape and a line over it, with nothing to say which
+   was which, because neither was a thing. Anything here that wants a fill sets
+   its own. */
 .yellow {
   stroke: #ffe139;
-  fill: #ffe139;
 }
 
 .lblue {
   stroke: #9db8c3;
-  fill: #9db8c3;
 }
 
 /* The scale, printed rather than drawn: two axis labels in a 500px panel
