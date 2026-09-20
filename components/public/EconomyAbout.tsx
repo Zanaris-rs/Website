@@ -90,9 +90,11 @@ export default function EconomyAbout({ spawns }: { spawns: SpawnRecord }) {
         <div className={styles.blockTitle}>How items enter the game</div>
         <div className={styles.prose}>
           <p>
-            Almost everything in the game got there by being played for: mined,
-            caught, killed for, bought from a shop. There are two other ways,
-            and they are the reason this page exists.
+            Everything in Zanaris enters the game through legitimate means, by
+            playing the game. Items enter by being mined, fished, monster
+            drops, bought from shops, looted from spawns. There are other ways
+            items can enter into the game and they are the reason this page
+            exists.
           </p>
 
           <p>
@@ -163,8 +165,7 @@ export default function EconomyAbout({ spawns }: { spawns: SpawnRecord }) {
           <p>
             Every row the spawn log holds, newest first: no window, no cap.
             It is meant to be empty, so there is nothing to paginate and nothing
-            to summarise - a row here is a thing to look at rather than a
-            statistic.
+            to summarise - a row here is drama to be farmed.
           </p>
         </div>
         {rows.length === 0 ? (
@@ -258,8 +259,7 @@ export default function EconomyAbout({ spawns }: { spawns: SpawnRecord }) {
             their own copy of the record rather than trusting ours. Once enough
             people hold copies, changing history stops being something we can do
             quietly - it becomes something that disagrees with everybody
-            else&apos;s copy. We would rather provide the tool that does the
-            checking too, so it takes one command and not an afternoon.
+            else&apos;s copy.
           </p>
           <p>
             That still would not prove what the server is doing right now.

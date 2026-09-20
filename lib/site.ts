@@ -81,3 +81,17 @@ export const ENGINE_SOURCES = {
   spawns: "src/engine/World.ts",
   sql: "prisma/postgres/migrations/4_evidence_and_records/migration.sql",
 } as const;
+
+/**
+ * The day Zanaris opened, and the day the spawn log started with it.
+ *
+ * They are the same day on purpose: migration 4 created `staff_spawn` before
+ * the first player logged in, so the log covers the whole of the server's life
+ * and there is no stretch of it that went unrecorded. That is the only reason
+ * `/economy` can say "nothing, ever" and mean it — a log that began later would
+ * make the same sentence true and worthless.
+ *
+ * `content/news/2026-09-05-welcome-to-zanaris.md` is the other half of this
+ * date; move them together.
+ */
+export const LAUNCHED = "2026-09-05";

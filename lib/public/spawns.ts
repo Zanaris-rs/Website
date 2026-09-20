@@ -1,5 +1,6 @@
-import { formatWhen } from "@/lib/account/profile";
+import { formatDay, formatWhen } from "@/lib/account/profile";
 import { formatNumber } from "@/lib/hiscores/format";
+import { LAUNCHED } from "@/lib/site";
 
 import {
   ECONOMY_SPAWN_ROW_LIMIT,
@@ -57,7 +58,10 @@ export function staffSpawnClaim(
       allTime: true,
       detail:
         total.spawns === 0
-          ? "Nothing has been created by staff since the log began."
+          ? // The date is the point. "Nothing, ever" is a claim about a stretch
+            // of time, and without saying which stretch it is a claim about
+            // nothing — a log started yesterday would carry the same sentence.
+            `The server opened on ${formatDay(LAUNCHED)} and the log began the same day. Nothing has been created by staff since.`
           : `${plural(total.spawns, "record")}, the first ${formatWhen(total.firstAt)}.`,
     };
   }

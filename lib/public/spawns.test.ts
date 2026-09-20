@@ -23,6 +23,19 @@ describe("staffSpawnClaim", () => {
     expect(claim.label).toBe("items ever created by staff");
   });
 
+  it("dates an empty log from the day it began, which is the day the server opened", () => {
+    const claim = staffSpawnClaim(
+      { spawns: 0, items: 0, firstAt: null, lastAt: null },
+      [],
+      ninety,
+    );
+    // "Nothing, ever" means nothing without a date to measure it from.
+    expect(claim.detail).toContain("5 September 2026");
+    // A launch date is a day, not an instant. Formatting it with a time
+    // invents a midnight nobody recorded and nothing happened at.
+    expect(claim.detail).not.toContain("UTC");
+  });
+
   it("counts objects rather than rows, because one row can be a thousand coins", () => {
     const claim = staffSpawnClaim(
       { spawns: 2, items: 1500, firstAt: "2026-09-05T00:00:00.000Z", lastAt: null },
