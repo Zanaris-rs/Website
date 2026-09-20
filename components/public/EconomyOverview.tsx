@@ -207,7 +207,7 @@ export default function EconomyOverview({ economy }: { economy: OverviewData }) 
         <Panel align="left">
           <div className={styles.blockTitle}>What exists in the game</div>
           <EconomyGroups blocks={census} />
-          <p className={styles.note}>
+          <p className={styles.blockNote}>
             <a href="/economy/items" className={frame.link}>
               Every item in the game
             </a>{" "}

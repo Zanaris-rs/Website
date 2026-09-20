@@ -133,6 +133,7 @@
   font-weight: bold;
   text-align: left;
   padding-bottom: 3px;
+  margin-bottom: 8px;
 }
 
 /* The SVG fills the panel and keeps its aspect; `display: block` kills the
@@ -258,14 +259,14 @@
   color: #fff;
   font-size: 14px;
   border-bottom: 1px solid var(--panel-border);
-  padding-bottom: 1px;
+  padding-bottom: 2px;
 }
 
 /* "16,989 items · shop value 496,028 gp", under the heading and smaller: the
    heading names the block, this says how big it is. */
 .groupMeta {
   font-size: 11px;
-  padding-bottom: 2px;
+  padding: 3px 0 7px;
 }
 
 /* A count nobody could price, and how much of the block that was. Faint,
@@ -544,4 +545,24 @@
 /* The title box brings its own margin; the gap is for the panels under it. */
 .stack > *:first-child {
   margin-bottom: -4px;
+}
+
+
+/* A line closing a block off, under what it refers to rather than indented
+   into it: "every item in the game", "counted at 11:01 across 10 save files".
+   Centred, because it belongs to the whole block above it and not to the last
+   row of it — `.note` is indented for /bans, where a note hangs off the
+   punishment on the row above. */
+.blockNote {
+  text-align: center;
+  font-style: italic;
+  padding-top: 10px;
+}
+
+/* When the census was taken, under the heading it qualifies and above the
+   categories it describes. Not a `.blockNote`: that closes a block off, and
+   this opens one. */
+.censusStamp {
+  font-style: italic;
+  margin: -4px 0 12px;
 }

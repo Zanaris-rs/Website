@@ -175,7 +175,7 @@ export default function EconomyCatalogue({
       {results !== null ? null : (
       <Panel align="left">
         <div className={styles.blockTitle}>Everything in the game</div>
-        <p className={styles.note}>
+        <p className={styles.censusStamp}>
           Counted {formatWhen(census.takenAt)} across{" "}
           {formatNumber(census.players ?? 0)} save files.
         </p>
