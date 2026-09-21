@@ -909,6 +909,49 @@ places in its caller. All of that is still far narrower than before migration
 6, when the same credential could call `accounts.register` and create an
 account outright.
 
+## Records
+
+Timed XP records (engine migration `8_records`), started and stopped here and
+measured by the database from the hiscores - no engine change, no scheduler.
+`/records` is the public board, built on the hiscores' own layout and
+stylesheet (`?category=N`, same numbering); `/account/records` is where a
+signed-in player starts, watches and stops one.
+
+- **The flow.** Log out of the game, press Start, log in and play, log out
+  before the timer reaches 0:00, press Stop. Both snapshots are read from
+  `hiscore` / `hiscore_large` *while the player is logged out*, so neither can
+  be stale; the gain is end minus start, per skill and Overall.
+- **The window** is Start to the **final logout** - `account_login.logout_time`
+  as Stop finds it - not to the Stop click. Over the duration plus its grace
+  (five minutes plus ten seconds today) is rejected as over time, and every
+  result shows the actual time it took. Nobody is logged out for them: logging
+  out in time, and pressing Stop before logging in again, is the player's job,
+  and the page says so before they start.
+- **The five-second wait.** Start and Stop both refuse ("syncing") until five
+  seconds after a logout, because the login server writes `logged_in = 0`
+  before it runs `updateHiscores`; a snapshot inside that gap would read the
+  hiscore from before the session just ended. The page retries by itself.
+- **Void is ours.** A session that began after the last clean logout and ended
+  some other way (a crash, a forced logout) makes the attempt void, which
+  costs the player nothing against their twelve starts an hour.
+- **Only valid attempts are public.** Rejected, void and abandoned attempts
+  stay on the player's own history with the reason; `accounts.record_board`
+  alone decides what the board shows, and applies the hiscore views' staff and
+  ban rule itself. Staff above level 1 and banned accounts cannot start.
+- **The timer** is derived from the stored `started_at` and the database's
+  clock (`server_now` on every read), so a refresh, a second tab or a phone all
+  agree, whatever the device's clock says. The account page polls
+  `GET /api/records/current` every five seconds while the tab is visible and
+  not at all while it is hidden. Once the player has logged out it freezes on
+  the logout and says whether it made the window.
+- **No cron.** An attempt nobody stopped reads as abandoned an hour after its
+  window, and is stored that way by the player's next Start, Stop or Cancel.
+
+What each piece says to the player lives in `lib/records/verdict.ts`, with a
+test that every code the SQL can answer has a sentence. The durations the site
+offers (`lib/records/durations.ts`) must match `accounts.record_durations()`;
+`npm run db:check` asserts it.
+
 ## JSON contracts
 
 ### `worlds.json` (site root, written by the deploy script)
@@ -1043,6 +1086,36 @@ retries once inside the route and is never answered to the caller.
 No body. 200 `{ "ok": true }`. Otherwise 401 `session_expired`, 403 `origin`,
 404 `not_found` (somebody else's code, a dead link, one that never existed, or
 a string that cannot be a code), 409 `already_claimed`, 503 `unavailable`.
+
+### The record routes
+
+All four need the signed-in session; the three POSTs also need a same-origin
+`Origin`. Every error is `{ "error": "<code>" }` with `no-store`, and 401
+`session_expired`, 403 `origin` and 503 `unavailable` can come from any of
+them.
+
+- `POST /api/records/start` - body `{ "duration": 300 }` or none. 200
+  `{ "ok": true }`. 400 `unknown_duration`; 403 `staff` / `banned`; 409
+  `logged_in` (still in the game), `syncing` (logged out less than five seconds
+  ago), `already_running`, `no_hiscore` (no clean logout or no hiscore row
+  yet); 429 `too_many` (twelve starts in the last hour).
+- `POST /api/records/stop` - no body. 200
+  `{ "ok": true, "state": "valid" | "rejected" | "void" | "abandoned", "reason": ... }`.
+  409 `logged_in`, `syncing`, `not_running`.
+- `POST /api/records/abandon` - no body. 200 `{ "ok": true }`. 409
+  `not_running`.
+- `GET /api/records/current` - `{ presence, logoutTime, serverNow, attempt }`,
+  `attempt` null or the newest attempt with raw (x10) `gainedValue`; see
+  `RecordCurrentRow` in `lib/records/queries.ts`.
+
+### `GET /api/records/board`
+
+`?category=N` (hiscore numbering, default 0) and `?duration=S` (default 300).
+200 `{ durationSeconds, category, rows: [{ rank, username, name, xp,
+elapsedMs, achievedAt }] }`, `xp` as players see it, each player's best
+valid attempt, best first. 400 `bad_category` / `bad_duration`, 503
+`unavailable`. Cached `public, s-maxage=60, stale-while-revalidate=600`, as
+the hiscores are.
 
 ### The Message Centre routes
 

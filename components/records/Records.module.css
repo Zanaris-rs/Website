@@ -1,0 +1,106 @@
+/*
+ * The records pages. The board borrows the hiscores' stylesheet for its
+ * layout; this holds only what a record has and a hiscore does not: the
+ * timer, the verdict and the note under the board.
+ */
+
+.boardNote {
+  width: min(460px, 100%);
+  margin: 13px auto 0;
+  text-align: center;
+  font-size: 12px;
+}
+
+.rules {
+  margin: 0;
+  padding-left: 1.2em;
+}
+
+.rules li + li {
+  margin-top: 6px;
+}
+
+.live {
+  text-align: center;
+}
+
+.presence {
+  margin: 0 0 8px;
+  font-weight: bold;
+}
+
+.timer {
+  margin: 4px 0 8px;
+}
+
+/* The one big number on the page. Tabular figures so the digits do not
+   jostle as they count down. */
+.clock {
+  font-size: 40px;
+  font-weight: bold;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.phase {
+  font-size: 13px;
+}
+
+.linkButton {
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.linkButton:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.verdictTitle {
+  font-size: 16px;
+  font-weight: bold;
+  margin: 0 0 6px;
+}
+
+.verdict p {
+  margin: 0 0 6px;
+}
+
+.skills {
+  border-collapse: collapse;
+  margin: 8px auto 0;
+  font-size: 13px;
+}
+
+.skills th,
+.skills td {
+  padding: 1px 6px;
+  font-weight: normal;
+  white-space: nowrap;
+}
+
+.skills .skill {
+  text-align: left;
+}
+
+.skills .figure {
+  text-align: right;
+}
+
+.skills tfoot td,
+.skills tfoot th {
+  font-weight: bold;
+  border-top: 1px solid #382418;
+}
+
+.skillCell {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}

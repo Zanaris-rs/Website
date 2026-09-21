@@ -5,8 +5,9 @@
  * It runs `select 1`, counts the two hiscores views, and then proves the shape
  * of the least-privilege role: refused on every table it must never read
  * (`account`, `login_attempt`, `session`, `account_login`, the Message
- * Centre's own five, the three transparency tables, and migration 6's two
- * invite tables), `EXECUTE` on the forty-four `accounts.*` functions it needs
+ * Centre's own five, the three transparency tables, migration 6's two invite
+ * tables and migration 8's two record tables), `EXECUTE` on the fifty-two
+ * `accounts.*` functions it needs
  * and **not** on `throttled`, `record_failure` or `is_staff` — the rate
  * limiter's own machinery and the staff check, none of which is an API. Those
  * checks are the ones worth having: a URL that connects as `postgres` looks
@@ -47,6 +48,15 @@ import {
   publicStaffSpawnsStatement,
   type Statement,
 } from "../lib/public/queries.ts";
+import { RECORD_DURATIONS } from "../lib/records/durations.ts";
+import {
+  parseRecordBoardRow,
+  parseRecordCurrent,
+  parseRecordDurationRow,
+  recordBoardStatement,
+  recordCurrentStatement,
+  recordDurationsStatement,
+} from "../lib/records/queries.ts";
 
 /** Minimal `.env.local` reader: this script runs outside Next's loader. */
 function loadEnvLocal(): void {
@@ -136,6 +146,11 @@ async function main(): Promise<void> {
     // guess log is addresses; both are reached only through functions.
     "public.invite",
     "public.invite_attempt",
+    // 8_records. The attempts are every player's XP at two instants and their
+    // login times; the site reaches them only through the record functions,
+    // which read the XP themselves so the site can never supply one.
+    "public.record_attempt",
+    "public.record_attempt_skill",
   ]) {
     try {
       await query(`select 1 from ${table} limit 1`);
@@ -211,6 +226,16 @@ async function main(): Promise<void> {
     "accounts.staff_set_invites(text, text, text, boolean)",
     "accounts.staff_invite_tree(text, text)",
     "accounts.staff_inviters(text)",
+    // 8_records: start, stop and cancel a record, the player's own reads, and
+    // the public board. Every XP figure is read inside these functions.
+    "accounts.record_durations()",
+    "accounts.record_start(text, int)",
+    "accounts.record_stop(text)",
+    "accounts.record_abandon(text)",
+    "accounts.record_current(text)",
+    "accounts.record_history(text, int)",
+    "accounts.record_attempt_skills(text, int)",
+    "accounts.record_board(int, int, int)",
   ];
   const withheld = [
     "accounts.throttled(text, text)",
@@ -228,6 +253,10 @@ async function main(): Promise<void> {
     "accounts.invite_maker_ok(int)",
     "accounts.invite_state(timestamptz, timestamptz, timestamptz, boolean)",
     "accounts.revoke_invites_on_ban()",
+    // 8_records' helpers. `record_close_stale` writes; none of them is an API.
+    "accounts.record_presence(int, timestamptz)",
+    "accounts.record_stale(text, timestamptz, int)",
+    "accounts.record_close_stale(int)",
   ];
 
   for (const [list, expected] of [
@@ -299,6 +328,7 @@ async function main(): Promise<void> {
   await checkEvidence();
   await checkPublicPages();
   await checkInvites();
+  await checkRecords();
 }
 
 /**
@@ -678,6 +708,94 @@ async function checkInvites(): Promise<void> {
       console.error(`FAIL: register_with_invite threw something else: ${message}`);
       process.exitCode = 1;
     }
+  }
+}
+
+/**
+ * Migration 8, against `__db_check__`.
+ *
+ * **Nothing here writes a row.** `record_start`, `record_stop` and
+ * `record_abandon` resolve the username before they do anything else and
+ * answer `not_found` when there is no such account, so this is safe against
+ * production.
+ *
+ * `record_current` gets its own check, as `public_staff_spawn_total` does: it
+ * must answer a name nobody has with exactly one row, because the account page
+ * polls it and "no rows" would read as "the read failed" there. It goes
+ * through the page's own parser, which throws on anything but one row.
+ *
+ * And the durations are a cross-repo contract: the database decides which
+ * record lengths exist and `lib/records/durations.ts` names them, so the two
+ * lists must match exactly, grace included.
+ */
+async function checkRecords(): Promise<void> {
+  const currentStatement = recordCurrentStatement("__db_check__");
+  const currentRows = await query(currentStatement.text, currentStatement.values);
+  try {
+    const current = parseRecordCurrent(currentRows);
+    if (current.presence === "never" && current.attempt === null) {
+      console.log("accounts.record_current('__db_check__'): one row, never, no attempt (expected)");
+    } else {
+      console.error(`FAIL: record_current for a name nobody has answered ${JSON.stringify(current)}.`);
+      process.exitCode = 1;
+    }
+  } catch (error) {
+    console.error(
+      `FAIL: record_current returned ${currentRows.length} rows for a name nobody has; it must always return exactly one. ` +
+        `The account page polls this, and "no rows" and "the read failed" are different sentences there. ` +
+        (error instanceof Error ? error.message : String(error)),
+    );
+    process.exitCode = 1;
+  }
+
+  const writes: [string, string, readonly unknown[]][] = [
+    ["record_start", "select result from accounts.record_start($1, $2)", ["__db_check__", RECORD_DURATIONS[0].seconds]],
+    ["record_stop", "select result from accounts.record_stop($1)", ["__db_check__"]],
+    ["record_abandon", "select accounts.record_abandon($1) as result", ["__db_check__"]],
+  ];
+  for (const [name, text, values] of writes) {
+    const [row] = await query<{ result: unknown }>(text, values);
+    if (row?.result === "not_found") {
+      console.log(`accounts.${name}('__db_check__'): not_found (expected)`);
+    } else {
+      console.error(`FAIL: ${name} answered ${JSON.stringify(row?.result)}; expected not_found.`);
+      process.exitCode = 1;
+    }
+  }
+
+  const empty: [string, string, readonly unknown[]][] = [
+    ["record_history", "select * from accounts.record_history($1, $2)", ["__db_check__", 20]],
+    ["record_attempt_skills", "select * from accounts.record_attempt_skills($1, $2)", ["__db_check__", 1]],
+  ];
+  for (const [name, text, values] of empty) {
+    const rows = await query(text, values);
+    if (rows.length === 0) {
+      console.log(`accounts.${name}('__db_check__', …): 0 rows (expected)`);
+    } else {
+      console.error(`FAIL: ${name} returned ${rows.length} rows for a name nobody has.`);
+      process.exitCode = 1;
+    }
+  }
+
+  // The public board through the page's parser. Zero rows is a pass - it is
+  // the normal state until somebody sets a record.
+  const board = recordBoardStatement(RECORD_DURATIONS[0].seconds, 0);
+  const boardRows = (await query(board.text, board.values)).map(parseRecordBoardRow);
+  console.log(`accounts.record_board(${RECORD_DURATIONS[0].seconds}, 0, …): ${boardRows.length} rows, parsed`);
+
+  const durations = recordDurationsStatement();
+  const inSql = (await query(durations.text, durations.values))
+    .map(parseRecordDurationRow)
+    .map((row) => `${row.seconds}:${row.graceSeconds}`)
+    .sort();
+  const onSite = RECORD_DURATIONS.map((row) => `${row.seconds}:${row.graceSeconds}`).sort();
+  if (JSON.stringify(inSql) === JSON.stringify(onSite)) {
+    console.log(`accounts.record_durations(): ${inSql.join(", ")} - matches lib/records/durations.ts (expected)`);
+  } else {
+    console.error(
+      `FAIL: accounts.record_durations() is [${inSql.join(", ")}] but lib/records/durations.ts is [${onSite.join(", ")}].`,
+    );
+    process.exitCode = 1;
   }
 }
 

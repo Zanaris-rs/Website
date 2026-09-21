@@ -176,6 +176,11 @@ export default function AccountCentre({
                 Choose a world and play
               </a>
             </li>
+            <li>
+              <a className={frame.link} href="/account/records">
+                Set a record
+              </a>
+            </li>
             {/* The one link on the site that depends on what an account may
                 do, so it is decided from the profile row read on this request
                 and never from the cookie. Hiding it is only cosmetic: /staff
