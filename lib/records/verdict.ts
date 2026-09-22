@@ -13,12 +13,37 @@ import type { Presence, RecordReason, RecordState } from "./queries";
 
 // --- before Start -------------------------------------------------------------
 
-export function rulesFor(duration: RecordDuration): string[] {
-  return [
-    `Log out of the game, then press Start. Log in, play, and log out before the timer reaches 0:00 — you have ${duration.graceSeconds} seconds' grace. Then press Stop, before you log in again.`,
-    "We don't log you out; that part is up to you. Use the logout button — closing the game leaves you in the world for 30 seconds — and leave combat first, because it blocks logging out for about 10 seconds.",
-    "The time runs from pressing Start to your last logout, so the seconds it takes to log in count too. Everybody's do.",
-  ];
+/** The two buttons, named once: the buttons wear these and the rules name them. */
+export const START_LABEL = "Start record";
+export const STOP_LABEL = "Stop record";
+
+/** A line of the rules: text, with the buttons it names picked out. */
+export type RuleLine = readonly (string | { readonly button: string })[];
+
+/**
+ * What to do, in order. The grace is not here on purpose: it is two seconds,
+ * enough for the world to act on a logout and tell the login server, and not
+ * something to aim for. 0:00 is the line.
+ */
+export const RULE_STEPS: readonly RuleLine[] = [
+  ["Log out of the game and enter your username and password ready to begin your record."],
+  ["Press ", { button: START_LABEL }, " and log into the game and begin your record."],
+  ["YOU must log out before the timer reaches 0:00."],
+  ["Press ", { button: STOP_LABEL }, " before you log in again."],
+];
+
+/** What the time measures, under the steps. */
+export const RULE_TIMING: RuleLine = [
+  "Your record time runs from pressing ",
+  { button: START_LABEL },
+  " to your last logout. The seconds it takes to log in count too. The time it takes to press ",
+  { button: STOP_LABEL },
+  " does not count.",
+];
+
+/** A rule line as plain text, for tests and anything without markup. */
+export function ruleText(line: RuleLine): string {
+  return line.map((part) => (typeof part === "string" ? part : part.button)).join("");
 }
 
 /**
@@ -172,7 +197,7 @@ export function verdictFor(attempt: FinishedAttempt, duration: RecordDuration): 
         tone: "bad",
         title: "Never stopped",
         lines: [
-          "Stop wasn't pressed within an hour of the window, so this attempt closed without a result. Press Stop as soon as you've logged out.",
+          `${STOP_LABEL} wasn't pressed within an hour of the window, so this attempt closed without a result. Press ${STOP_LABEL} as soon as you've logged out.`,
         ],
       };
 

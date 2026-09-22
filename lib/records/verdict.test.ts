@@ -13,9 +13,13 @@ import {
   HISTORY_LABELS,
   MESSAGES,
   PRESENCE_LINES,
+  RULE_STEPS,
+  RULE_TIMING,
+  START_LABEL,
+  STOP_LABEL,
   blockedFrom,
   messageFor,
-  rulesFor,
+  ruleText,
   verdictFor,
 } from "./verdict";
 
@@ -111,7 +115,7 @@ describe("verdictFor", () => {
     );
     expect(verdict.tone).toBe("bad");
     expect(verdict.title).toBe("Over time: +31,000 XP in 5:41");
-    expect(verdict.lines[0]).toBe("You logged out at 5:41 — past the 5:00 window and its 10-second grace.");
+    expect(verdict.lines[0]).toBe("You logged out at 5:41 — past the 5:00 window and its 2-second grace.");
     expect(verdict.lines.join(" ")).toContain("nowhere else");
   });
 
@@ -126,13 +130,28 @@ describe("verdictFor", () => {
   });
 });
 
-describe("rulesFor", () => {
-  it("states the grace, the logout button and that nobody is logged out for them", () => {
-    const rules = rulesFor(DEFAULT_DURATION).join(" ");
-    expect(rules).toContain("10 seconds' grace");
-    expect(rules).toContain("We don't log you out");
-    expect(rules).toContain("logout button");
-    expect(rules).toContain("before you log in again");
+describe("the rules", () => {
+  it("are four steps: log out, Start record, log out by 0:00, Stop record before logging in", () => {
+    expect(RULE_STEPS.map(ruleText)).toEqual([
+      "Log out of the game and enter your username and password ready to begin your record.",
+      "Press Start record and log into the game and begin your record.",
+      "YOU must log out before the timer reaches 0:00.",
+      "Press Stop record before you log in again.",
+    ]);
+  });
+
+  it("name the buttons by the labels the buttons wear", () => {
+    const buttons = [...RULE_STEPS, RULE_TIMING].flatMap((line) =>
+      line.flatMap((part) => (typeof part === "string" ? [] : [part.button])),
+    );
+    expect(new Set(buttons)).toEqual(new Set([START_LABEL, STOP_LABEL]));
+  });
+
+  it("say the window runs from Start record to the last logout, login included", () => {
+    const timing = ruleText(RULE_TIMING);
+    expect(timing).toContain("from pressing Start record to your last logout");
+    expect(timing).toContain("log in count too");
+    expect(timing).toContain("press Stop record does not count");
   });
 });
 

@@ -132,7 +132,10 @@ export function parseBoardParams(query: Query): ParsedBoardParams {
   return { ok: true, value: { durationSeconds, category } };
 }
 
-/** `/records?category=9`. The default duration and Overall have no parameter of their own. */
+/** The public board: a hiscores page, so it lives under them. */
+export const BOARD_PATH = "/hiscores/records";
+
+/** `/hiscores/records?category=9`. The default duration and Overall have no parameter of their own. */
 export function boardHref(params: BoardParams): string {
   const search = new URLSearchParams();
   if (params.durationSeconds !== DEFAULT_DURATION.seconds) {
@@ -142,7 +145,7 @@ export function boardHref(params: BoardParams): string {
     search.set("category", String(params.category));
   }
   const text = search.toString();
-  return text === "" ? "/records" : `/records?${text}`;
+  return text === "" ? BOARD_PATH : `${BOARD_PATH}?${text}`;
 }
 
 export type BoardRow = {

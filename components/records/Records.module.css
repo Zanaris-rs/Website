@@ -20,6 +20,11 @@
   margin-top: 6px;
 }
 
+/* What the time measures: a note on the steps, not a fifth one. */
+.timing {
+  margin: 10px 0 0;
+}
+
 .live {
   text-align: center;
 }
