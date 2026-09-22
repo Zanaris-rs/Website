@@ -18,13 +18,15 @@ import frame from "@/components/site/Frame.module.css";
 import styles from "./Records.module.css";
 
 /**
- * `/records` — one board: each player's best valid attempt for one duration
- * and one hiscore category.
+ * `/hiscores/records` — one board: each player's best valid attempt for one
+ * duration and one hiscore category.
  *
- * Built the way `/hiscores` is, and on its stylesheet, so the two pages read
- * as one site: the URL is the whole state (`?category=N`), the API's own
- * parser runs here first so a bad parameter is a message rather than a
- * request, and the category list down the side is the hiscores' list.
+ * A hiscores page in all but the numbers it ranks, so it lives under
+ * `/hiscores` (`/records` redirects here), with a link each way between the
+ * two headers. Built the way the table is, and on its stylesheet: the URL is
+ * the whole state (`?category=N`), the API's own parser runs here first so a
+ * bad parameter is a message rather than a request, and the category list
+ * down the side is the hiscores' list.
  */
 
 type State =
@@ -83,6 +85,10 @@ export default function RecordsBoard() {
         <br />
         <a className={frame.link} href="/title">
           Main menu
+        </a>
+        {" - "}
+        <a className={frame.link} href="/hiscores">
+          Hiscores
         </a>
         {" - "}
         <a className={frame.link} href="/account/records">

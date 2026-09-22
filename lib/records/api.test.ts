@@ -43,8 +43,8 @@ describe("parseBoardParams", () => {
 
 describe("boardHref", () => {
   it("leaves the defaults out and round-trips the rest", () => {
-    expect(boardHref({ durationSeconds: 300, category: 0 })).toBe("/records");
-    expect(boardHref({ durationSeconds: 300, category: 9 })).toBe("/records?category=9");
+    expect(boardHref({ durationSeconds: 300, category: 0 })).toBe("/hiscores/records");
+    expect(boardHref({ durationSeconds: 300, category: 9 })).toBe("/hiscores/records?category=9");
 
     const href = boardHref({ durationSeconds: 300, category: 21 });
     expect(parseBoardParams(new URL(href, "https://zanaris.rs").searchParams)).toEqual({

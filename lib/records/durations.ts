@@ -18,8 +18,13 @@ export type RecordDuration = {
   readonly adjective: string;
 };
 
+/**
+ * Two seconds of grace since engine migration 9 (it was ten): time for the
+ * world to act on a logout and the login server to write it down, and no
+ * more. Combat's logout lock is the player's to plan around now.
+ */
 export const RECORD_DURATIONS: readonly RecordDuration[] = [
-  { seconds: 300, graceSeconds: 10, label: "5 minutes", adjective: "5-minute" },
+  { seconds: 300, graceSeconds: 2, label: "5 minutes", adjective: "5-minute" },
 ];
 
 export const DEFAULT_DURATION: RecordDuration = RECORD_DURATIONS[0];

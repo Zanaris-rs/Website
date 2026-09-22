@@ -19,6 +19,15 @@ const nextConfig: NextConfig = {
         destination: "https://zanaris.rs/:path*",
         permanent: true, // 308: keeps the method, and browsers cache it
       },
+      {
+        // The record board is a hiscores page and moved under them a day
+        // after it launched; links to the old address keep working. The query
+        // (`?category=9`) is passed through, so a shared board still opens on
+        // the same skill.
+        source: "/records",
+        destination: "/hiscores/records",
+        permanent: true,
+      },
     ];
   },
 

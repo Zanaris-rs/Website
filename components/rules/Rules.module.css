@@ -1,12 +1,13 @@
 /* The twelve rule cards, two to a row when the panel is 500px wide and one to
-   a row on a phone. */
+   a row on a phone, as far from the intro panel above them as they are from
+   each other. */
 
 .grid {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 10px;
-  padding: 8px 0;
+  gap: var(--stack-gap);
+  padding: var(--stack-gap) 0 8px;
 }
 
 .card {

@@ -5,11 +5,18 @@ import Panel from "@/components/site/Panel";
 import TitleBox from "@/components/site/TitleBox";
 import { formatWhen } from "@/lib/account/profile";
 import { categoryName, OVERALL } from "@/lib/hiscores/categories";
-import type { RecordCurrentResponse } from "@/lib/records/api";
+import { BOARD_PATH, type RecordCurrentResponse } from "@/lib/records/api";
 import { DEFAULT_DURATION, recordDuration, type RecordDuration } from "@/lib/records/durations";
 import { formatElapsed, formatGain } from "@/lib/records/format";
 import type { RecordHistoryRow, RecordSkillRow } from "@/lib/records/queries";
-import { historyLabel, rulesFor, verdictFor, type Tone } from "@/lib/records/verdict";
+import {
+  RULE_STEPS,
+  RULE_TIMING,
+  historyLabel,
+  verdictFor,
+  type RuleLine,
+  type Tone,
+} from "@/lib/records/verdict";
 import { statOfCategory } from "@/lib/skills/icons";
 
 import RecordLive from "./RecordLive";
@@ -50,7 +57,7 @@ export default function RecordsPanel({
         width="min(340px, 100%)"
         links={[
           { href: "/account", text: "Account Centre" },
-          { href: "/records", text: "Record board" },
+          { href: BOARD_PATH, text: "Record board" },
         ]}
       />
 
@@ -58,11 +65,16 @@ export default function RecordsPanel({
         <div className={account.heading}>
           <b>How a {duration.adjective} record works</b>
         </div>
-        <ul className={styles.rules}>
-          {rulesFor(duration).map((line) => (
-            <li key={line}>{line}</li>
+        <ol className={styles.rules}>
+          {RULE_STEPS.map((line, index) => (
+            <li key={index}>
+              <Rule line={line} />
+            </li>
           ))}
-        </ul>
+        </ol>
+        <p className={styles.timing}>
+          <Rule line={RULE_TIMING} />
+        </p>
       </Panel>
 
       <Panel width="min(560px, 100%)">
@@ -114,6 +126,13 @@ export default function RecordsPanel({
         )}
       </Panel>
     </>
+  );
+}
+
+/** A line of the rules, with the button names in bold as they are on the buttons. */
+function Rule({ line }: { line: RuleLine }) {
+  return line.map((part, index) =>
+    typeof part === "string" ? part : <b key={index}>{part.button}</b>,
   );
 }
 

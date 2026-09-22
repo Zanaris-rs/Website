@@ -913,20 +913,24 @@ account outright.
 
 Timed XP records (engine migration `8_records`), started and stopped here and
 measured by the database from the hiscores - no engine change, no scheduler.
-`/records` is the public board, built on the hiscores' own layout and
-stylesheet (`?category=N`, same numbering); `/account/records` is where a
-signed-in player starts, watches and stops one.
+`/hiscores/records` is the public board, built on the hiscores' own layout
+and stylesheet (`?category=N`, same numbering) and linked from every hiscores
+header; `/records`, where it launched, redirects there with its query.
+`/account/records` is where a signed-in player starts, watches and stops one.
 
-- **The flow.** Log out of the game, press Start, log in and play, log out
-  before the timer reaches 0:00, press Stop. Both snapshots are read from
-  `hiscore` / `hiscore_large` *while the player is logged out*, so neither can
-  be stale; the gain is end minus start, per skill and Overall.
+- **The flow.** Log out of the game, press Start record, log in and play, log
+  out before the timer reaches 0:00, press Stop record. Both snapshots are
+  read from `hiscore` / `hiscore_large` *while the player is logged out*, so
+  neither can be stale; the gain is end minus start, per skill and Overall.
 - **The window** is Start to the **final logout** - `account_login.logout_time`
   as Stop finds it - not to the Stop click. Over the duration plus its grace
-  (five minutes plus ten seconds today) is rejected as over time, and every
-  result shows the actual time it took. Nobody is logged out for them: logging
-  out in time, and pressing Stop before logging in again, is the player's job,
-  and the page says so before they start.
+  (five minutes plus two seconds since engine migration 9; it was ten) is
+  rejected as over time, and every result shows the actual time it took. The
+  grace only covers the world acting on the logout and the login server
+  writing it down, so the page's steps say 0:00 and never mention it. Nobody
+  is logged out for them: logging out in time, and pressing Stop before
+  logging in again, is the player's job, and the page says so before they
+  start.
 - **The five-second wait.** Start and Stop both refuse ("syncing") until five
   seconds after a logout, because the login server writes `logged_in = 0`
   before it runs `updateHiscores`; a snapshot inside that gap would read the
@@ -1232,6 +1236,7 @@ fetches the file in the browser and picks it up immediately.
 | `app/serverlist/page.tsx` | the world list |
 | `app/hiscores/page.tsx` | `/hiscores` |
 | `app/hiscores/player/[username]/page.tsx` | one player's hiscores |
+| `app/hiscores/records/page.tsx` | the record board; `/records` redirects here |
 | `app/register/page.tsx` | the closed door: paste an invite code, continue to `/join/<code>` |
 | `app/join/page.tsx` | the pasted-code box; redirects a valid code to `/join/<code>` |
 | `app/join/[code]/page.tsx` | the invite preview, and the registration form for a live one |
@@ -1314,6 +1319,14 @@ no colour variables — the palette is the 2004 one, written where it is used:
 `components/site/Frame.module.css` holds the panel, the stone bezels and the
 original's nine link colours, and `Site.module.css` holds the furniture built
 from them. No webfonts, no CDNs, no analytics.
+
+Containers stacked down a page are spaced by two tokens in `app/globals.css`:
+`--stack-gap` (10px) from one panel to the next, and `--stack-gap-title`
+(6px) from the title box, or the page nav holding it, to the first panel.
+`Site.module.css` applies them with sibling rules, so a page built as
+`<TitleBox/><Panel/><Panel/>` is spaced without a wrapper or a prop; the title
+screen's stone frames and the rule cards use the same gap. Don't add a
+margin between two panels by hand.
 
 **Links in the chrome are plain `<a>` elements, never `next/link`.** The world
 map applet reaches for its canvas the moment it is evaluated, so `/worldmap`

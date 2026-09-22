@@ -30,6 +30,13 @@
      reading, and the frame has the room. */
   --panel-prose: 640px;
   --title-max: 250px;
+  /* The space between two containers stacked down a page: a panel under a
+     panel, a stone frame under a stone frame. The title box (or the page nav
+     holding it) is a little closer to the first one than they are to each
+     other. /economy settled these numbers; `Site.module.css` applies them
+     everywhere. */
+  --stack-gap: 10px;
+  --stack-gap-title: 6px;
 
   --text: #e4e4e4;
   --text-muted: #9a9a9a;

@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { PROFILES } from "@/lib/hiscores/params";
+import { BOARD_PATH } from "@/lib/records/api";
 
 import frame from "@/components/site/Frame.module.css";
 
@@ -13,7 +14,8 @@ import styles from "./Hiscores.module.css";
  *
  * Shared by the table and the personal page so the two cannot drift; the only
  * difference between them is the extra "All Hiscores" link, which the personal
- * page needs and the table does not.
+ * page needs and the table does not. Both link to the record board, which is
+ * a hiscores page of its own (`/hiscores/records`).
  */
 export default function HiscoresHeader({
   showAllLink = false,
@@ -49,6 +51,10 @@ export default function HiscoresHeader({
             </a>
           </>
         )}
+        {" - "}
+        <a className={frame.link} href={BOARD_PATH}>
+          Records
+        </a>
       </div>
       <div className={styles.spacer} />
 

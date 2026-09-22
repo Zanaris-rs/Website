@@ -36,6 +36,26 @@
   margin: 0 auto;
 }
 
+/* --- the gap between stacked containers ---
+   Panels one after another sit `--stack-gap` apart, and the first one sits
+   `--stack-gap-title` under the title box, on every page. Sibling rules
+   rather than a wrapper, so no page has to opt in: a page is
+   `<TitleBox/><Panel/><Panel/>`, and the spacing comes with that. Before
+   this, /economy was the only page with a gap, and everywhere else stacked
+   its panels flush into one long box with rules drawn across it.
+
+   The title box keeps its 1em above (the room under the chains) and gives
+   way below when a panel follows, since margins collapse to the larger of
+   the two. The page nav is a flex box, so its title's margin cannot collapse
+   through it; `.navCenter` drops it and the nav carries the gap instead. */
+.panelBox + .panelBox {
+  margin-top: var(--stack-gap);
+}
+
+.titleBox:has(+ .panelBox) {
+  margin-bottom: var(--stack-gap-title);
+}
+
 /* More room than `.panel`'s 4px, which is the title box's and the hiscores
    tables' padding and stays theirs. Doubled for the same reason as
    `.captionInner`: `.panel` is in Frame.module.css, and CSS module files have
@@ -286,6 +306,13 @@
   align-items: flex-end;
   justify-content: center;
   gap: 12px 24px;
+  margin-bottom: var(--stack-gap-title);
+}
+
+/* No arrows at all (a list that fits on one page): the empty second row would
+   otherwise hold the row gap open under the title box on a phone. */
+.pageNav:not(:has(.navButton)) {
+  row-gap: 0;
 }
 
 .navSlot {
@@ -308,9 +335,12 @@
   min-width: 0;
 }
 
-/* The nav's own title box already carries the vertical rhythm. */
+/* The nav carries the vertical rhythm, not the title box inside it: a margin
+   in here would only make the nav taller and push the arrows below the box
+   they flank. */
 .navCenter > * {
   margin-top: 0;
+  margin-bottom: 0;
 }
 
 @media (min-width: 600px) {
@@ -380,7 +410,7 @@
   grid-template-columns: minmax(0, 1fr);
   gap: 12px;
   align-items: center;
-  padding: 14px 0 12px;
+  padding: 14px 0 var(--stack-gap);
 }
 
 .heroBrand {
@@ -399,16 +429,18 @@
   .hero {
     grid-template-columns: 2fr 3fr;
     gap: 16px;
-    padding: 16px 0 12px;
+    padding: 16px 0 var(--stack-gap);
   }
 }
 
-/* Stacked stone panels, one per section, as wide as the frame. */
+/* Stacked stone panels, one per section, as wide as the frame, the same
+   distance apart as the panels on every other page (and the news frame in
+   `.hero` above them). */
 .sections {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: var(--stack-gap);
   padding-bottom: 8px;
 }
 

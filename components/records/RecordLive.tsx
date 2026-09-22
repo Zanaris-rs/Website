@@ -10,7 +10,7 @@ import { parseRecordCurrentResponse, type RecordCurrentResponse } from "@/lib/re
 import { DEFAULT_DURATION, recordDuration } from "@/lib/records/durations";
 import { formatCountdown, formatElapsed } from "@/lib/records/format";
 import { clockOffset, logoutStanding, pollDelay, timerAt } from "@/lib/records/timer";
-import { PRESENCE_LINES, messageFor } from "@/lib/records/verdict";
+import { PRESENCE_LINES, START_LABEL, STOP_LABEL, messageFor } from "@/lib/records/verdict";
 
 import styles from "./Records.module.css";
 
@@ -196,7 +196,7 @@ export default function RecordLive({
               onClick={() => void act("stop")}
               disabled={working}
             >
-              {working && busy.action === "stop" ? "Stopping..." : "I've logged out — Stop"}
+              {working && busy.action === "stop" ? "Stopping..." : STOP_LABEL}
             </button>{" "}
             <button
               className={styles.linkButton}
@@ -216,15 +216,13 @@ export default function RecordLive({
             onClick={() => void act("start")}
             disabled={working || current.presence !== "logged_out"}
           >
-            {working && busy.action === "start"
-              ? "Starting..."
-              : `Start a ${duration.adjective} record`}
+            {working && busy.action === "start" ? "Starting..." : START_LABEL}
           </button>
         )}
       </div>
 
       {!running && !blocked && current.presence === "logged_in" ? (
-        <p className={account.note}>Log out of the game first, then press Start.</p>
+        <p className={account.note}>Log out of the game first, then press {START_LABEL}.</p>
       ) : null}
 
       {busy.kind === "failed" ? (
@@ -235,8 +233,8 @@ export default function RecordLive({
 
       {running ? (
         <p className={account.note}>
-          The time that counts is when you log out, not when you press Stop — but press it
-          before you log in again.{" "}
+          The time that counts is when you log out, not when you press {STOP_LABEL} — but
+          press it before you log in again.{" "}
           <a className={frame.link} href="/serverlist">
             Choose a world
           </a>
@@ -274,8 +272,8 @@ function RunningTimer({
         </div>
         <div className={styles.phase}>
           {standing.inTime
-            ? `You logged out at ${formatElapsed(standing.elapsedMs)} — in time. Press Stop to save it.`
-            : `You logged out at ${formatElapsed(standing.elapsedMs)} — past the window. Press Stop to see what you gained; it won't count as a record.`}
+            ? `You logged out at ${formatElapsed(standing.elapsedMs)} — in time. Press ${STOP_LABEL} to save it.`
+            : `You logged out at ${formatElapsed(standing.elapsedMs)} — past the window. Press ${STOP_LABEL} to see what you gained; it won't count as a record.`}
         </div>
       </div>
     );
@@ -303,7 +301,7 @@ function RunningTimer({
           ? `Time's up — log out now. ${Math.ceil(view.graceLeftMs / 1000)}s of grace left.`
           : null}
         {view.phase === "over"
-          ? "Past the window and its grace. Log out and press Stop to see what you gained — it won't count as a record."
+          ? `Past the window and its grace. Log out and press ${STOP_LABEL} to see what you gained — it won't count as a record.`
           : null}
       </div>
     </div>

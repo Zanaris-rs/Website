@@ -526,27 +526,21 @@
 /* --- the census's own column --- */
 
 /*
- * One width for every panel on the four census pages, and air between them.
+ * One width for every panel on the four census pages.
  *
  * `--panel-max` is what `Site.module.css` sizes a `Panel` from, so redefining
  * it here sets the width of everything inside without a single page having to
  * pass one. The census is a column of separate statements — what exists, what
- * staff have created, what moved — and at 500px with no gap they ran together
- * into one tall box, with the widest of them sticking out past the rest.
+ * staff have created, what moved — and at 500px they ran together into one
+ * tall box, with the widest of them sticking out past the rest.
+ *
+ * The air between them used to be a flex gap here, and the census was the
+ * only place on the site that had any. It is `Site.module.css`'s now, for
+ * every page, at the same 10px (`--stack-gap`) and 6px under the title box.
  */
 .stack {
   --panel-max: var(--panel-prose);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
 }
-
-/* The title box brings its own margin; the gap is for the panels under it. */
-.stack > *:first-child {
-  margin-bottom: -4px;
-}
-
 
 /* A line closing a block off, under what it refers to rather than indented
    into it: "every item in the game", "counted at 11:01 across 10 save files".
