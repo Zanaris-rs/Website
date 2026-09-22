@@ -19,12 +19,13 @@ export type RecordDuration = {
 };
 
 /**
- * Two seconds of grace since engine migration 9 (it was ten): time for the
- * world to act on a logout and the login server to write it down, and no
- * more. Combat's logout lock is the player's to plan around now.
+ * Ten seconds of grace, engine migration 8's: the world's tick to act on a
+ * logout, the hop to the login server, and combat's logout lock. Two seconds
+ * was tried (Engine-TS#7, branch `records-grace-2s`) and shelved unapplied;
+ * this number moves only when the database's does, or db:check fails.
  */
 export const RECORD_DURATIONS: readonly RecordDuration[] = [
-  { seconds: 300, graceSeconds: 2, label: "5 minutes", adjective: "5-minute" },
+  { seconds: 300, graceSeconds: 10, label: "5 minutes", adjective: "5-minute" },
 ];
 
 export const DEFAULT_DURATION: RecordDuration = RECORD_DURATIONS[0];

@@ -21,9 +21,9 @@ export const STOP_LABEL = "Stop record";
 export type RuleLine = readonly (string | { readonly button: string })[];
 
 /**
- * What to do, in order. The grace is not here on purpose: it is two seconds,
- * enough for the world to act on a logout and tell the login server, and not
- * something to aim for. 0:00 is the line.
+ * What to do, in order. The grace is not here on purpose: it is there to
+ * absorb the world acting on a logout, the login server writing it down and
+ * combat's logout lock, not something to aim for. 0:00 is the line.
  */
 export const RULE_STEPS: readonly RuleLine[] = [
   ["Log out of the game and enter your username and password ready to begin your record."],

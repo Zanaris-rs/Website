@@ -924,10 +924,11 @@ header; `/records`, where it launched, redirects there with its query.
   neither can be stale; the gain is end minus start, per skill and Overall.
 - **The window** is Start to the **final logout** - `account_login.logout_time`
   as Stop finds it - not to the Stop click. Over the duration plus its grace
-  (five minutes plus two seconds since engine migration 9; it was ten) is
-  rejected as over time, and every result shows the actual time it took. The
-  grace only covers the world acting on the logout and the login server
-  writing it down, so the page's steps say 0:00 and never mention it. Nobody
+  (five minutes plus ten seconds today) is rejected as over time, and every
+  result shows the actual time it took. The grace is there to absorb the
+  world acting on the logout, the login server writing it down and combat's
+  logout lock, not to be aimed for, so the page's steps say 0:00 and never
+  mention it. Nobody
   is logged out for them: logging out in time, and pressing Stop before
   logging in again, is the player's job, and the page says so before they
   start.
