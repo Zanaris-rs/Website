@@ -32,6 +32,24 @@ export const RULE_STEPS: readonly RuleLine[] = [
   ["Press ", { button: STOP_LABEL }, " before you log in again."],
 ];
 
+/**
+ * What a window longer than five minutes makes possible, and what it does not.
+ *
+ * Both are migration 8 rules that a five-minute record never made anybody
+ * think about: nobody logs out for lunch in the middle of one. Six hours is
+ * long enough that both questions get asked, so the page answers them.
+ */
+export const RULE_NOTES: readonly RuleLine[] = [
+  [
+    "Inside the window you can log in and out as many times as you like. The time runs to your last logout, and logging out cleanly along the way costs you nothing.",
+  ],
+  [
+    "You can run one record at a time. Press ",
+    { button: STOP_LABEL },
+    " on the one you have running, or cancel it, before you start another.",
+  ],
+];
+
 /** What the time measures, under the steps. */
 export const RULE_TIMING: RuleLine = [
   "Your record time runs from pressing ",

@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 import { boardHref, parseBoardParams, parseBoardResponse, type BoardResponse } from "@/lib/records/api";
-import { DEFAULT_DURATION, recordDuration } from "@/lib/records/durations";
+import { DEFAULT_DURATION, RECORD_DURATIONS, recordDuration } from "@/lib/records/durations";
 import { formatElapsed } from "@/lib/records/format";
 import { CATEGORIES, categoryName } from "@/lib/hiscores/categories";
 import { formatNumber } from "@/lib/hiscores/format";
@@ -94,6 +94,20 @@ export default function RecordsBoard() {
         <a className={frame.link} href="/account/records">
           Set a record
         </a>
+        {/* The lengths, keeping the category you are on: three durations are
+            three boards, and the URL is still the whole state. */}
+        <div className={`${styles.durations} ${styles.boardDurations}`}>
+          <span className={styles.durationsLabel}>Record length</span>
+          {RECORD_DURATIONS.map((entry) => (
+            <a
+              key={entry.seconds}
+              className={entry.seconds === durationSeconds ? frame.highlight : frame.link}
+              href={boardHref({ durationSeconds: entry.seconds, category })}
+            >
+              {entry.label}
+            </a>
+          ))}
+        </div>
       </div>
       <div className={hiscores.spacer} />
 

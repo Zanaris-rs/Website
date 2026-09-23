@@ -34,6 +34,57 @@
   font-weight: bold;
 }
 
+/* The three lengths: above Start on the account page, and the board's own
+   tabs. Links in the site's idiom rather than new chrome - grey for the ones
+   you are not on, yellow for the one you are, like the category list. */
+.durations {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  align-items: center;
+  justify-content: center;
+  margin: 0 0 10px;
+  font-size: 13px;
+}
+
+/* In the board's header panel it sits under the links, not above a button,
+   and inside a panel about 300px wide - tight enough that the three lengths
+   and their label only stay on one line at this size. */
+.boardDurations {
+  margin: 8px 0 0;
+  gap: 4px 8px;
+  font-size: 12px;
+}
+
+.durationsLabel {
+  color: var(--text-muted);
+}
+
+.duration {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: var(--link);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.duration:hover:not(:disabled) {
+  color: var(--link-hover);
+  text-decoration: underline;
+}
+
+.duration:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.durationOn,
+.durationOn:hover:not(:disabled) {
+  color: #ff0;
+}
+
 .timer {
   margin: 4px 0 8px;
 }
