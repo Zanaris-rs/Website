@@ -7,7 +7,8 @@ import Frame from "@/components/site/Frame";
 
 export const metadata: Metadata = {
   title: "Records",
-  description: "Zanaris records: the most XP gained in five minutes, overall and in every skill, measured by the server.",
+  description:
+    "Zanaris records: the most XP gained in five minutes, six hours or a day, overall and in every skill, measured by the server.",
 };
 
 export default function Records() {

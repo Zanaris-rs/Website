@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import account from "@/components/account/Account.module.css";
 import frame from "@/components/site/Frame.module.css";
 import { parseRecordCurrentResponse, type RecordCurrentResponse } from "@/lib/records/api";
-import { DEFAULT_DURATION, recordDuration } from "@/lib/records/durations";
+import { DEFAULT_DURATION, RECORD_DURATIONS, recordDuration } from "@/lib/records/durations";
 import { formatCountdown, formatElapsed } from "@/lib/records/format";
 import { clockOffset, logoutStanding, pollDelay, timerAt } from "@/lib/records/timer";
 import { PRESENCE_LINES, START_LABEL, STOP_LABEL, messageFor } from "@/lib/records/verdict";
@@ -61,6 +61,10 @@ export default function RecordLive({
     return { now: at, offset: clockOffset(initial.serverNow, at) };
   });
   const [busy, setBusy] = useState<Busy>({ kind: "idle" });
+  // Which length the next Start asks for. Browser state on purpose: the
+  // database is asked for a duration at Start and remembers it from then on,
+  // so there is nothing to keep between attempts.
+  const [chosen, setChosen] = useState(DEFAULT_DURATION);
   const seen = useRef(signature(initial));
   const lastPresence = useRef(initial.presence);
 
@@ -136,7 +140,7 @@ export default function RecordLive({
           const response = await fetch(`/api/records/${action}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: action === "start" ? JSON.stringify({ duration: DEFAULT_DURATION.seconds }) : undefined,
+            body: action === "start" ? JSON.stringify({ duration: chosen.seconds }) : undefined,
           });
           if (response.ok) {
             setBusy({ kind: "idle" });
@@ -163,7 +167,7 @@ export default function RecordLive({
         }
       }
     },
-    [router],
+    [router, chosen],
   );
 
   const working = busy.kind === "working";
@@ -185,6 +189,27 @@ export default function RecordLive({
           offset={clock.offset}
           now={clock.now}
         />
+      ) : null}
+
+      {/* Which length to go for. Hidden while one runs, because the length is
+          then the attempt's and not a choice, and while the account is blocked,
+          because there is nothing to start. */}
+      {!running && !blocked ? (
+        <div className={styles.durations}>
+          <span className={styles.durationsLabel}>Record length</span>
+          {RECORD_DURATIONS.map((entry) => (
+            <button
+              key={entry.seconds}
+              type="button"
+              className={`${styles.duration} ${entry.seconds === chosen.seconds ? styles.durationOn : ""}`}
+              aria-pressed={entry.seconds === chosen.seconds}
+              onClick={() => setChosen(entry)}
+              disabled={working}
+            >
+              {entry.label}
+            </button>
+          ))}
+        </div>
       ) : null}
 
       <div className={account.actions}>

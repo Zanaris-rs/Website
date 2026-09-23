@@ -16,15 +16,17 @@ import type { RecordCurrentRow } from "./queries";
 const q = (search: string) => new URLSearchParams(search);
 
 describe("parseBoardParams", () => {
-  it("defaults to the 5-minute Overall board", () => {
-    expect(parseBoardParams(q(""))).toEqual({ ok: true, value: { durationSeconds: 300, category: 0 } });
+  it("defaults to the 6-hour Overall board", () => {
+    // Six hours is the board a bare /hiscores/records shows: five minutes is
+    // the one short enough to test the flow with, not the headline.
+    expect(parseBoardParams(q(""))).toEqual({ ok: true, value: { durationSeconds: 21600, category: 0 } });
   });
 
   it("accepts every hiscore category and every duration we run", () => {
     for (const category of CATEGORIES) {
       expect(parseBoardParams(q(`category=${category.id}`))).toEqual({
         ok: true,
-        value: { durationSeconds: 300, category: category.id },
+        value: { durationSeconds: 21600, category: category.id },
       });
     }
     for (const duration of RECORD_DURATIONS) {
@@ -43,14 +45,22 @@ describe("parseBoardParams", () => {
 
 describe("boardHref", () => {
   it("leaves the defaults out and round-trips the rest", () => {
-    expect(boardHref({ durationSeconds: 300, category: 0 })).toBe("/hiscores/records");
-    expect(boardHref({ durationSeconds: 300, category: 9 })).toBe("/hiscores/records?category=9");
+    expect(boardHref({ durationSeconds: 21600, category: 0 })).toBe("/hiscores/records");
+    expect(boardHref({ durationSeconds: 21600, category: 9 })).toBe("/hiscores/records?category=9");
 
-    const href = boardHref({ durationSeconds: 300, category: 21 });
-    expect(parseBoardParams(new URL(href, "https://zanaris.rs").searchParams)).toEqual({
-      ok: true,
-      value: { durationSeconds: 300, category: 21 },
-    });
+    // Every other duration says so, and keeps the category beside it.
+    expect(boardHref({ durationSeconds: 300, category: 0 })).toBe("/hiscores/records?duration=300");
+    expect(boardHref({ durationSeconds: 86400, category: 9 })).toBe(
+      "/hiscores/records?duration=86400&category=9",
+    );
+
+    for (const durationSeconds of [300, 21600, 86400]) {
+      const href = boardHref({ durationSeconds, category: 21 });
+      expect(parseBoardParams(new URL(href, "https://zanaris.rs").searchParams)).toEqual({
+        ok: true,
+        value: { durationSeconds, category: 21 },
+      });
+    }
   });
 });
 

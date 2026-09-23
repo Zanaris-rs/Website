@@ -10,6 +10,7 @@ import { DEFAULT_DURATION, recordDuration, type RecordDuration } from "@/lib/rec
 import { formatElapsed, formatGain } from "@/lib/records/format";
 import type { RecordHistoryRow, RecordSkillRow } from "@/lib/records/queries";
 import {
+  RULE_NOTES,
   RULE_STEPS,
   RULE_TIMING,
   historyLabel,
@@ -62,8 +63,10 @@ export default function RecordsPanel({
       />
 
       <Panel align="left" width="min(560px, 100%)">
+        {/* Not "how a 5-minute record works" any more: the length is chosen
+            below, beside Start, and the steps are the same for all three. */}
         <div className={account.heading}>
-          <b>How a {duration.adjective} record works</b>
+          <b>How a record works</b>
         </div>
         <ol className={styles.rules}>
           {RULE_STEPS.map((line, index) => (
@@ -75,6 +78,11 @@ export default function RecordsPanel({
         <p className={styles.timing}>
           <Rule line={RULE_TIMING} />
         </p>
+        {RULE_NOTES.map((line, index) => (
+          <p key={index} className={styles.timing}>
+            <Rule line={line} />
+          </p>
+        ))}
       </Panel>
 
       <Panel width="min(560px, 100%)">

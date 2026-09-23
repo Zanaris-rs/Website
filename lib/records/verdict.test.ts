@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_DURATION } from "./durations";
+import { DEFAULT_DURATION, RECORD_DURATIONS } from "./durations";
 import {
   PRESENCES,
   RECORD_REASONS,
@@ -13,6 +13,7 @@ import {
   HISTORY_LABELS,
   MESSAGES,
   PRESENCE_LINES,
+  RULE_NOTES,
   RULE_STEPS,
   RULE_TIMING,
   START_LABEL,
@@ -88,11 +89,18 @@ describe("every code has a sentence", () => {
   });
 });
 
+/**
+ * The copy below is about one duration's words and arithmetic, so it names the
+ * five-minute one rather than riding on whichever is the default this month.
+ * durations.test.ts is what pins five minutes to the head of the list.
+ */
+const [FIVE_MINUTES] = RECORD_DURATIONS;
+
 describe("verdictFor", () => {
   it("shows the gain, the actual time and the board position for a record", () => {
     const verdict = verdictFor(
       { state: "valid", reason: null, elapsedMs: 304000, gainedValue: 274000, boardRank: 3 },
-      DEFAULT_DURATION,
+      FIVE_MINUTES,
     );
     expect(verdict.tone).toBe("good");
     expect(verdict.title).toBe("+27,400 XP in 5:04");
@@ -111,12 +119,31 @@ describe("verdictFor", () => {
   it("names the logout time, the window and the grace for an over-time attempt", () => {
     const verdict = verdictFor(
       { state: "rejected", reason: "over_time", elapsedMs: 341000, gainedValue: 310000, boardRank: null },
-      DEFAULT_DURATION,
+      FIVE_MINUTES,
     );
     expect(verdict.tone).toBe("bad");
     expect(verdict.title).toBe("Over time: +31,000 XP in 5:41");
     expect(verdict.lines[0]).toBe("You logged out at 5:41 — past the 5:00 window and its 10-second grace.");
     expect(verdict.lines.join(" ")).toContain("nowhere else");
+  });
+
+  it("reads a long window as a clock, hours and all", () => {
+    const [, sixHours, day] = RECORD_DURATIONS;
+
+    const over = verdictFor(
+      { state: "rejected", reason: "over_time", elapsedMs: 86_500_000, gainedValue: 4_000_000, boardRank: null },
+      day,
+    );
+    expect(over.lines[0]).toBe(
+      "You logged out at 24:01:40 — past the 24:00:00 window and its 10-second grace.",
+    );
+
+    const valid = verdictFor(
+      { state: "valid", reason: null, elapsedMs: 21_540_000, gainedValue: 5_000_000, boardRank: 1 },
+      sixHours,
+    );
+    expect(valid.title).toBe("+500,000 XP in 5:59:00");
+    expect(valid.lines).toEqual(["You're 1st on the 6-hour Overall board."]);
   });
 
   it("owns our failures, and says they cost the player nothing", () => {
@@ -145,6 +172,14 @@ describe("the rules", () => {
       line.flatMap((part) => (typeof part === "string" ? [] : [part.button])),
     );
     expect(new Set(buttons)).toEqual(new Set([START_LABEL, STOP_LABEL]));
+  });
+
+  it("say what a long window makes possible: many sessions, but one record at a time", () => {
+    // Both are migration 8 rules that only five minutes let players ignore.
+    // A six-hour window is long enough to log out for lunch in.
+    const notes = RULE_NOTES.map(ruleText).join(" ");
+    expect(notes).toContain("log in and out as many times as you like");
+    expect(notes).toContain("one record at a time");
   });
 
   it("say the window runs from Start record to the last logout, login included", () => {
