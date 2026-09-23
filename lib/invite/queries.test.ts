@@ -8,6 +8,7 @@ import {
   inviteStatusFor,
   invitesStatement,
   parseCitizen,
+  parseGenealogyRow,
   parseInviteCreated,
   parseInvitePreview,
   parseInviteRevokeResult,
@@ -15,6 +16,7 @@ import {
   parseInviterRow,
   parseStaffSetInvitesResult,
   parseTreeRow,
+  staffInviteGenealogyStatement,
   staffInviteTreeStatement,
   staffInvitersStatement,
   staffSetInvitesStatement,
@@ -205,5 +207,44 @@ describe("inviteStatusFor", () => {
     expect(inviteStatusFor("too_many")).toBe(429);
     expect(inviteStatusFor("rate_limited")).toBe(429);
     expect(inviteStatusFor("something new")).toBe(500);
+  });
+});
+
+describe("the genealogy", () => {
+  it("calls staff_invite_genealogy with the actor alone", () => {
+    expect(staffInviteGenealogyStatement("mod")).toEqual({
+      text: "select * from accounts.staff_invite_genealogy($1)",
+      values: ["mod"],
+    });
+  });
+
+  it("reads a progenitor and an invited account", () => {
+    expect(
+      parseGenealogyRow({
+        username: "root",
+        citizen_number: 1,
+        invited_by: null,
+        joined_at: new Date("2026-09-01T00:00:00Z"),
+        invites_enabled: true,
+        banned: false,
+      }),
+    ).toEqual({
+      username: "root",
+      citizenNumber: 1,
+      invitedBy: null,
+      joinedAt: "2026-09-01T00:00:00.000Z",
+      invitesEnabled: true,
+      banned: false,
+    });
+    expect(
+      parseGenealogyRow({ username: "kid", citizen_number: 12, invited_by: 1, banned: true }),
+    ).toMatchObject({ invitedBy: 1, joinedAt: null, banned: true, invitesEnabled: false });
+  });
+
+  it("drops a row it cannot trust rather than guessing", () => {
+    expect(parseGenealogyRow(null)).toBeNull();
+    expect(parseGenealogyRow({ username: "", citizen_number: 1 })).toBeNull();
+    expect(parseGenealogyRow({ username: "a", citizen_number: -1 })).toBeNull();
+    expect(parseGenealogyRow({ username: "a", citizen_number: 2, invited_by: "1" })).toBeNull();
   });
 });
