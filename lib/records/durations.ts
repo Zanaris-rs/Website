@@ -20,14 +20,16 @@ export type RecordDuration = {
 };
 
 /**
- * Ten seconds of grace, engine migration 8's: the world's tick to act on a
- * logout, the hop to the login server, and combat's logout lock. Two seconds
- * was tried (Engine-TS#7, branch `records-grace-2s`) and shelved unapplied;
- * this number moves only when the database's does, or db:check fails.
+ * Two seconds of grace, engine migration 9's, for every duration: the world's
+ * tick to act on a logout and the hop to the login server that writes it down.
+ * It does not cover combat's logout lock, which migration 8's ten seconds did
+ * - leaving combat in time to log out before 0:00 is the player's job, and the
+ * rules say so. This number moves only when the database's does, or db:check
+ * fails.
  */
-const FIVE_MINUTES: RecordDuration = { seconds: 300, graceSeconds: 10, label: "5 minutes", adjective: "5-minute" };
-const SIX_HOURS: RecordDuration = { seconds: 21600, graceSeconds: 10, label: "6 hours", adjective: "6-hour" };
-const TWENTY_FOUR_HOURS: RecordDuration = { seconds: 86400, graceSeconds: 10, label: "24 hours", adjective: "24-hour" };
+const FIVE_MINUTES: RecordDuration = { seconds: 300, graceSeconds: 2, label: "5 minutes", adjective: "5-minute" };
+const SIX_HOURS: RecordDuration = { seconds: 21600, graceSeconds: 2, label: "6 hours", adjective: "6-hour" };
+const TWENTY_FOUR_HOURS: RecordDuration = { seconds: 86400, graceSeconds: 2, label: "24 hours", adjective: "24-hour" };
 
 /** Shortest first: the order the tabs and the Start buttons offer them in. */
 export const RECORD_DURATIONS: readonly RecordDuration[] = [FIVE_MINUTES, SIX_HOURS, TWENTY_FOUR_HOURS];

@@ -18,7 +18,7 @@ function clock(totalSeconds: number): string {
 
 /**
  * How long a finished attempt took, `5:04`. Floored to the second: a window
- * of 5:10.9 is shown as 5:10, which is inside a 10-second grace - and so is
+ * of 5:02.9 is shown as 5:02, which is inside a 2-second grace - and so is
  * the attempt, because the database compares milliseconds, not this string.
  */
 export function formatElapsed(ms: number): string {

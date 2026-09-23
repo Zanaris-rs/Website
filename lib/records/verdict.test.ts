@@ -123,7 +123,7 @@ describe("verdictFor", () => {
     );
     expect(verdict.tone).toBe("bad");
     expect(verdict.title).toBe("Over time: +31,000 XP in 5:41");
-    expect(verdict.lines[0]).toBe("You logged out at 5:41 — past the 5:00 window and its 10-second grace.");
+    expect(verdict.lines[0]).toBe("You logged out at 5:41 — past the 5:00 window and its 2-second grace.");
     expect(verdict.lines.join(" ")).toContain("nowhere else");
   });
 
@@ -135,7 +135,7 @@ describe("verdictFor", () => {
       day,
     );
     expect(over.lines[0]).toBe(
-      "You logged out at 24:01:40 — past the 24:00:00 window and its 10-second grace.",
+      "You logged out at 24:01:40 — past the 24:00:00 window and its 2-second grace.",
     );
 
     const valid = verdictFor(

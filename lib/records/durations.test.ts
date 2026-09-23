@@ -20,9 +20,12 @@ describe("the durations we run", () => {
     expect([...seconds].sort((a, b) => a - b)).toEqual(seconds);
   });
 
-  it("gives every one of them ten seconds of grace, as migration 9 does", () => {
+  it("gives every one of them two seconds of grace, as migration 9 does", () => {
+    // The world's tick and the hop to the login server, and nothing for a
+    // player still in combat at 0:00. db:check is what proves the database
+    // agrees; this is what stops a duration being added with a grace of its own.
     for (const duration of RECORD_DURATIONS) {
-      expect(duration.graceSeconds).toBe(10);
+      expect(duration.graceSeconds).toBe(2);
     }
   });
 
