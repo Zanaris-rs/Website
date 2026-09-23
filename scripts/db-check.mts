@@ -226,6 +226,8 @@ async function main(): Promise<void> {
     "accounts.staff_set_invites(text, text, text, boolean)",
     "accounts.staff_invite_tree(text, text)",
     "accounts.staff_inviters(text)",
+    // 10_invite_genealogy: the whole tree, for staff.
+    "accounts.staff_invite_genealogy(text)",
     // 8_records: start, stop and cancel a record, the player's own reads, and
     // the public board. Every XP figure is read inside these functions.
     "accounts.record_durations()",
@@ -667,6 +669,7 @@ async function checkInvites(): Promise<void> {
     ["citizen", "select * from accounts.citizen($1)", ["__db_check__"]],
     ["staff_invite_tree", "select * from accounts.staff_invite_tree($1, $2)", ["__db_check__", "__db_check__"]],
     ["staff_inviters", "select * from accounts.staff_inviters($1)", ["__db_check__"]],
+    ["staff_invite_genealogy", "select * from accounts.staff_invite_genealogy($1)", ["__db_check__"]],
   ];
   for (const [name, text, values] of empty) {
     const rows = await query(text, values);

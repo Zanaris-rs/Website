@@ -1,0 +1,110 @@
+/*
+ * The server tree. Nested lists with the family-tree lines drawn by each item's
+ * ::before (the upright) and ::after (the tick across to the name), so the
+ * lines follow the lists however deep they go and however they are folded.
+ */
+
+.tree,
+.tree ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.tree {
+  padding-top: 10px;
+}
+
+/* The progenitors: no lines above them, a gap between their lines. */
+.tree > li + li {
+  margin-top: 8px;
+}
+
+.tree ul {
+  padding-left: 9px;
+}
+
+.tree ul > li {
+  position: relative;
+  padding-left: 16px;
+}
+
+.tree ul > li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  border-left: 1px solid #5a5a5a;
+}
+
+/* The last child's upright stops at its own tick: └ rather than ├. */
+.tree ul > li:last-child::before {
+  bottom: auto;
+  height: 0.8em;
+}
+
+.tree ul > li::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.8em;
+  width: 12px;
+  border-top: 1px solid #5a5a5a;
+}
+
+.leaf,
+.branch > summary {
+  line-height: 1.6;
+}
+
+.branch > summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.branch > summary::-webkit-details-marker {
+  display: none;
+}
+
+.branch > summary::before {
+  content: "▸";
+  display: inline-block;
+  width: 12px;
+  color: #9a9a9a;
+}
+
+.branch[open] > summary::before {
+  content: "▾";
+}
+
+/* A leaf has no toggle; the gap keeps its name in line with its siblings'. */
+.leaf {
+  padding-left: 12px;
+}
+
+/* A name and its details stay on one line: `bob_` over `smith` reads as two
+   players. */
+.person {
+  white-space: nowrap;
+}
+
+.citizen,
+.count {
+  color: #9a9a9a;
+  font-size: 11px;
+}
+
+.inviter {
+  color: var(--link-green, #90c040);
+  font-size: 11px;
+}
+
+.banned {
+  text-decoration: line-through;
+}
+
+.bannedTag {
+  color: #ff6b6b;
+  font-size: 11px;
+}

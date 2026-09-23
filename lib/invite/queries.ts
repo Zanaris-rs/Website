@@ -279,6 +279,42 @@ export function parseTreeRow(row: unknown): TreeRow | null {
   };
 }
 
+/** One account in the whole tree. `invitedBy` is null for a progenitor. */
+export type GenealogyRow = {
+  readonly username: string;
+  readonly citizenNumber: number;
+  readonly invitedBy: number | null;
+  readonly joinedAt: string | null;
+  readonly invitesEnabled: boolean;
+  readonly banned: boolean;
+};
+
+export function staffInviteGenealogyStatement(actor: string): Statement {
+  return {
+    text: "select * from accounts.staff_invite_genealogy($1)",
+    values: [actor],
+  };
+}
+
+export function parseGenealogyRow(row: unknown): GenealogyRow | null {
+  const record = asRecord(row);
+  if (!record || !isName(record.username) || !isCount(record.citizen_number)) {
+    return null;
+  }
+  const invitedBy = record.invited_by;
+  if (invitedBy !== null && invitedBy !== undefined && !isCount(invitedBy)) {
+    return null;
+  }
+  return {
+    username: record.username,
+    citizenNumber: record.citizen_number,
+    invitedBy: isCount(invitedBy) ? invitedBy : null,
+    joinedAt: asIso(record.joined_at),
+    invitesEnabled: record.invites_enabled === true,
+    banned: record.banned === true,
+  };
+}
+
 export type InviterRow = {
   readonly username: string;
   readonly citizenNumber: number;
