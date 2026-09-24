@@ -84,6 +84,19 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      {
+        // The chathead renderer and its models (`scripts/update-chathead.sh`),
+        // on the same terms as the icons: `lib/chathead/load.ts` asks for
+        // both with the build's `?v=`, so a year is safe and a regeneration
+        // reaches readers at once.
+        source: "/game/chathead/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
       // Nothing signed in may be framed. `SameSite=Lax` keeps the session
       // cookie out of a frame on *another* site, but not out of one on a
       // sibling host: `www.zanaris.rs` and the `*.04.zanaris.rs` worlds are

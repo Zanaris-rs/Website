@@ -12,10 +12,12 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
-    // Vendored, not ours: a minified bundle of the game client's map applet,
-    // and the clone it is built from. Narrow on purpose — anything else that
+    // Vendored, not ours: minified bundles of the game client's code, and
+    // the clone they are built from. Narrow on purpose — anything else that
     // lands in `public/` is ours and should be linted.
     "public/js/mapview.js",
+    // Likewise the client's Model/Pix3D/Pix2D, bundled for the chathead.
+    "public/game/chathead/renderer.js",
     ".cache/**",
   ]),
   {
