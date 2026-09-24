@@ -1592,6 +1592,19 @@ scrolls, as the game records them - mixed with the updates they post.
   replies there stop showing); authors delete their own. Every write is a
   route under `/api/adventurer-log/` with `requireLiveSession` and the
   same-origin check, and every rule - rates, mutes, blocks - is the database's.
+- **Owner CSS.** The owner writes a stylesheet on `/account/adventurer-log`
+  (with a 2004 skin to start from). The database keeps it as written;
+  `lib/adventurer-log/css.ts` sanitises it **every time a log is drawn**, so a
+  stricter sanitiser applies to every log at once. It parses with `css-tree`
+  and prints its own output: every selector prefixed with `.al-root`, `url()`
+  only for the site's `/img/`, no `@import`/`@font-face`/`image-set()`/
+  `attr()`, `content` with symbols but not words, no `!important`, no
+  backslashes or `<`, animations no faster than 0.2s and none for
+  reduced-motion readers. `.al-root` has `contain: paint` (with `!important`),
+  so nothing inside - `position: fixed` included - is drawn outside the log.
+  The log route sends `Content-Security-Policy: img-src 'self'; font-src
+  'self'; style-src 'self' 'unsafe-inline'` as a backstop. Readers can
+  `?plain=1`; staff can turn a log's stylesheet off from a report.
 - **Reports.** "Report" on an update or reply, and "Report this log" in the
   bar above it (outside `.al-root`, so an owner's CSS cannot hide it). Staff
   read them at `/staff/adventure-reports` and resolve with a typed password,

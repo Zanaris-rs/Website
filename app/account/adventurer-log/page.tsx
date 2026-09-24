@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import BlockList from "@/components/adventurer-log/BlockList";
+import CssEditor from "@/components/adventurer-log/CssEditor";
 import LogSettings from "@/components/adventurer-log/LogSettings";
 import Frame from "@/components/site/Frame";
 import Panel from "@/components/site/Panel";
@@ -56,6 +57,7 @@ export default async function LogSettingsPage() {
       />
       <Panel align="left" width="100%">
         <LogSettings headline={header.headline} about={header.about} hidden={header.hiddenCategories} />
+        <CssEditor initial={header.customCss} disabled={header.cssDisabled} />
         <BlockList initial={blocked} />
       </Panel>
     </Frame>
