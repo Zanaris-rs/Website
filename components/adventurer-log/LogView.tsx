@@ -10,14 +10,15 @@ import { CATEGORIES } from "@/lib/hiscores/categories";
 import { statOfCategory } from "@/lib/skills/icons";
 
 import styles from "./Log.module.css";
-import Timeline from "./Timeline";
+import Timeline, { type TimelineViewer } from "./Timeline";
 
 /**
  * A player's Adventurer Log: who they are on the left - chathead, headline,
  * skills - and on the right what they say about themselves and what they
  * have been doing. `bar` is the site's own strip above it (the owner's links,
  * later the report button), deliberately outside `.al-root`, where nothing an
- * owner's stylesheet reaches can hide or cover it.
+ * owner's stylesheet reaches can hide or cover it - which is why the report
+ * button for the whole log is there.
  */
 export default function LogView({
   header,
@@ -25,15 +26,15 @@ export default function LogView({
   skills,
   first,
   bar,
-  timeline,
+  viewer,
 }: {
   header: LogHeader & { result: "ok" };
   name: string;
   skills: readonly PlayerSkill[];
   first: TimelinePage;
   bar?: ReactNode;
-  /** The interactive timeline, when the page has one; the read-only one otherwise. */
-  timeline?: ReactNode;
+  /** Who is reading, when someone signed in is. */
+  viewer: TimelineViewer | null;
 }) {
   const levels = new Map(skills.map((skill) => [skill.category, skill.level]));
 
@@ -92,15 +93,14 @@ export default function LogView({
             <section className="al-timeline al-box">
               <h2>{name}&rsquo;s Adventurer Log</h2>
               <div className="al-box-body">
-                {timeline ?? (
-                  <Timeline
-                    username={header.username}
-                    ownerName={name}
-                    ownerLook={header.look}
-                    first={first}
-                    empty={`${name} has no adventures to show yet.`}
-                  />
-                )}
+                <Timeline
+                  username={header.username}
+                  ownerName={name}
+                  ownerLook={header.look}
+                  first={first}
+                  empty={`${name} has no adventures to show yet.`}
+                  viewer={viewer}
+                />
               </div>
             </section>
           </div>

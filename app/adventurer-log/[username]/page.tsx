@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import LogView from "@/components/adventurer-log/LogView";
+import ReportButton from "@/components/adventurer-log/ReportButton";
 import Frame from "@/components/site/Frame";
 import Panel from "@/components/site/Panel";
 import TitleBox from "@/components/site/TitleBox";
@@ -65,7 +66,13 @@ export default async function AdventurerLog({ params }: Params) {
       <a href="/account/adventurer-log">Edit your log</a>
       <a href="/account/adventurer-log/outfits">Outfits</a>
     </>
+  ) : viewer ? (
+    <ReportButton target={{ kind: "log", name: data.header.username }} label="Report this log" />
   ) : null;
+
+  const reader = viewer
+    ? { username: viewer, isOwner: data.header.isOwner, canPost: data.header.viewerCanPost }
+    : null;
 
   return (
     <Frame>
@@ -76,6 +83,7 @@ export default async function AdventurerLog({ params }: Params) {
         skills={data.skills}
         first={data.first}
         bar={bar}
+        viewer={reader}
       />
     </Frame>
   );
