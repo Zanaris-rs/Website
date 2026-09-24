@@ -1,0 +1,111 @@
+import type { ReactNode } from "react";
+
+import Chathead from "@/components/game/Chathead";
+import SkillIcon from "@/components/game/SkillIcon";
+import { formatMonth } from "@/lib/adventurer-log/format";
+import type { LogHeader } from "@/lib/adventurer-log/queries";
+import type { TimelinePage } from "@/lib/adventurer-log/view";
+import type { PlayerSkill } from "@/lib/hiscores/api";
+import { CATEGORIES } from "@/lib/hiscores/categories";
+import { statOfCategory } from "@/lib/skills/icons";
+
+import styles from "./Log.module.css";
+import Timeline from "./Timeline";
+
+/**
+ * A player's Adventurer Log: who they are on the left - chathead, headline,
+ * skills - and on the right what they say about themselves and what they
+ * have been doing. `bar` is the site's own strip above it (the owner's links,
+ * later the report button), deliberately outside `.al-root`, where nothing an
+ * owner's stylesheet reaches can hide or cover it.
+ */
+export default function LogView({
+  header,
+  name,
+  skills,
+  first,
+  bar,
+  timeline,
+}: {
+  header: LogHeader & { result: "ok" };
+  name: string;
+  skills: readonly PlayerSkill[];
+  first: TimelinePage;
+  bar?: ReactNode;
+  /** The interactive timeline, when the page has one; the read-only one otherwise. */
+  timeline?: ReactNode;
+}) {
+  const levels = new Map(skills.map((skill) => [skill.category, skill.level]));
+
+  return (
+    <>
+      {bar ? <div className={styles.bar}>{bar}</div> : null}
+      <div className={`al-root ${styles.root}`}>
+        <div className="al-page">
+          <aside className="al-side">
+            <section className="al-header al-box">
+              <h1 className="al-title">{name}</h1>
+              <div className="al-chathead">
+                <Chathead look={header.look} label={`${name}'s chathead`} />
+              </div>
+              {header.headline ? <p className="al-headline">&ldquo;{header.headline}&rdquo;</p> : null}
+              <p className="al-joined">Adventuring since {formatMonth(header.joinedAt)}</p>
+              <p className="al-links">
+                <a href={`/hiscores/player/${encodeURIComponent(header.username)}`}>Hiscores</a>
+              </p>
+            </section>
+
+            <section className="al-stats al-box">
+              <h2>Skills</h2>
+              <div className="al-box-body">
+                {skills.length === 0 ? (
+                  <p className="al-empty">Not on the hiscores yet.</p>
+                ) : (
+                  <table>
+                    <tbody>
+                      {CATEGORIES.filter((category) => levels.has(category.id)).map((category) => (
+                        <tr key={category.id} className={`al-skill al-skill--${category.id}`}>
+                          <td>
+                            <SkillIcon stat={statOfCategory(category.id)} size={16} />
+                          </td>
+                          <td>{category.name}</td>
+                          <td>{levels.get(category.id)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </section>
+          </aside>
+
+          <div className="al-main">
+            {header.about ? (
+              <section className="al-about al-box">
+                <h2>About {name}</h2>
+                <div className="al-box-body">
+                  <p>{header.about}</p>
+                </div>
+              </section>
+            ) : null}
+
+            <section className="al-timeline al-box">
+              <h2>{name}&rsquo;s Adventurer Log</h2>
+              <div className="al-box-body">
+                {timeline ?? (
+                  <Timeline
+                    username={header.username}
+                    ownerName={name}
+                    ownerLook={header.look}
+                    first={first}
+                    empty={`${name} has no adventures to show yet.`}
+                  />
+                )}
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}

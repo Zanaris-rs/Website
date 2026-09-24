@@ -182,6 +182,11 @@ export default function AccountCentre({
               </a>
             </li>
             <li>
+              <a className={frame.link} href="/account/adventurer-log">
+                Your Adventurer Log
+              </a>
+            </li>
+            <li>
               <a className={frame.link} href="/account/adventurer-log/outfits">
                 Outfits and your chathead
               </a>

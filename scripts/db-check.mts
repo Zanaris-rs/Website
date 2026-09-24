@@ -57,6 +57,23 @@ import {
   outfitsStatement,
   parseOutfitImport,
 } from "../lib/outfits/queries.ts";
+import {
+  blockStatement,
+  blocksStatement,
+  logSaveStatement,
+  logStatement,
+  parseLog,
+  replyDeleteStatement,
+  replyPostStatement,
+  repliesStatement,
+  reportStatement,
+  saveCssStatement,
+  setHiddenStatement,
+  timelineStatement,
+  unblockStatement,
+  updateDeleteStatement,
+  updatePostStatement,
+} from "../lib/adventurer-log/queries.ts";
 import { RECORD_DURATIONS } from "../lib/records/durations.ts";
 import {
   parseRecordBoardRow,
@@ -165,6 +182,14 @@ async function main(): Promise<void> {
     "public.adventure_event",
     "public.account_look",
     "public.adventure_outfit",
+    // 13_adventurer_log. Updates, replies, blocks and reports are reached only
+    // through the functions, which apply the twenty minutes, the blocks and
+    // the bans the pages depend on.
+    "public.adventure_log_profile",
+    "public.adventure_update",
+    "public.adventure_reply",
+    "public.adventure_block",
+    "public.adventure_report",
   ]) {
     try {
       await query(`select 1 from ${table} limit 1`);
@@ -260,6 +285,24 @@ async function main(): Promise<void> {
     "accounts.outfit_set_default(text, int)",
     "accounts.outfit_import_look(text)",
     "accounts.outfit_default_looks(text[])",
+    // 13_adventurer_log: the log's public reads, the owner's and authors'
+    // writes, reports, and the staff side of them.
+    "accounts.adventure_log(text, text)",
+    "accounts.adventure_timeline(text, text, timestamptz, int, int, int)",
+    "accounts.adventure_replies(text, text, int[])",
+    "accounts.adventure_log_save(text, text, text)",
+    "accounts.adventure_log_set_hidden(text, int)",
+    "accounts.adventure_log_save_css(text, text)",
+    "accounts.adventure_update_post(text, text)",
+    "accounts.adventure_update_delete(text, int)",
+    "accounts.adventure_reply_post(text, int, text)",
+    "accounts.adventure_reply_delete(text, int)",
+    "accounts.adventure_block(text, text)",
+    "accounts.adventure_unblock(text, text)",
+    "accounts.adventure_blocks(text)",
+    "accounts.adventure_report(text, text, int, text, text)",
+    "accounts.staff_adventure_reports(text, boolean)",
+    "accounts.staff_adventure_resolve(text, text, int, text, text)",
   ];
   const withheld = [
     "accounts.throttled(text, text)",
@@ -285,6 +328,9 @@ async function main(): Promise<void> {
     "accounts.outfit_ints_ok(int[], int, int, int)",
     "accounts.outfit_look_ok(int, int[], int[], int[])",
     "accounts.outfit_owner(text)",
+    // 13_adventurer_log's helpers.
+    "accounts.adventure_text(text, int, boolean)",
+    "accounts.adventure_author(text, boolean)",
   ];
 
   for (const [list, expected] of [
@@ -358,6 +404,7 @@ async function main(): Promise<void> {
   await checkInvites();
   await checkRecords();
   await checkOutfits();
+  await checkAdventurerLog();
 }
 
 /**
@@ -896,6 +943,86 @@ async function checkOutfits(): Promise<void> {
     console.error(
       `FAIL: outfit_import_look must always return one row. ${error instanceof Error ? error.message : String(error)}`,
     );
+    process.exitCode = 1;
+  }
+}
+
+// 13_adventurer_log, against a name nobody has: the header is one row saying
+// not_found, the reads are empty, and every write answers not_found.
+async function checkAdventurerLog(): Promise<void> {
+  const header = logStatement("__db_check__", null);
+  try {
+    const parsed = parseLog(await query<Record<string, unknown>>(header.text, header.values));
+    if (parsed.result === "not_found") {
+      console.log("accounts.adventure_log('__db_check__'): not_found (expected)");
+    } else {
+      console.error(`FAIL: adventure_log answered ${parsed.result}; expected not_found.`);
+      process.exitCode = 1;
+    }
+  } catch (error) {
+    console.error(
+      `FAIL: adventure_log must always return one row. ${error instanceof Error ? error.message : String(error)}`,
+    );
+    process.exitCode = 1;
+  }
+
+  for (const [name, statement] of [
+    ["adventure_timeline", timelineStatement("__db_check__", null, null)],
+    ["adventure_replies", repliesStatement("__db_check__", null, [1])],
+    ["adventure_blocks", blocksStatement("__db_check__")],
+  ] as const) {
+    const rows = await query(statement.text, statement.values);
+    if (rows.length === 0) {
+      console.log(`accounts.${name}('__db_check__', …): 0 rows (expected)`);
+    } else {
+      console.error(`FAIL: ${name} returned ${rows.length} rows for a name nobody has.`);
+      process.exitCode = 1;
+    }
+  }
+
+  const writes: [string, { text: string; values: readonly unknown[] }][] = [
+    ["adventure_log_save", logSaveStatement("__db_check__", "", "")],
+    ["adventure_log_set_hidden", setHiddenStatement("__db_check__", 0)],
+    ["adventure_log_save_css", saveCssStatement("__db_check__", "")],
+    ["adventure_update_delete", updateDeleteStatement("__db_check__", 1)],
+    ["adventure_reply_delete", replyDeleteStatement("__db_check__", 1)],
+    ["adventure_block", blockStatement("__db_check__", "__db_check__")],
+    ["adventure_unblock", unblockStatement("__db_check__", "__db_check__")],
+    ["adventure_report", reportStatement("__db_check__", "log", null, "__db_check__", "db check")],
+  ];
+  for (const [name, statement] of writes) {
+    const [row] = await query<{ result: unknown }>(statement.text, statement.values);
+    if (row?.result === "not_found") {
+      console.log(`accounts.${name}('__db_check__', …): not_found (expected)`);
+    } else {
+      console.error(`FAIL: ${name} answered ${JSON.stringify(row?.result)}; expected not_found.`);
+      process.exitCode = 1;
+    }
+  }
+
+  for (const [name, statement] of [
+    ["adventure_update_post", updatePostStatement("__db_check__", "db check")],
+    ["adventure_reply_post", replyPostStatement("__db_check__", 1, "db check")],
+  ] as const) {
+    const [row] = await query<{ result: unknown }>(statement.text, statement.values);
+    if (row?.result === "not_found") {
+      console.log(`accounts.${name}('__db_check__', …): not_found (expected)`);
+    } else {
+      console.error(`FAIL: ${name} answered ${JSON.stringify(row?.result)}; expected not_found.`);
+      process.exitCode = 1;
+    }
+  }
+
+  // Not staff: the report list is empty and resolving is forbidden.
+  const staffRows = await query("select * from accounts.staff_adventure_reports($1, $2)", ["__db_check__", false]);
+  const [resolved] = await query<{ result: unknown }>(
+    "select accounts.staff_adventure_resolve($1, $2, $3, $4, $5) as result",
+    ["__db_check__", null, 1, "dismiss", null],
+  );
+  if (staffRows.length === 0 && resolved?.result === "forbidden") {
+    console.log("accounts.staff_adventure_reports / resolve('__db_check__'): empty, forbidden (expected)");
+  } else {
+    console.error(`FAIL: the staff adventure functions answered a non-staff name (${staffRows.length} rows, ${JSON.stringify(resolved?.result)}).`);
     process.exitCode = 1;
   }
 }

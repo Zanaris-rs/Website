@@ -1,0 +1,58 @@
+.settings {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  font-size: 13px;
+  text-align: left;
+}
+
+.form h2 {
+  margin: 0 0 6px;
+  font-size: 14px;
+}
+
+.form label {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.form input[type="text"],
+.form textarea {
+  display: block;
+  width: 100%;
+  margin-top: 2px;
+  font: inherit;
+}
+
+.form button {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 13px;
+  padding: 2px 12px;
+}
+
+.row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.count {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.hint {
+  margin: 0 0 6px;
+  color: var(--text-muted);
+}
+
+.categories {
+  list-style: none;
+  margin: 0 0 6px;
+  padding: 0;
+  columns: 2 180px;
+}
+
+.categories label {
+  margin-bottom: 2px;
+}

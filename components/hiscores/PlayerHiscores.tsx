@@ -104,6 +104,14 @@ export default function PlayerHiscores({ username }: { username: string }) {
                 Citizen {formatCitizen(state.data.citizen)}
               </div>
             ) : null}
+            <div className={styles.playerHeading}>
+              <a
+                className={frame.link}
+                href={`/adventurer-log/${encodeURIComponent(state.data.username)}`}
+              >
+                Adventurer Log
+              </a>
+            </div>
             <table className={styles.playerTable}>
               <thead>
                 <tr>
