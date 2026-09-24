@@ -42,6 +42,7 @@ npm run db:check             # prove DATABASE_URL connects and is the right role
 npm run assets:vendor        # re-vendor the 2004 graphics (see "2004 assets")
 npm run worldmap:update      # rebuild the map applet and map data (see "World map assets")
 npm run icons:update         # redraw the item and skill icons from the cache (see "Game icons")
+npm run chathead:update      # rebuild the chathead renderer and its data (see "Chatheads")
 ```
 
 Without a `DATABASE_URL` the site still runs: the hiscores API answers 503 and
@@ -1495,6 +1496,44 @@ A regeneration therefore reaches readers immediately, at the cost of their
 re-downloading the icons on the pages they open — about 90 KB for `/economy`.
 This is also why a hand-written path is a bug rather than a shortcut: with no
 `?v=` it is cached for a year and never corrected.
+
+## Chatheads
+
+A chathead is a player's head as a quest dialogue shows it. It is not a
+picture anywhere in the cache: in a dialogue the server only says "the
+player's head goes here", and the client builds the model from the player's
+hair, jaw and hat and draws it in software. The site does the same, in the
+browser, with the client's own code:
+
+| File | What |
+| --- | --- |
+| `public/game/chathead/renderer.js` | the client's `Model`, `Pix3D` and `Pix2D`, bundled (about 16 KB gzipped) |
+| `public/game/chathead/models.bin` | the head models of every kit and hat, out of the 38 MB cache |
+| `lib/chathead/heads.json` | kits, hats, which worn objects hide the hair or jaw, the colour palettes, the frame |
+| `lib/chathead/golden.json` | reference pictures drawn by the client's own `ClientPlayer.getHeadModel` |
+
+```sh
+npm run chathead:update          # ENGINE_DIR=../Server/engine, CLIENT_BRANCH=274
+```
+
+Pages use `<Chathead look>` (`components/game/Chathead.tsx`) with a `Look`
+(`lib/chathead/look.ts`) — the save file's gender, seven kits, five colours
+and worn items. The renderer and the models are fetched once per page, when
+the first chathead mounts, with the build's version in the URL; `next.config.ts`
+caches `/game/chathead/*` for a year on the same terms as the icons.
+
+The worn objects that empty a slot (a full helm's hair and jaw) are read
+from the engine's *server* `obj.dat`, because the client never receives them.
+The frame fits every hair and beard whole, and nine hats in ten; the tallest
+(the snelms' points, the Warrior helm's horns) are cut off at its edge.
+
+`golden.test.ts` draws every golden look — every kit with a head, every hat on
+both genders, every colour of every part — with the committed renderer, models
+and tables, and checks each against the client's own picture pixel for pixel.
+`/dev/chathead` (development only) shows them all on a page.
+
+**Chatheads go stale like the icons.** Repack the engine after a content bump,
+re-run `chathead:update`, and commit what it writes.
 
 ## 2004 assets
 
