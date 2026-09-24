@@ -10,7 +10,8 @@
  *   OUT_DIR     this repository
  *
  * Writes `public/game/chathead/models.bin`, `lib/chathead/heads.json` and
- * `lib/chathead/golden.json`.
+ * `lib/chathead/golden.json`, and through `outfits.ts` what the outfit
+ * editor draws the Worn Equipment tab with.
  */
 
 import "./browser-stub.ts";
@@ -26,6 +27,7 @@ import type { HeadTables } from "../../lib/chathead/head.ts";
 import { type Look, toAppearance } from "../../lib/chathead/look.ts";
 import { encodeModels } from "../../lib/chathead/models.ts";
 import FileCache from "../game-icons/cache.ts";
+import { exportOutfitEditor, type SpriteClient } from "./outfits.ts";
 import { readWearPos } from "./server-obj.ts";
 
 // --- the slice of Client-TS this uses -------------------------------------
@@ -95,8 +97,12 @@ async function client<T>(file: string): Promise<T> {
 
 const JagFile = await client<JagFileClass>("io/JagFile.ts");
 const Model = await client<ModelClass>("dash3d/Model.ts");
-const Pix3D = await client<Client["Pix3D"]>("dash3d/Pix3D.ts");
+const Pix3D = await client<Client["Pix3D"] & { colourTable: Int32Array }>(
+  "dash3d/Pix3D.ts",
+);
 const Pix2D = await client<Client["Pix2D"]>("graphics/Pix2D.ts");
+const Pix8 = await client<SpriteClient["Pix8"]>("graphics/Pix8.ts");
+const Pix32 = await client<SpriteClient["Pix32"]>("graphics/Pix32.ts");
 const IdkType = await client<IdkTypeClass>("config/IdkType.ts");
 const ObjType = await client<ObjTypeClass>("config/ObjType.ts");
 const ClientPlayer = await client<ClientPlayerClass>("dash3d/ClientPlayer.ts");
@@ -107,6 +113,7 @@ const source: Client = { Model, Pix3D, Pix2D };
 
 const PACK = path.join(ENGINE_DIR, "data/pack");
 const config = new JagFile(readFileSync(path.join(PACK, "client/config")));
+const media = new JagFile(readFileSync(path.join(PACK, "client/media")));
 const cache = new FileCache(PACK, 5);
 
 prepare(source);
@@ -394,6 +401,14 @@ writeFileSync(
   JSON.stringify({ version, looks: goldenFile }, null, 1) + "\n",
 );
 
+const wearables = exportOutfitEditor({
+  client: { Pix2D, Pix8, Pix32, colourTable: Pix3D.colourTable },
+  media,
+  wearpos,
+  recol1d: ClientPlayer.recol1d,
+  outDir: OUT_DIR,
+});
+
 const drawn = goldenFile.filter((entry) => entry.hash !== null).length;
 console.log(
   `models   ${models.size} head models, ${modelsBin.length} bytes -> public/game/chathead/models.bin?v=${version}`,
@@ -407,5 +422,9 @@ console.log(
 );
 console.log(
   `golden   ${goldenFile.length} looks (${drawn} drawn, ${goldenFile.length - drawn} blank) -> lib/chathead/golden.json`,
+);
+const wearableCount = Object.values(wearables.slots).flat().length;
+console.log(
+  `outfits  ${wearableCount} wearable objects in ${Object.keys(wearables.slots).length} slots, the worn tab and its silhouettes -> public/img/game/worn/*.png?v=${wearables.version}, lib/chathead/wearables.json`,
 );
 process.exit(0);

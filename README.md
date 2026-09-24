@@ -1532,6 +1532,25 @@ both genders, every colour of every part — with the committed renderer, models
 and tables, and checks each against the client's own picture pixel for pixel.
 `/dev/chathead` (development only) shows them all on a page.
 
+### The outfit editor
+
+`components/outfits/OutfitEditor.tsx` is fashionscape: up to ten outfits,
+one of them the player's picture, each a `Look` whose chathead is drawn live
+as it changes. Anyone may wear anything, but only in a slot it is worn in, and
+only with a body the game's design screen allows — `lib/chathead/validate.ts`
+holds both rules and runs on each side. The same build writes what it draws
+with:
+
+| File | What |
+| --- | --- |
+| `public/img/game/worn/tab.png` | the Worn Equipment tab, empty, drawn by the client from `wornitems.if` |
+| `public/img/game/worn/slot-<n>.png` | each slot's silhouette, for when nothing is worn there |
+| `lib/chathead/wearables.json` | every wearable object by slot, and the design screen's colour swatches |
+
+The editor talks to an `OutfitStore` (`lib/chathead/outfit-store.ts`), so it
+runs over memory at `/dev/outfits` (development only) until the database
+behind the real one exists.
+
 **Chatheads go stale like the icons.** Repack the engine after a content bump,
 re-run `chathead:update`, and commit what it writes.
 
