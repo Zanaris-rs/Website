@@ -1,0 +1,239 @@
+/* The outfit editor: the chathead, the Worn Equipment tab and the design
+   controls side by side, wrapping under each other on a narrow screen. */
+
+.editor {
+  font-size: 13px;
+}
+
+/* --- the ten outfits --- */
+
+.slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.slotTab,
+.slotTabEmpty {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 12px;
+  max-width: 11em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.slotTabEmpty {
+  color: var(--text-muted);
+}
+
+.slotTab[aria-current],
+.slotTabEmpty[aria-current] {
+  outline: 2px solid var(--link-green);
+}
+
+/* --- the workbench --- */
+
+.workbench {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.preview {
+  margin: 0;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.wornColumn {
+  text-align: center;
+}
+
+.hint {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+/* The tab picture is the background; the slots sit over its boxes at the
+   positions `wornitems.if` gives them. */
+.tab {
+  position: relative;
+  image-rendering: pixelated;
+}
+
+.slot {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  line-height: 0;
+}
+
+.slot:hover,
+.slot[aria-pressed="true"] {
+  outline: 1px solid #ffff00;
+}
+
+.design {
+  min-width: 220px;
+  max-width: 300px;
+}
+
+.field {
+  border: 1px solid var(--panel-border);
+  margin: 0 0 8px;
+  padding: 6px 8px 8px;
+}
+
+.field legend {
+  padding: 0 4px;
+  font-weight: bold;
+}
+
+.genders {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.genders button[aria-pressed="true"],
+.item[aria-pressed="true"] {
+  outline: 2px solid var(--link-green);
+}
+
+.kitRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.kitRow span {
+  min-width: 8em;
+  text-align: center;
+}
+
+.colourRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.colourLabel {
+  width: 3.5em;
+  flex: none;
+}
+
+.swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+
+.swatch {
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  border: 1px solid #000;
+  cursor: pointer;
+}
+
+.swatch[aria-pressed="true"] {
+  outline: 2px solid #ffffff;
+  outline-offset: 0;
+}
+
+/* --- the item picker --- */
+
+.picker {
+  border: 1px solid var(--panel-border);
+  margin-top: 12px;
+  padding: 8px;
+}
+
+.pickerHead {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.search {
+  flex: 1 1 12em;
+}
+
+.items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 2px 8px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 1px 4px;
+  border: 0;
+  background: none;
+  color: var(--link);
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+
+.item:hover {
+  color: var(--link-hover);
+  background: #1a1a1a;
+}
+
+.more {
+  margin: 6px 0 0;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+/* --- save, default, delete, import --- */
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  align-items: center;
+  margin-top: 12px;
+}
+
+.actions button {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 13px;
+  padding: 2px 12px;
+}
+
+.name input {
+  width: 14em;
+}
+
+.status {
+  min-height: 1.4em;
+  margin: 8px 0 0;
+  text-align: center;
+  color: var(--text-muted);
+}

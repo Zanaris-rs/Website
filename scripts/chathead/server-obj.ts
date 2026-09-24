@@ -23,6 +23,8 @@ export type WearPos = {
   wearpos: number;
   wearpos2: number;
   wearpos3: number;
+  /** A `dummyitem`: an engine placeholder, never a real object to wear. */
+  dummy: boolean;
 };
 
 class Reader {
@@ -82,7 +84,6 @@ const FIXED: ReadonlyMap<number, number> = new Map([
   [93, 2], // womanhead2
   [94, 2], // category
   [95, 2], // zan2d
-  [96, 1], // dummyitem
   [97, 2], // certlink
   [98, 2], // certtemplate
   [110, 2], // resizex
@@ -94,7 +95,7 @@ const FIXED: ReadonlyMap<number, number> = new Map([
 ]);
 
 function decode(dat: Reader, id: number): WearPos {
-  const out: WearPos = { wearpos: -1, wearpos2: -1, wearpos3: -1 };
+  const out: WearPos = { wearpos: -1, wearpos2: -1, wearpos3: -1, dummy: false };
 
   while (dat.available > 0) {
     const code = dat.g1();
@@ -109,6 +110,8 @@ function decode(dat: Reader, id: number): WearPos {
       out.wearpos2 = dat.g1();
     } else if (code === 27) {
       out.wearpos3 = dat.g1();
+    } else if (code === 96) {
+      out.dummy = dat.g1() !== 0;
     } else if (code === 2 || code === 3 || code === 250) {
       dat.skipString(); // name, desc, debugname
     } else if (code >= 30 && code < 40) {
