@@ -1584,6 +1584,18 @@ scrolls, as the game records them - mixed with the updates they post.
   `:global()` rather than with hashed module classes.
 - `/account/adventurer-log` is the owner's side: headline and about, and which
   kinds of adventure the log shows (hidden for everyone, the owner included).
+- **Posting.** The owner posts updates; anyone signed in who is not muted,
+  banned or blocked replies. Posts are plain text plus `[item:<debugname>]` and
+  `[skill:<name>]`, which the composer's picker inserts
+  (`GET /api/adventurer-log/assets?q=`, so the item tables stay on the
+  server). The owner deletes any reply on their log and blocks repliers (their
+  replies there stop showing); authors delete their own. Every write is a
+  route under `/api/adventurer-log/` with `requireLiveSession` and the
+  same-origin check, and every rule - rates, mutes, blocks - is the database's.
+- **Reports.** "Report" on an update or reply, and "Report this log" in the
+  bar above it (outside `.al-root`, so an owner's CSS cannot hide it). Staff
+  read them at `/staff/adventure-reports` and resolve with a typed password,
+  as for game reports: hide, turn off a log's stylesheet, or dismiss.
 
 ## 2004 assets
 

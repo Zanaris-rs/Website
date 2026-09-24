@@ -7,6 +7,7 @@ describe("staffLinks", () => {
     expect(staffLinks().map((link) => link.href)).toEqual([
       "/staff",
       "/staff/reports",
+      "/staff/adventure-reports",
       "/staff/notice",
       "/staff/wealth",
       "/staff/invites",
@@ -29,6 +30,7 @@ describe("staffLinks", () => {
     expect(links.map((link) => link.text)).toEqual([
       "Staff inbox",
       "Reports",
+      "Log reports",
       "Wealth",
       "Invites",
       "Genealogy",

@@ -1,13 +1,15 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
+import BlockList from "@/components/adventurer-log/BlockList";
 import LogSettings from "@/components/adventurer-log/LogSettings";
 import Frame from "@/components/site/Frame";
 import Panel from "@/components/site/Panel";
 import TitleBox from "@/components/site/TitleBox";
 import { loadAccount } from "@/lib/account/profile-server";
 import { requireSession } from "@/lib/account/session-server";
-import { type LogHeader, logStatement, parseLog } from "@/lib/adventurer-log/queries";
+import { blocksStatement, type LogHeader, logStatement, parseBlocks, parseLog } from "@/lib/adventurer-log/queries";
+import { toDisplayName } from "@/lib/base37";
 import { query } from "@/lib/db";
 
 export const metadata: Metadata = {
@@ -27,9 +29,15 @@ export default async function LogSettingsPage() {
 
   const { username } = loaded.profile;
   let header: LogHeader;
+  let blocked: { username: string; name: string }[];
   try {
     const statement = logStatement(username, username);
     header = parseLog(await query<Record<string, unknown>>(statement.text, statement.values));
+    const blocks = blocksStatement(username);
+    blocked = parseBlocks(await query<Record<string, unknown>>(blocks.text, blocks.values)).map((row) => ({
+      username: row.username,
+      name: toDisplayName(row.username),
+    }));
   } catch (error) {
     console.error("[adventurer-log] settings read failed", error);
     return <Unavailable />;
@@ -48,6 +56,7 @@ export default async function LogSettingsPage() {
       />
       <Panel align="left" width="100%">
         <LogSettings headline={header.headline} about={header.about} hidden={header.hiddenCategories} />
+        <BlockList initial={blocked} />
       </Panel>
     </Frame>
   );

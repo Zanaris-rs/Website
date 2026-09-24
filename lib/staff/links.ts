@@ -27,6 +27,7 @@ export type StaffLink = {
 export const STAFF_PAGES: readonly StaffLink[] = [
   { href: "/staff", text: "Staff inbox" },
   { href: "/staff/reports", text: "Reports" },
+  { href: "/staff/adventure-reports", text: "Log reports" },
   { href: "/staff/notice", text: "Send a notice" },
   { href: "/staff/wealth", text: "Wealth" },
   { href: "/staff/invites", text: "Invites" },

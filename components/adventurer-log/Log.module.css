@@ -205,6 +205,58 @@
   text-align: center;
 }
 
+/* --- writing --- */
+
+.root :global(.al-post) {
+  margin-bottom: 8px;
+}
+
+.root :global(.al-composer textarea) {
+  background: #111;
+  color: var(--text);
+  border: 1px solid var(--panel-border);
+}
+
+.root :global(.al-composer button),
+.root :global(.al-report button) {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 11px;
+}
+
+.root :global(.al-picker) {
+  margin-top: 4px;
+}
+
+.root :global(.al-picker-results) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 6px;
+  margin-top: 4px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.root :global(.al-picker-results button) {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: 1px solid var(--rule);
+  color: var(--link);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.root :global(.al-notice) {
+  margin: 0 0 6px;
+  color: var(--text-muted);
+}
+
+.root :global(.al-report) {
+  display: inline;
+}
+
 /* --- the site's bar above the log, outside anything an owner can style --- */
 
 .bar {
