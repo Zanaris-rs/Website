@@ -1,6 +1,7 @@
 import type { HeadTables } from "./head.ts";
 import heads from "./heads.json";
 import type { Look } from "./look.ts";
+import { OUTFIT_NAME_MAX } from "./limits.ts";
 import { wearableIn } from "./wearables.ts";
 
 /**
@@ -17,8 +18,7 @@ import { wearableIn } from "./wearables.ts";
 
 const tables = heads as HeadTables;
 
-export const OUTFIT_SLOTS = 10;
-export const OUTFIT_NAME_MAX = 32;
+export { OUTFIT_NAME_MAX, OUTFIT_SLOTS } from "./limits.ts";
 
 export type Outfit = { name: string; look: Look };
 

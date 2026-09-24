@@ -48,6 +48,15 @@ import {
   publicStaffSpawnsStatement,
   type Statement,
 } from "../lib/public/queries.ts";
+import {
+  defaultLooksStatement,
+  outfitDeleteStatement,
+  outfitImportStatement,
+  outfitSaveStatement,
+  outfitSetDefaultStatement,
+  outfitsStatement,
+  parseOutfitImport,
+} from "../lib/outfits/queries.ts";
 import { RECORD_DURATIONS } from "../lib/records/durations.ts";
 import {
   parseRecordBoardRow,
@@ -151,6 +160,11 @@ async function main(): Promise<void> {
     // which read the XP themselves so the site can never supply one.
     "public.record_attempt",
     "public.record_attempt_skill",
+    // 11_adventure_capture and 12_adventure_outfits. The login server writes
+    // the first two; the site reads them only through the outfit functions.
+    "public.adventure_event",
+    "public.account_look",
+    "public.adventure_outfit",
   ]) {
     try {
       await query(`select 1 from ${table} limit 1`);
@@ -238,6 +252,14 @@ async function main(): Promise<void> {
     "accounts.record_history(text, int)",
     "accounts.record_attempt_skills(text, int)",
     "accounts.record_board(int, int, int)",
+    // 12_adventure_outfits: the player's own ten outfits, and the one public
+    // read - the default look behind a name, which is all a chathead needs.
+    "accounts.outfits(text)",
+    "accounts.outfit_save(text, int, text, int, int[], int[], int[])",
+    "accounts.outfit_delete(text, int)",
+    "accounts.outfit_set_default(text, int)",
+    "accounts.outfit_import_look(text)",
+    "accounts.outfit_default_looks(text[])",
   ];
   const withheld = [
     "accounts.throttled(text, text)",
@@ -259,6 +281,10 @@ async function main(): Promise<void> {
     "accounts.record_presence(int, timestamptz)",
     "accounts.record_stale(text, timestamptz, int)",
     "accounts.record_close_stale(int)",
+    // 12_adventure_outfits' helpers.
+    "accounts.outfit_ints_ok(int[], int, int, int)",
+    "accounts.outfit_look_ok(int, int[], int[], int[])",
+    "accounts.outfit_owner(text)",
   ];
 
   for (const [list, expected] of [
@@ -331,6 +357,7 @@ async function main(): Promise<void> {
   await checkPublicPages();
   await checkInvites();
   await checkRecords();
+  await checkOutfits();
 }
 
 /**
@@ -809,4 +836,66 @@ try {
   process.exitCode = 1;
 } finally {
   if (isConfigured()) await pool().end();
+}
+
+// 12_adventure_outfits, against a name nobody has: every write answers
+// not_found and changes nothing, the reads are empty, and import is one row.
+async function checkOutfits(): Promise<void> {
+  const writes: [string, { text: string; values: readonly unknown[] }][] = [
+    [
+      "outfit_save",
+      outfitSaveStatement("__db_check__", 0, {
+        name: "db check",
+        look: {
+          gender: 0,
+          kits: [0, 10, 18, 26, 33, 36, 42],
+          colours: [0, 0, 0, 0, 0],
+          worn: new Array(14).fill(-1),
+        },
+      }),
+    ],
+    ["outfit_delete", outfitDeleteStatement("__db_check__", 0)],
+    ["outfit_set_default", outfitSetDefaultStatement("__db_check__", 0)],
+  ];
+  for (const [name, statement] of writes) {
+    const [row] = await query<{ result: unknown }>(statement.text, statement.values);
+    if (row?.result === "not_found") {
+      console.log(`accounts.${name}('__db_check__', …): not_found (expected)`);
+    } else {
+      console.error(`FAIL: ${name} answered ${JSON.stringify(row?.result)}; expected not_found.`);
+      process.exitCode = 1;
+    }
+  }
+
+  const list = outfitsStatement("__db_check__");
+  const looks = defaultLooksStatement(["__db_check__"]);
+  for (const [name, statement] of [
+    ["outfits", list],
+    ["outfit_default_looks", looks],
+  ] as const) {
+    const rows = await query(statement.text, statement.values);
+    if (rows.length === 0) {
+      console.log(`accounts.${name}('__db_check__'): 0 rows (expected)`);
+    } else {
+      console.error(`FAIL: ${name} returned ${rows.length} rows for a name nobody has.`);
+      process.exitCode = 1;
+    }
+  }
+
+  const imported = outfitImportStatement("__db_check__");
+  const importRows = await query<Record<string, unknown>>(imported.text, imported.values);
+  try {
+    const parsed = parseOutfitImport(importRows);
+    if (parsed.result === "not_found") {
+      console.log("accounts.outfit_import_look('__db_check__'): not_found (expected)");
+    } else {
+      console.error(`FAIL: outfit_import_look answered ${parsed.result}; expected not_found.`);
+      process.exitCode = 1;
+    }
+  } catch (error) {
+    console.error(
+      `FAIL: outfit_import_look must always return one row. ${error instanceof Error ? error.message : String(error)}`,
+    );
+    process.exitCode = 1;
+  }
 }

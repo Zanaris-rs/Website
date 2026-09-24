@@ -181,6 +181,11 @@ export default function AccountCentre({
                 Set a record
               </a>
             </li>
+            <li>
+              <a className={frame.link} href="/account/adventurer-log/outfits">
+                Outfits and your chathead
+              </a>
+            </li>
             {/* The one link on the site that depends on what an account may
                 do, so it is decided from the profile row read on this request
                 and never from the cookie. Hiding it is only cosmetic: /staff
