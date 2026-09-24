@@ -1547,9 +1547,15 @@ with:
 | `public/img/game/worn/slot-<n>.png` | each slot's silhouette, for when nothing is worn there |
 | `lib/chathead/wearables.json` | every wearable object by slot, and the design screen's colour swatches |
 
-The editor talks to an `OutfitStore` (`lib/chathead/outfit-store.ts`), so it
-runs over memory at `/dev/outfits` (development only) until the database
-behind the real one exists.
+The editor talks to an `OutfitStore` (`lib/chathead/outfit-store.ts`). On the
+site that is `/account/adventurer-log/outfits` over the `/api/outfits` routes
+and engine migration 12's functions (`lib/outfits/queries.ts`): `outfits`,
+`outfit_save`, `outfit_delete`, `outfit_set_default`, `outfit_import_look`
+(the look of the player's last save, which the login server keeps in
+`account_look` since migration 11) and `outfit_default_looks`, the one public
+read - the default look behind a name, for a chathead. Every write answers
+with the outfits as they now are. `/dev/outfits` (development only) runs the
+same editor over memory.
 
 **Chatheads go stale like the icons.** Repack the engine after a content bump,
 re-run `chathead:update`, and commit what it writes.
