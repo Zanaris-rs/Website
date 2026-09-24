@@ -12,6 +12,16 @@
   font-size: 13px;
   color: var(--text);
   text-align: left;
+  /* The log is its own box. An owner's stylesheet can only reach inside it
+     (every selector is prefixed with .al-root, lib/adventurer-log/css.ts), and
+     these keep what is inside from being drawn outside it - over the site's
+     header, the report button, or the footer - whatever it says: `contain:
+     paint` makes the root the containing block of even position: fixed, and
+     clips to it. !important because the owner's CSS has it taken away. */
+  position: relative !important;
+  contain: paint !important;
+  isolation: isolate !important;
+  overflow: clip !important;
 }
 
 .root :global(.al-page) {

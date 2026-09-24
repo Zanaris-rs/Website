@@ -27,6 +27,7 @@ export default function LogView({
   first,
   bar,
   viewer,
+  css,
 }: {
   header: LogHeader & { result: "ok" };
   name: string;
@@ -35,6 +36,8 @@ export default function LogView({
   bar?: ReactNode;
   /** Who is reading, when someone signed in is. */
   viewer: TimelineViewer | null;
+  /** The owner's stylesheet, already through `sanitizeCss`; empty for none. */
+  css: string;
 }) {
   const levels = new Map(skills.map((skill) => [skill.category, skill.level]));
 
@@ -42,6 +45,10 @@ export default function LogView({
     <>
       {bar ? <div className={styles.bar}>{bar}</div> : null}
       <div className={`al-root ${styles.root}`}>
+        {/* A plain <style>, drawn where it is and gone when the page is: React
+            hoists only a <style> with href and precedence. Its text is the
+            sanitiser's output, which has no "<" in it. */}
+        {css ? <style>{css}</style> : null}
         <div className="al-page">
           <aside className="al-side">
             <section className="al-header al-box">

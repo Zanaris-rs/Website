@@ -97,6 +97,25 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      // The Adventurer Log draws an owner's own stylesheet
+      // (lib/adventurer-log/css.ts). The sanitiser already refuses anything
+      // that loads from elsewhere; this is the backstop if it ever misses:
+      // pictures and fonts from this site only, and styles from this site or
+      // inline - which also refuses a remote @import. Scripts and connections
+      // are left alone: the page loads the chathead renderer from here, and
+      // nothing an owner writes can add a script.
+      //
+      // Every link into and out of a log is a plain <a> (the site's rule), so
+      // this header is on every log a reader sees and on nothing else.
+      ...["/adventurer-log/:path*"].map((source) => ({
+        source,
+        headers: [
+          {
+            key: "Content-Security-Policy",
+            value: "img-src 'self'; font-src 'self'; style-src 'self' 'unsafe-inline'",
+          },
+        ],
+      })),
       // Nothing signed in may be framed. `SameSite=Lax` keeps the session
       // cookie out of a frame on *another* site, but not out of one on a
       // sibling host: `www.zanaris.rs` and the `*.04.zanaris.rs` worlds are
