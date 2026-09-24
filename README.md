@@ -1560,6 +1560,31 @@ same editor over memory.
 **Chatheads go stale like the icons.** Repack the engine after a content bump,
 re-run `chathead:update`, and commit what it writes.
 
+## Adventurer Log
+
+`/adventurer-log/<name>` is a player's public page (engine migrations 11-13):
+their chathead, headline, skills and about on one side, and on the other a
+timeline of their adventures - levels, milestones, quests, rare drops, clue
+scrolls, as the game records them - mixed with the updates they post.
+
+- Everyone else sees an adventure **twenty minutes** after it happened, so a
+  log cannot be used to follow someone around the game; the owner sees theirs
+  at once. That rule, and every other one - who may write, blocks, the rates -
+  is in the database's functions (`lib/adventurer-log/queries.ts`).
+- The timeline is `accounts.adventure_timeline`, a `(at, rank, id)` cursor
+  newest first; `lib/adventurer-log/view.ts` turns a page into plain data (post
+  text cut into tokens by `body.ts`, adventure icons from `events.ts`, the
+  chathead looks of everyone on the page) so the first render and every
+  "Older adventures" (`GET /api/adventurer-log/<name>/timeline`) are the same
+  shape, and the item tables stay on the server.
+- Times are fixed UTC text (`formatWhen`), not "5 minutes ago": a relative time
+  would differ between the server's render and the browser's hydration.
+- Every element inside `.al-root` carries a stable `al-` class. Those names are
+  the log's styling contract, so `Log.module.css` styles them through
+  `:global()` rather than with hashed module classes.
+- `/account/adventurer-log` is the owner's side: headline and about, and which
+  kinds of adventure the log shows (hidden for everyone, the owner included).
+
 ## 2004 assets
 
 `public/img/` is the original 2004 site graphics — the page chrome, the stone

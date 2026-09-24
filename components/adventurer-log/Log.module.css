@@ -1,0 +1,218 @@
+/* The Adventurer Log's own look, before any owner's CSS.
+ *
+ * Everything inside the log is styled through its stable `al-` class names,
+ * written here as :global() under the module's root class: those names are
+ * the contract an owner's stylesheet targets, so they cannot be CSS-module
+ * hashes. The root class keeps these rules on log pages only.
+ *
+ * A 2004 profile's shape - a narrow column of who they are, a wide one of
+ * what they have been doing - in this site's grey. */
+
+.root {
+  font-size: 13px;
+  color: var(--text);
+  text-align: left;
+}
+
+.root :global(.al-page) {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--stack-gap);
+}
+
+@media (min-width: 900px) {
+  .root :global(.al-page) {
+    grid-template-columns: 280px 1fr;
+    align-items: start;
+  }
+}
+
+.root :global(.al-side),
+.root :global(.al-main) {
+  display: flex;
+  flex-direction: column;
+  gap: var(--stack-gap);
+  min-width: 0;
+}
+
+.root :global(.al-box) {
+  background: #000;
+  border: 1px solid var(--panel-border);
+}
+
+.root :global(.al-box > h2) {
+  margin: 0;
+  padding: 3px 8px;
+  font-size: 13px;
+  background: #2b2b2b;
+  border-bottom: 1px solid var(--panel-border);
+  color: #fff;
+}
+
+.root :global(.al-box-body) {
+  padding: 8px;
+}
+
+/* --- who they are --- */
+
+.root :global(.al-header) {
+  text-align: center;
+}
+
+.root :global(.al-title) {
+  margin: 8px 0 0;
+  font-size: 18px;
+}
+
+.root :global(.al-chathead) {
+  display: flex;
+  justify-content: center;
+  padding: 4px 0;
+}
+
+.root :global(.al-headline) {
+  margin: 0 8px 6px;
+  font-style: italic;
+  overflow-wrap: anywhere;
+}
+
+.root :global(.al-joined),
+.root :global(.al-links) {
+  margin: 0 8px 8px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.root :global(.al-about p) {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.root :global(.al-stats table) {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.root :global(.al-stats td) {
+  padding: 1px 4px;
+}
+
+.root :global(.al-stats td:last-child) {
+  text-align: right;
+}
+
+.root :global(.al-empty) {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+/* --- the timeline --- */
+
+.root :global(.al-entries),
+.root :global(.al-replies) {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.root :global(.al-event) {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.root :global(.al-event-icon) {
+  display: inline-flex;
+  justify-content: center;
+}
+
+.root :global(.al-time) {
+  color: var(--text-muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.root :global(.al-update) {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.root :global(.al-update-head),
+.root :global(.al-reply) {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.root :global(.al-update-main),
+.root :global(.al-reply-main) {
+  flex: 1;
+  min-width: 0;
+}
+
+.root :global(.al-update-body),
+.root :global(.al-reply-body) {
+  margin: 2px 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.root :global(.al-asset) {
+  display: inline-block;
+  vertical-align: middle;
+  line-height: 0;
+}
+
+.root :global(.al-replies) {
+  margin: 6px 0 0 56px;
+  padding-left: 8px;
+  border-left: 2px solid var(--rule);
+}
+
+.root :global(.al-reply) {
+  padding: 4px 0;
+}
+
+.root :global(.al-avatar) {
+  flex: none;
+  background: #111;
+  border: 1px solid var(--panel-border);
+}
+
+.root :global(.al-name) {
+  color: var(--link);
+}
+
+.root :global(.al-actions) {
+  margin-top: 2px;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.root :global(.al-actions button),
+.root :global(.al-more button) {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 11px;
+}
+
+.root :global(.al-more) {
+  margin: 8px 0 0;
+  text-align: center;
+}
+
+/* --- the site's bar above the log, outside anything an owner can style --- */
+
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  justify-content: center;
+  margin-bottom: var(--stack-gap);
+  font-size: 12px;
+  color: var(--text-muted);
+}
