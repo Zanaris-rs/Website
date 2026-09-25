@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { MAX_ASSETS, parseBody } from "./body";
 import { ADVENTURE_CATEGORIES, categorySlug, isHidden, maskOf } from "./categories";
 import { eventIcon, itemByName } from "./events";
-import { checkText, formatMonth, formatWhen, HEADLINE_MAX } from "./format";
+import { checkCss, checkText, CSS_MAX, formatMonth, formatWhen, HEADLINE_MAX } from "./format";
 import {
   aboutSaveStatement,
   cursorOf,
@@ -93,6 +93,26 @@ describe("checkText", () => {
     expect(checkText("a\tb", "X", 10).ok).toBe(true);
     expect(checkText("a\nb", "X", 10, { oneLine: true }).ok).toBe(false);
     expect(checkText(3, "X", 10).ok).toBe(false);
+  });
+});
+
+describe("checkCss", () => {
+  it("keeps the owner's lines where they wrote them, within the limit", () => {
+    expect(checkCss("  .a {\r\n  color: red }\n\n")).toEqual({ ok: true, value: "  .a {\n  color: red }\n\n" });
+    expect(checkCss("")).toEqual({ ok: true, value: "" });
+    expect(checkCss("x".repeat(CSS_MAX))).toEqual({ ok: true, value: "x".repeat(CSS_MAX) });
+    // CRLF counts once, as it will be stored
+    expect(checkCss("\r\n".repeat(CSS_MAX)).ok).toBe(true);
+    expect(checkCss("x".repeat(CSS_MAX + 1))).toEqual({
+      ok: false,
+      error: `Your stylesheet can be at most ${CSS_MAX} characters.`,
+    });
+  });
+
+  it("is a bad request when it is not text", () => {
+    for (const raw of [undefined, null, 3, ["a"], { css: "a" }]) {
+      expect(checkCss(raw)).toEqual({ ok: false, error: "bad_request" });
+    }
   });
 });
 

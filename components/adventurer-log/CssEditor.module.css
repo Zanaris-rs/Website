@@ -1,0 +1,176 @@
+/* The settings page's "Your adventurer log's style" box: the editor, the
+   picture picker, and the preview under them. None of these rules reach
+   inside the preview's .al-root, which is the log's own and the owner's. */
+
+.editor {
+  font-size: 13px;
+  text-align: left;
+}
+
+/* CodeMirror's own look is its theme (CssCode.tsx); this is its place. */
+.code {
+  margin: 2px 0 6px;
+  min-width: 0;
+}
+
+/* The textarea before CodeMirror loads, and without JavaScript: the
+   editor's size, so nothing moves when one replaces the other. */
+.plain {
+  display: block;
+  width: 100%;
+  height: 22em;
+  margin: 2px 0 6px;
+  font: 13px/1.5 ui-monospace, Menlo, Consolas, monospace;
+  background: #000;
+  color: #fff;
+  border: 1px solid var(--panel-border);
+  resize: vertical;
+}
+
+.actions {
+  margin-bottom: 6px;
+}
+
+.dropped p {
+  margin: 6px 0 2px;
+}
+
+.dropped ul,
+.classes ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.classes {
+  margin-top: 8px;
+}
+
+.classes ul {
+  margin-top: 4px;
+}
+
+.hint {
+  margin: 0 0 6px;
+  color: var(--text-muted);
+}
+
+/* --- the preview --- */
+
+.preview {
+  margin-top: 12px;
+  border-top: 1px solid var(--panel-border);
+  padding-top: 8px;
+}
+
+.previewTitle {
+  margin: 0 0 4px;
+  font-size: 13px;
+  color: #ffe139;
+}
+
+/* The log at the page's width, scrolling inside its own box when it is
+   taller than the screen, or wider than a phone's (a stylesheet can make it
+   so). */
+.previewBox {
+  max-height: 80vh;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px dashed var(--panel-border);
+  padding: 6px;
+}
+
+/* --- the picture picker --- */
+
+.picker {
+  width: min(640px, calc(100vw - 16px));
+  max-height: calc(100dvh - 32px);
+  padding: 10px 12px;
+  background: #000;
+  color: var(--text);
+  border: 2px solid var(--panel-border);
+  font-size: 13px;
+  text-align: left;
+}
+
+.picker::backdrop {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.pickerTitle {
+  margin: 0 0 6px;
+  font-size: 14px;
+  color: #ffe139;
+}
+
+.sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 0 0 8px;
+  padding: 4px 10px 6px;
+  border: 1px solid var(--panel-border);
+}
+
+.sources legend {
+  padding: 0 4px;
+}
+
+.search {
+  display: block;
+  width: 100%;
+  margin: 0 0 8px;
+  font: inherit;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+  gap: 6px;
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+}
+
+.thumb {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 100%;
+  padding: 4px 2px;
+  background: #111;
+  color: var(--text);
+  border: 1px solid var(--panel-border);
+  font: 11px Arial, Helvetica, sans-serif;
+  cursor: pointer;
+}
+
+.thumb:hover,
+.thumb:focus-visible {
+  border-color: #ffe139;
+  color: #fff;
+}
+
+.thumbImage {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+}
+
+/* Game sprites and the stone frame's 6px pieces, drawn bigger than they
+   are: keep their pixels hard. */
+.pixelated {
+  image-rendering: pixelated;
+}
+
+.thumbName {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pickerClose {
+  display: flex;
+  justify-content: flex-end;
+}
