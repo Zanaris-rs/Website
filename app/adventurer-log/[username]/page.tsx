@@ -94,6 +94,8 @@ export default async function AdventurerLog({ params, searchParams }: Params) {
         name={data.name}
         skills={data.skills}
         first={data.first}
+        show={data.show}
+        pinned={data.pinned}
         bar={bar}
         viewer={reader}
         css={css}

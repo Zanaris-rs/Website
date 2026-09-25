@@ -1,5 +1,5 @@
 /**
- * The browser's side of the Adventurer Log's write routes: one POST, and the
+ * The browser's side of the Adventurer Log's write routes: one request, and the
  * sentence to show when it is refused. A refusal whose error is already a
  * sentence (the routes' own text checks) is shown as it is.
  */
@@ -23,7 +23,7 @@ const MESSAGES: Record<string, string> = {
 export async function send(
   url: string,
   body: unknown,
-  method: "POST" | "DELETE" = "POST",
+  method: "POST" | "PUT" | "PATCH" | "DELETE" = "POST",
 ): Promise<{ ok: true; data: Record<string, unknown> } | { ok: false; message: string }> {
   let response: Response;
   try {

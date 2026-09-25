@@ -150,6 +150,26 @@
 
 /* --- the timeline --- */
 
+.root :global(.al-filters) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--rule);
+  font-size: 12px;
+}
+
+.root :global(.al-filter) {
+  color: var(--link);
+}
+
+.root :global(.al-filter[aria-current]) {
+  color: #fff;
+  font-weight: bold;
+  text-decoration: none;
+}
+
 .root :global(.al-entries),
 .root :global(.al-replies) {
   list-style: none;
@@ -180,6 +200,17 @@
 .root :global(.al-update) {
   padding: 8px 0;
   border-bottom: 1px solid var(--rule);
+}
+
+.root :global(.al-pinned-label) {
+  color: #ffe139;
+  font-size: 11px;
+  font-weight: bold;
+}
+
+.root :global(.al-edited) {
+  color: var(--text-muted);
+  font-size: 11px;
 }
 
 .root :global(.al-update-head),

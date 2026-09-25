@@ -4,8 +4,9 @@ import Chathead from "@/components/game/Chathead";
 import SkillIcon from "@/components/game/SkillIcon";
 import { formatMonth } from "@/lib/adventurer-log/format";
 import type { WardrobeOutfit } from "@/lib/adventurer-log/wardrobe";
+import type { Filter } from "@/lib/adventurer-log/filters";
 import type { LogHeader } from "@/lib/adventurer-log/queries";
-import type { TimelinePage } from "@/lib/adventurer-log/view";
+import type { PinnedView, TimelinePage } from "@/lib/adventurer-log/view";
 import type { PlayerSkill } from "@/lib/hiscores/api";
 import { CATEGORIES } from "@/lib/hiscores/categories";
 import { statOfCategory } from "@/lib/skills/icons";
@@ -27,6 +28,8 @@ export default function LogView({
   name,
   skills,
   first,
+  show,
+  pinned,
   bar,
   viewer,
   css,
@@ -36,6 +39,10 @@ export default function LogView({
   name: string;
   skills: readonly PlayerSkill[];
   first: TimelinePage;
+  /** The timeline's filter (`?show=`). */
+  show: Filter["slug"];
+  /** The update pinned to the top, when the filter shows updates. */
+  pinned: PinnedView | null;
   bar?: ReactNode;
   /** Who is reading, when someone signed in is. */
   viewer: TimelineViewer | null;
@@ -112,6 +119,9 @@ export default function LogView({
                   ownerName={name}
                   ownerLook={header.look}
                   first={first}
+                  pinned={pinned}
+                  show={show}
+                  hiddenCategories={header.hiddenCategories}
                   empty={`${name} has no adventures to show yet.`}
                   viewer={viewer}
                 />

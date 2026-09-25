@@ -71,6 +71,9 @@ const OUTLINE = `<div class="al-root">                 <!-- the log; your CSS re
       <section class="al-timeline al-box">
         <h2>Zezima's Adventurer Log</h2>
         <div class="al-box-body">
+          <nav class="al-filters">                              <!-- links that show one kind of entry -->
+            <a class="al-filter" aria-current="page">Everything</a> <a class="al-filter">Posts</a> <a class="al-filter">Levels</a> ...
+          </nav>
           <div class="al-post">                                 <!-- the owner's "post an update" box -->
             <form class="al-composer">
               <textarea></textarea>
@@ -81,6 +84,9 @@ const OUTLINE = `<div class="al-root">                 <!-- the log; your CSS re
           <p class="al-notice">A message after posting</p>
           <p class="al-empty">Nothing to show yet.</p>        <!-- instead of the list, when it is empty -->
           <ul class="al-entries">
+            <li class="al-update al-update--pinned">          <!-- the update the owner pinned, always first; inside, as .al-update below -->
+              ... <div class="al-update-meta"><b class="al-name">Zezima</b> <time class="al-time">20 Sep 2026, 09:00</time> <span class="al-pinned-label">Pinned</span></div> ...
+            </li>
             <li class="al-event al-event--level">
               <span class="al-event-icon"><img></span>
               <span class="al-event-text">Levelled up Attack from 98 to 99</span>
@@ -105,7 +111,7 @@ const OUTLINE = `<div class="al-root">                 <!-- the log; your CSS re
               <div class="al-update-head">
                 <span class="al-avatar"><canvas></canvas></span>
                 <div class="al-update-main">
-                  <div class="al-update-meta"><b class="al-name">Zezima</b> <time class="al-time">24 Sep 2026, 14:05</time></div>
+                  <div class="al-update-meta"><b class="al-name">Zezima</b> <time class="al-time">24 Sep 2026, 14:05</time> <span class="al-edited">(edited)</span></div>
                   <p class="al-update-body"><span class="al-text"><span>Text</span><span class="al-asset"><img></span></span></p>
                   <div class="al-actions"><button>Reply</button> <span class="al-report"><button>Report</button></span></div>
                 </div>
@@ -163,6 +169,7 @@ ${FENCE}
 - \`.al-skill--<id>\` is one skill's row: ${skills}.
 - \`.al-event--<kind>\` is one kind of adventure: ${kinds}.
 - \`.al-outfit--default\` is the outfit my chathead wears.
+- \`.al-filter[aria-current]\` is the filter being shown. \`.al-edited\` is on an update only when I changed it after posting.
 - \`.al-post\`, \`.al-actions\` and \`.al-reply-form\` hold buttons and forms that only signed-in readers see. Style them if you like, but keep them usable.
 - Chatheads and outfits are drawn on \`<canvas>\`: you can frame, size and place them, but not recolour them.
 
