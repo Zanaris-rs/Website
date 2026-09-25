@@ -6,6 +6,24 @@ const nextConfig: NextConfig = {
   trailingSlash: false,
   images: { unoptimized: true },
 
+  // A log's link preview draws the chathead on the server
+  // (`lib/chathead/server.ts`) with the renderer and models the browser
+  // fetches from `public/`. `public/` is served by the CDN rather than
+  // shipped with the functions, and the renderer is imported past the
+  // bundler on purpose (`turbopackIgnore`), so the function only gets the two
+  // files if the build's trace spots their paths. Turbopack does today; this
+  // says so outright, so the preview does not depend on it.
+  //
+  // The key matches the image route (`/adventurer-log/[username]/opengraph-
+  // image`). The page's own trace picks the files up too, because the page
+  // imports the image module for its `og:image` size and alt.
+  outputFileTracingIncludes: {
+    "/adventurer-log/*/opengraph-image*": [
+      "./public/game/chathead/renderer.js",
+      "./public/game/chathead/models.bin",
+    ],
+  },
+
   async redirects() {
     return [
       {

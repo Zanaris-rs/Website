@@ -1,5 +1,6 @@
 import "server-only";
 
+import type { Look } from "@/lib/chathead/look";
 import { query } from "@/lib/db";
 import { toPlayerResponse, type PlayerSkill } from "@/lib/hiscores/api";
 import { displayName } from "@/lib/hiscores/format";
@@ -33,14 +34,23 @@ export type LogPageData =
       outfits: WardrobeOutfit[];
     };
 
+/**
+ * The look a log's header draws: the default outfit, else the player's look
+ * from the game cut down to their head (`gameLooks`), else nothing. The page
+ * and its link preview both ask here, so a preview never shows more of the
+ * player than the page does.
+ */
+export async function logLook(header: LogHeader & { result: "ok" }): Promise<Look | null> {
+  return header.look ?? (await gameLooks([header.username])).get(header.username) ?? null;
+}
+
 export async function loadLogPage(username: string, viewer: string | null): Promise<LogPageData> {
   const headerStatement = logStatement(username, viewer);
   const header = parseLog(
     await query<Record<string, unknown>>(headerStatement.text, headerStatement.values),
   );
   if (header.result !== "ok") return { result: header.result };
-  const look =
-    header.look ?? (await gameLooks([header.username])).get(header.username) ?? null;
+  const look = await logLook(header);
 
   const first = await loadTimeline(username, viewer, null);
 
