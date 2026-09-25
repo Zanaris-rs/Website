@@ -48,6 +48,21 @@ export function checkText(
   return { ok: true, value };
 }
 
+/**
+ * A stylesheet as the save and preview routes take it: CRLF made LF, so its
+ * lines are the ones the editor numbers, and within CSS_MAX. Not trimmed:
+ * every line stays where the owner wrote it. Not text at all is a
+ * `bad_request`.
+ */
+export function checkCss(raw: unknown): TextCheck {
+  if (typeof raw !== "string") return { ok: false, error: "bad_request" };
+  const value = raw.replace(/\r\n/g, "\n");
+  if (value.length > CSS_MAX) {
+    return { ok: false, error: `Your stylesheet can be at most ${CSS_MAX} characters.` };
+  }
+  return { ok: true, value };
+}
+
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 /**

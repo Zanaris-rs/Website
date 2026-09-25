@@ -24,6 +24,7 @@ ids have no picture.
 - Files: `public/img/game/items/<id>.png`, `public/img/game/skills/<stat>.png`, `public/img/game/tiles/<name>.png`. `lib/items/icons.json` = `{ version, count, blank }` — ids past `count` or in `blank` have no file; `lib/skills/icons.json` = `{ version }`; `lib/title/tiles.json` = `{ version, names }`.
 - **The helpers return a versioned URL** (`…/995.png?v=f205cfb4`), because `next.config.ts` caches `/img/game/*` for a year as `immutable`. A hand-written path has no `?v=` and is then cached for a year with no way to correct it. Strip the query only to touch the file on disk (`src.split("?")[0]`), never to render it.
 - The 77x120 `/title` tiles are the third set: `TILES` in `render.ts` says which object each one poses, `titleTileSrc(name)` (`lib/title/tiles.ts`) gives `MenuTile` its URL.
+- The fifty game textures are the fourth (`npm run textures:update`, `scripts/game-icons/textures.ts`): `public/img/game/textures/<id>.png`, `lib/textures/textures.json` = `{ version, textures: [{ id, name, size }] }`, URL from `textureSrc(id)` (`lib/textures/textures.ts`). The Adventurer Log's CSS picture picker is what uses them; names come from `<content>/pack/texture.pack`.
 - `null` means no picture (e.g. 1649 `invis_ring1`, an invisible placeholder). For a lone icon (not in a column), skip rendering on `null` instead of drawing the spacer. For anything leaving the site (CSV, email), resolve against the origin: `new URL(src, "https://zanaris.rs")`.
 
 ## Regenerating (content bump, new items, changed models)
@@ -34,6 +35,7 @@ Order matters — icons come from the engine's **pack**, names from **content**:
 npm --prefix /Users/matthewgould/Projects/2004scape/Server/engine run build
 CONTENT_DIR=/Users/matthewgould/Projects/2004scape/Server/content npm run items:update
 ENGINE_DIR=/Users/matthewgould/Projects/2004scape/Server/engine npm run icons:update
+ENGINE_DIR=/Users/matthewgould/Projects/2004scape/Server/engine npm run textures:update
 npm test
 ```
 

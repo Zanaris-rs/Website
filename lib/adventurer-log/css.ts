@@ -32,6 +32,10 @@ import * as csstree from "css-tree";
  *
  * `@media`, `@supports` and `@keyframes` are kept; keyframe names are
  * prefixed so they cannot replace the site's own.
+ *
+ * Everything it takes out is reported with the line it was on, so the
+ * settings page's editor can mark the line rather than leave the owner to
+ * find it.
  */
 
 export const SANITIZER_VERSION = 1;
@@ -54,33 +58,68 @@ const BANNED_FUNCTIONS = new Set([
 
 const BANNED_PROPERTIES = new Set(["behavior", "-moz-binding", "-ms-behavior"]);
 
-/** The site's own pictures, and nothing that walks out of them. */
-const SAFE_URL = /^\/img\/[A-Za-z0-9_\-/.]+\.(png|gif|jpe?g)$/;
+/**
+ * The site's own pictures, and nothing that walks out of them. The sets drawn
+ * from the cache carry their version (`/img/game/items/995.png?v=f205cfb4`,
+ * `lib/items/icons.ts`), because `/img/game/*` is cached for a year; that
+ * query, and only that one, may follow the file.
+ */
+const SAFE_URL = /^\/img\/[A-Za-z0-9_\-/.]+\.(png|gif|jpe?g)(\?v=[0-9a-f]{8})?$/;
 
 /** In a custom property's raw text: anything that loads or reads. */
 const RAW_BANNED = /url\s*\(|image-set|image\s*\(|cross-fade|element\s*\(|expression|attr\s*\(|@import|paint\s*\(/i;
 
 const MIN_ANIMATION_SECONDS = 0.2;
 
+/** At most this many things taken out are reported; a sheet of nonsense has thousands. */
+export const DROPPED_MAX = 100;
+
+export type Dropped = {
+  /** What was taken out, in words the owner can act on. */
+  reason: string;
+  /** The line of the owner's stylesheet it was on, from 1, when it was on one. */
+  line?: number;
+};
+
 export type SanitizedCss = {
   css: string;
-  /** What was taken out, in words the owner can act on (deduplicated). */
-  dropped: string[];
+  /** What was taken out: one entry per reason and line, in the order found. */
+  dropped: Dropped[];
 };
+
+/** What was taken out so far, each reason once per line. */
+class Drops {
+  private readonly seen = new Set<string>();
+  readonly list: Dropped[] = [];
+
+  /** `at` is the node taken out, or the line it was on. */
+  add(reason: string, at?: csstree.CssNode | number): void {
+    const line = typeof at === "number" ? at : at?.loc?.start.line;
+    const key = `${reason}\n${line ?? ""}`;
+    if (this.seen.has(key) || this.list.length >= DROPPED_MAX) return;
+    this.seen.add(key);
+    this.list.push(line === undefined ? { reason } : { reason, line });
+  }
+}
+
+/** The line `offset` is on, counted the way css-tree counts them. */
+function lineAt(text: string, offset: number): number {
+  return (text.slice(0, offset).match(/\r\n|[\r\n\f]/g)?.length ?? 0) + 1;
+}
 
 function keyframeName(owner: string, name: string): string {
   return `al-${owner}-${name}`;
 }
 
-function checkSelector(selector: csstree.Selector, dropped: Set<string>): boolean {
+function checkSelector(selector: csstree.Selector, dropped: Drops): boolean {
   let ok = true;
   csstree.walk(selector, (node) => {
     if (node.type === "PseudoClassSelector" && node.name.toLowerCase() === "has") {
-      dropped.add("the :has() selector");
+      dropped.add("the :has() selector", node);
       ok = false;
     }
     if (node.type === "NestingSelector") {
-      dropped.add("nested (&) selectors");
+      dropped.add("nested (&) selectors", node);
       ok = false;
     }
   });
@@ -122,18 +161,18 @@ function checkValue(
   declaration: csstree.Declaration,
   owner: string,
   keyframes: Set<string>,
-  dropped: Set<string>,
+  dropped: Drops,
 ): boolean {
   const property = declaration.property.toLowerCase();
 
   if (BANNED_PROPERTIES.has(property)) {
-    dropped.add(`the ${property} property`);
+    dropped.add(`the ${property} property`, declaration);
     return false;
   }
 
   if (declaration.value.type === "Raw") {
     if (RAW_BANNED.test(declaration.value.value)) {
-      dropped.add(`a custom property that loads or reads something (${property})`);
+      dropped.add(`a custom property that loads or reads something (${property})`, declaration);
       return false;
     }
     return true;
@@ -143,19 +182,22 @@ function checkValue(
   csstree.walk(declaration.value, {
     enter(node: csstree.CssNode) {
       if (!ok) return;
+      // Each node's own line, or the declaration's when it has none: a
+      // value can run over several lines.
+      const at = node.loc ? node : declaration;
       if (node.type === "Url") {
         if (!SAFE_URL.test(node.value) || node.value.includes("..")) {
-          dropped.add("url() other than the site's own /img/ pictures");
+          dropped.add("url() other than the site's own /img/ pictures", at);
           ok = false;
         }
       } else if (node.type === "Function" && BANNED_FUNCTIONS.has(node.name.toLowerCase())) {
-        dropped.add(`${node.name.toLowerCase()}()`);
+        dropped.add(`${node.name.toLowerCase()}()`, at);
         ok = false;
       } else if (node.type === "String" && property === "content" && /[\p{L}\p{N}]/u.test(node.value)) {
-        dropped.add("content with letters or numbers in it");
+        dropped.add("content with letters or numbers in it", at);
         ok = false;
       } else if (node.type === "Raw" && RAW_BANNED.test(node.value)) {
-        dropped.add(`a value that loads or reads something (${property})`);
+        dropped.add(`a value that loads or reads something (${property})`, at);
         ok = false;
       }
     },
@@ -189,14 +231,18 @@ function cleanBlock(
   block: csstree.Block,
   owner: string,
   keyframes: Set<string>,
-  dropped: Set<string>,
+  dropped: Drops,
 ): void {
   block.children.forEach((node, item, list) => {
     if (node.type === "Declaration") {
       if (!checkValue(node, owner, keyframes, dropped)) list.remove(item);
+    } else if (node.type === "Raw") {
+      // What the parser could not read (already reported, with its line), or
+      // a stray `;` - nothing to say about it twice.
+      list.remove(item);
     } else {
       // nested rules and at-rules inside a declaration block
-      dropped.add("rules nested inside other rules");
+      dropped.add("rules nested inside other rules", node);
       list.remove(item);
     }
   });
@@ -206,13 +252,15 @@ function cleanRules(
   list: csstree.List<csstree.CssNode>,
   owner: string,
   keyframes: Set<string>,
-  dropped: Set<string>,
+  dropped: Drops,
   counter: { rules: number },
 ): void {
   list.forEach((node, item) => {
     if (node.type === "Rule") {
       if (node.prelude.type !== "SelectorList" || counter.rules >= RULES_MAX) {
-        if (counter.rules >= RULES_MAX) dropped.add(`rules after the first ${RULES_MAX}`);
+        // Where the cut is, once: not a line for every rule after it.
+        if (counter.rules === RULES_MAX) dropped.add(`rules after the first ${RULES_MAX}`, node);
+        if (counter.rules >= RULES_MAX) counter.rules++;
         list.remove(item);
         return;
       }
@@ -236,14 +284,14 @@ function cleanRules(
     if (node.type === "Atrule") {
       const name = node.name.toLowerCase();
       if (!ALLOWED_AT_RULES.has(name) || !node.block) {
-        dropped.add(`@${name}`);
+        dropped.add(`@${name}`, node);
         list.remove(item);
         return;
       }
       if (name.endsWith("keyframes")) {
         const prelude = node.prelude ? csstree.generate(node.prelude).trim() : "";
         if (!/^[A-Za-z_][A-Za-z0-9_-]{0,40}$/.test(prelude)) {
-          dropped.add("an @keyframes with an unusual name");
+          dropped.add("an @keyframes with an unusual name", node);
           list.remove(item);
           return;
         }
@@ -273,29 +321,31 @@ function cleanRules(
  * username, which names their keyframes apart from anyone else's.
  */
 export function sanitizeCss(raw: string, owner: string, max: number = 20000): SanitizedCss {
-  const dropped = new Set<string>();
+  const dropped = new Drops();
   if (raw.trim() === "") return { css: "", dropped: [] };
 
   if (raw.length > max) {
-    return { css: "", dropped: [`everything: the stylesheet is over ${max} characters`] };
+    return { css: "", dropped: [{ reason: `everything: the stylesheet is over ${max} characters` }] };
   }
-  if (raw.includes("\\")) {
-    return { css: "", dropped: ["everything: backslashes (CSS escapes) are not allowed"] };
+  const backslash = raw.indexOf("\\");
+  if (backslash >= 0) {
+    return {
+      css: "",
+      dropped: [{ reason: "everything: backslashes (CSS escapes) are not allowed", line: lineAt(raw, backslash) }],
+    };
   }
-  if (raw.includes("<")) {
+  const angle = raw.indexOf("<");
+  if (angle >= 0) {
     // Nothing in CSS needs one, and it is the one character that could end
     // the <style> element this is drawn in.
-    return { css: "", dropped: ["everything: the < character is not allowed"] };
+    return { css: "", dropped: [{ reason: "everything: the < character is not allowed", line: lineAt(raw, angle) }] };
   }
 
-  let parseErrors = 0;
   const ast = csstree.parse(raw, {
     context: "stylesheet",
-    onParseError: () => {
-      parseErrors++;
-    },
+    positions: true,
+    onParseError: (error) => dropped.add("parts the parser could not read", error.line),
   }) as csstree.StyleSheet;
-  if (parseErrors > 0) dropped.add("parts the parser could not read");
 
   // Keyframe names first, so animation references anywhere can be renamed.
   const keyframes = new Set<string>();
@@ -316,5 +366,5 @@ export function sanitizeCss(raw: string, owner: string, max: number = 20000): Sa
   // from a stylesheet that had none, but the output is what is drawn.
   css = css.replace(/</g, "\\3c ");
 
-  return { css, dropped: [...dropped] };
+  return { css, dropped: dropped.list };
 }

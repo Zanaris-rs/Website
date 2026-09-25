@@ -1449,11 +1449,14 @@ game's own, all committed:
 | `public/img/game/items/<id>.png` | 32x32 inventory icon per object id, drop shadow and all |
 | `public/img/game/skills/<stat>.png` | 25x25 stats-tab icon per engine stat id |
 | `public/img/game/tiles/<name>.png` | 77x120 menu tile drawn from one object's model |
+| `public/img/game/textures/<id>.png` | each of the fifty textures, 128 or 64 square, holes transparent |
 | `lib/items/icons.json` | the pack's object count, and the ids the client draws as nothing |
 | `lib/title/tiles.json` | the tiles' version and the names the generator drew |
+| `lib/textures/textures.json` | the textures' version, names and sizes |
 
 ```sh
 npm run icons:update             # ENGINE_DIR=../Server/engine, CLIENT_BRANCH=274
+npm run textures:update          # the same, and CONTENT_DIR=$ENGINE_DIR/../content for names
 ```
 
 Skill icons are sprites stored in the cache. Item icons are not: the 2004
@@ -1471,15 +1474,22 @@ the Dramen staff for Zanaris Kit — at four times tile size, averaged down,
 which is where their smooth edges come from beside the 2004 photographs. Its
 `TILES` table is where the object, the angle and the framing live.
 
+The textures are for Adventurer Log stylesheets (their picture picker), and
+`scripts/update-game-textures.sh` takes them out of the pack the same way:
+the client's own `Pix3D.unpackTextures` and brightness curve, each texel as
+the rasteriser samples it, and the client's rule that a texel of 0 is a hole,
+kept as transparency. Their names are the content's `texture.pack`.
+
 Pages use `<ItemIcon id>` / `<SkillIcon stat>` (`components/game/`) or
-`itemIconSrc` / `skillIconSrc` / `titleTileSrc` (`lib/items/icons.ts`,
-`lib/skills/icons.ts`, `lib/title/tiles.ts`), never a hand-built path. `.claude/skills/game-icons/SKILL.md` is the short
+`itemIconSrc` / `skillIconSrc` / `titleTileSrc` / `textureSrc`
+(`lib/items/icons.ts`, `lib/skills/icons.ts`, `lib/title/tiles.ts`,
+`lib/textures/textures.ts`), never a hand-built path. `.claude/skills/game-icons/SKILL.md` is the short
 version for agents.
 
 **Icons go stale like the map.** Repack the engine after a content bump, then
-re-run `items:update` and `icons:update` and commit what they write. The
-script only packs when the pack is missing, so check the date on its `pack`
-line.
+re-run `items:update`, `icons:update` and `textures:update` and commit what
+they write. The scripts only pack when the pack is missing, so check the date
+on their `pack` line.
 
 `next.config.ts` caches `/img/game/*` for a year as `immutable`, because the
 helpers put the generated set's version in the URL —
@@ -1488,9 +1498,10 @@ and a static file's default is a re-check per file per page view, so the year
 is worth having; the version is what keeps it honest, since the filenames are
 object ids rather than content hashes and nothing can purge a browser cache.
 The version is a hash of the set's bytes, written into `lib/items/icons.json`,
-`lib/skills/icons.json` and `lib/title/tiles.json` by the generator. The three
-sets are hashed apart, so a run that only moves an item model leaves the skill
-icons and the menu tiles cached.
+`lib/skills/icons.json`, `lib/title/tiles.json` and
+`lib/textures/textures.json` by the generators. The sets are hashed apart, so
+a run that only moves an item model leaves the skill icons, the menu tiles
+and the textures cached.
 
 A regeneration therefore reaches readers immediately, at the cost of their
 re-downloading the icons on the pages they open — about 90 KB for `/economy`.
@@ -1615,7 +1626,8 @@ scrolls, as the game records them - mixed with the updates they post.
   `lib/adventurer-log/css.ts` sanitises it **every time a log is drawn**, so a
   stricter sanitiser applies to every log at once. It parses with `css-tree`
   and prints its own output: every selector prefixed with `.al-root`, `url()`
-  only for the site's `/img/`, no `@import`/`@font-face`/`image-set()`/
+  only for the site's `/img/` (with the `?v=` version the generated sets
+  carry, and no other query), no `@import`/`@font-face`/`image-set()`/
   `attr()`, `content` with symbols but not words, no `!important`, no
   backslashes or `<`, animations no faster than 0.2s and none for
   reduced-motion readers. `.al-root` has `contain: paint` (with `!important`),
@@ -1624,6 +1636,27 @@ scrolls, as the game records them - mixed with the updates they post.
   'self'; style-src 'self' 'unsafe-inline'` as a backstop. There is no
   reader's switch to leave the owner's style out - it is their page - but
   staff can turn a log's stylesheet off from a report.
+- **The style editor.** The settings page's style box is a CodeMirror editor
+  (`CssCode.tsx`), imported only there and only in the browser, so no other
+  page carries it; the server renders a plain textarea, which is what a
+  reader without JavaScript gets. Under it is the owner's log as a visitor
+  sees it (`loadLogPage(name, null)`: twenty minutes behind, nothing to post,
+  reply or report, and clicks in it go nowhere), with the draft drawn on it
+  as they type: once typing pauses, `POST /api/adventurer-log/css/preview`
+  runs the draft through the same sanitiser and saves nothing. What the
+  sanitiser leaves out comes back with its line (`[{ reason, line }]`, from
+  `css-tree`'s positions), is marked on that line in the editor, and is
+  listed under it; the save route answers the same way. The settings page
+  sends the log's Content-Security-Policy as well (plus `data:` pictures,
+  which the editor's lint marks use), since a pasted stylesheet is drawn
+  before anyone has saved it.
+- **Insert a picture.** The editor's picker (`PicturePicker.tsx`) puts
+  `url(/img/...)` at the cursor, from four lists in
+  `lib/adventurer-log/pictures.ts`: the 2004 site's own art (`public/img/`
+  and its `title/` pieces), the game's fifty textures, the skill icons, and
+  item icons by search (the assets route). `pictures.test.ts` puts every URL
+  it can insert through the sanitiser. The textures are drawn from the cache
+  like the icons (see "Game icons").
 - **Reports.** "Report" on an update or reply, and "Report this log" in the
   bar above it (outside `.al-root`, so an owner's CSS cannot hide it). Staff
   read them at `/staff/adventure-reports` and resolve with a typed password,

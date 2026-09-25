@@ -1,7 +1,7 @@
 import * as csstree from "css-tree";
 import { describe, expect, it } from "vitest";
 
-import { RULES_MAX, sanitizeCss } from "./css";
+import { DROPPED_MAX, RULES_MAX, sanitizeCss } from "./css";
 
 const OWNER = "hero";
 
@@ -42,6 +42,30 @@ describe("sanitizeCss: what it keeps", () => {
 
   it("keeps the site's own pictures", () => {
     expect(clean(".al-page { background: url(/img/game/items/1038.png) }")).toContain("url(/img/game/items/1038.png)");
+    expect(clean(".al-page { background: url(/img/title/mm_sword.jpg) }")).toContain("url(/img/title/mm_sword.jpg)");
+  });
+
+  it("keeps the version the generated pictures carry, and no other query", () => {
+    expect(sanitizeCss(".al-page { background: url(/img/game/items/995.png?v=f205cfb4) }", OWNER)).toEqual({
+      css: expect.stringContaining("url(/img/game/items/995.png?v=f205cfb4)"),
+      dropped: [],
+    });
+    expect(clean('.al-page { background: url("/img/game/textures/3.png?v=0123abcd") }')).toContain(
+      "/img/game/textures/3.png?v=0123abcd",
+    );
+    for (const url of [
+      "/img/game/items/995.png?v=f205cfb",
+      "/img/game/items/995.png?v=f205cfb4a",
+      "/img/game/items/995.png?v=F205CFB4",
+      "/img/game/items/995.png?v=f205cfb4&x=1",
+      "/img/game/items/995.png?x=f205cfb4",
+      "/img/game/items/995.png?",
+      "/img/game/items/995.png#x",
+      "/img/../api/x.png?v=f205cfb4",
+      "/img/a.png?v=../../x",
+    ]) {
+      expect(clean(`.al-page { background: url(${url}) }`), url).not.toContain("url(");
+    }
   });
 
   it("keeps @media and @supports, and names keyframes apart", () => {
@@ -129,7 +153,7 @@ describe("sanitizeCss: what it refuses", () => {
     const raw = Array.from({ length: RULES_MAX + 20 }, (_, i) => `.a${i}{color:red}`).join("");
     const out = sanitizeCss(raw, OWNER);
     expect(out.css.match(/color:red/g)).toHaveLength(RULES_MAX);
-    expect(out.dropped.some((reason) => reason.includes(String(RULES_MAX)))).toBe(true);
+    expect(out.dropped.filter((item) => item.reason.includes(String(RULES_MAX)))).toHaveLength(1);
   });
 
   it("refuses a stylesheet over the limit whole", () => {
@@ -138,7 +162,84 @@ describe("sanitizeCss: what it refuses", () => {
 
   it("says what it dropped", () => {
     const out = sanitizeCss("@import url(x); .al-page { background: url(https://x) }", OWNER);
-    expect(out.dropped).toEqual(expect.arrayContaining(["@import", "url() other than the site's own /img/ pictures"]));
+    expect(out.dropped.map((item) => item.reason)).toEqual(
+      expect.arrayContaining(["@import", "url() other than the site's own /img/ pictures"]),
+    );
+  });
+});
+
+describe("sanitizeCss: where", () => {
+  it("says which line each thing it took out was on", () => {
+    const raw = [
+      "@import url(/img/a.css);", // 1
+      ".al-page {", // 2
+      "  color: red;", // 3
+      "  background: url(https://evil.example/x.png);", // 4
+      "}", // 5
+      ".al-box:has(.x) { color: blue }", // 6
+      ".al-name::after {", // 7
+      '  content: "hello";', // 8
+      "  -moz-binding: none;", // 9
+      "}", // 10
+      ".al-time { color gold }", // 11
+    ].join("\n");
+    expect(sanitizeCss(raw, OWNER).dropped).toEqual([
+      { reason: "parts the parser could not read", line: 11 },
+      { reason: "@import", line: 1 },
+      { reason: "url() other than the site's own /img/ pictures", line: 4 },
+      { reason: "the :has() selector", line: 6 },
+      { reason: "content with letters or numbers in it", line: 8 },
+      { reason: "the -moz-binding property", line: 9 },
+    ]);
+  });
+
+  it("names the line of a value that runs over several", () => {
+    const raw = ".al-page {\n  background:\n    #000\n    url(//evil.example/x.png);\n}";
+    expect(sanitizeCss(raw, OWNER).dropped).toEqual([
+      { reason: "url() other than the site's own /img/ pictures", line: 4 },
+    ]);
+  });
+
+  it("reports a reason once per line, and every line it is on", () => {
+    const raw = ".a { background: url(//x); border-image: url(//y) }\n.b { background: url(//z) }";
+    expect(sanitizeCss(raw, OWNER).dropped).toEqual([
+      { reason: "url() other than the site's own /img/ pictures", line: 1 },
+      { reason: "url() other than the site's own /img/ pictures", line: 2 },
+    ]);
+  });
+
+  it("finds the first backslash or < that refuses the whole sheet", () => {
+    expect(sanitizeCss(".a { color: red }\r\n\n.b { font-family: '\\66oo' }", OWNER).dropped).toEqual([
+      { reason: "everything: backslashes (CSS escapes) are not allowed", line: 3 },
+    ]);
+    expect(sanitizeCss("\n\n\n.a::after { content: '<' }", OWNER).dropped).toEqual([
+      { reason: "everything: the < character is not allowed", line: 4 },
+    ]);
+    expect(sanitizeCss("a{}".repeat(8000), OWNER).dropped).toEqual([
+      { reason: "everything: the stylesheet is over 20000 characters" },
+    ]);
+  });
+
+  it("marks where the rule limit cuts, not every rule after it", () => {
+    const raw = Array.from({ length: RULES_MAX + 20 }, (_, i) => `.a${i} { color: red }`).join("\n");
+    expect(sanitizeCss(raw, OWNER).dropped).toEqual([
+      { reason: `rules after the first ${RULES_MAX}`, line: RULES_MAX + 1 },
+    ]);
+  });
+
+  it("says nothing about a stray semicolon, and does not call a typo a nested rule", () => {
+    expect(sanitizeCss(".a { color: red;; }", OWNER).dropped).toEqual([]);
+    expect(sanitizeCss(".a {\n  color red;\n  margin: 0\n}", OWNER)).toEqual({
+      css: expect.stringContaining(".al-root .a{margin:0}"),
+      dropped: [{ reason: "parts the parser could not read", line: 2 }],
+    });
+  });
+
+  it("reports at most DROPPED_MAX things", () => {
+    const raw = Array.from({ length: DROPPED_MAX + 50 }, (_, i) => `.a${i} { background: url(//x) }`).join("\n");
+    const out = sanitizeCss(raw, OWNER);
+    expect(out.dropped).toHaveLength(DROPPED_MAX);
+    expect(out.dropped[0]).toEqual({ reason: "url() other than the site's own /img/ pictures", line: 1 });
   });
 });
 
