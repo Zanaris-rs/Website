@@ -4,10 +4,12 @@ import Chathead from "@/components/game/Chathead";
 import { formatMonth } from "@/lib/adventurer-log/format";
 import type { WardrobeOutfit } from "@/lib/adventurer-log/wardrobe";
 import type { LogHeader } from "@/lib/adventurer-log/queries";
+import type { LogRecord } from "@/lib/adventurer-log/records";
 import type { TimelinePage } from "@/lib/adventurer-log/view";
 import type { PlayerSkill } from "@/lib/hiscores/api";
 
 import styles from "./Log.module.css";
+import Records from "./Records";
 import Skills from "./Skills";
 import Timeline, { type TimelineViewer } from "./Timeline";
 import Wardrobe from "./Wardrobe";
@@ -29,6 +31,7 @@ export default function LogView({
   viewer,
   css,
   outfits = [],
+  records = [],
 }: {
   header: LogHeader & { result: "ok" };
   name: string;
@@ -41,6 +44,8 @@ export default function LogView({
   css: string;
   /** The owner's saved outfits, for the Wardrobe; none hides it. */
   outfits?: readonly WardrobeOutfit[];
+  /** The owner's best Overall gain per record length; none hides the box. */
+  records?: readonly LogRecord[];
 }) {
   return (
     <>
@@ -71,6 +76,8 @@ export default function LogView({
             </section>
 
             <Skills username={header.username} skills={skills} />
+
+            <Records records={records} />
           </aside>
 
           <div className="al-main">

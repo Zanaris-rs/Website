@@ -19,6 +19,7 @@ const LOG_SOURCES = [
   "adventurer-log/Body.tsx",
   "adventurer-log/Composer.tsx",
   "adventurer-log/ReportButton.tsx",
+  "adventurer-log/Records.tsx",
 ];
 
 /**
