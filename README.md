@@ -1698,17 +1698,15 @@ scrolls, as the game records them - mixed with the updates they post.
 - **The style editor.** The settings page's style box is a CodeMirror editor
   (`CssCode.tsx`), imported only there and only in the browser, so no other
   page carries it; the server renders a plain textarea, which is what a
-  reader without JavaScript gets. Under it is the owner's log as a visitor
-  sees it (`loadLogPage(name, null)`: twenty minutes behind, nothing to post,
-  reply or report, and clicks in it go nowhere), with the draft drawn on it
-  as they type: once typing pauses, `POST /api/adventurer-log/css/preview`
-  runs the draft through the same sanitiser and saves nothing. What the
-  sanitiser leaves out comes back with its line (`[{ reason, line }]`, from
-  `css-tree`'s positions), is marked on that line in the editor, and is
-  listed under it; the save route answers the same way. The settings page
-  sends the log's Content-Security-Policy as well (plus `data:` pictures,
-  which the editor's lint marks use), since a pasted stylesheet is drawn
-  before anyone has saved it.
+  reader without JavaScript gets. The page draws none of the stylesheet:
+  the owner saves it and looks at their log ("View your log"). Once typing
+  pauses, `POST /api/adventurer-log/css/check` runs the draft through the
+  same sanitiser and saves nothing. What the sanitiser leaves out comes back
+  with its line (`[{ reason, line }]`, from `css-tree`'s positions), is
+  marked on that line in the editor, and is listed under it; the save route
+  answers the same way. The settings page sends the log's
+  Content-Security-Policy as well (plus `data:` pictures, which the editor's
+  lint marks use), as a backstop.
 - **Insert a picture.** The editor's picker (`PicturePicker.tsx`) puts
   `url(/img/...)` at the cursor, from four lists in
   `lib/adventurer-log/pictures.ts`: the 2004 site's own art (`public/img/`

@@ -1,11 +1,9 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import type { ReactNode } from "react";
 
 import AboutYou from "@/components/adventurer-log/AboutYou";
 import BlockList, { type ManagedReply } from "@/components/adventurer-log/BlockList";
 import CssEditor from "@/components/adventurer-log/CssEditor";
-import LogView from "@/components/adventurer-log/LogView";
 import OwnerNav from "@/components/adventurer-log/OwnerNav";
 import styles from "@/components/adventurer-log/Settings.module.css";
 import Frame from "@/components/site/Frame";
@@ -16,7 +14,6 @@ import { requireSession } from "@/lib/account/session-server";
 import { excerpt, parseBody } from "@/lib/adventurer-log/body";
 import { sanitizeCss } from "@/lib/adventurer-log/css";
 import { CSS_MAX } from "@/lib/adventurer-log/format";
-import { loadLogPage, type LogPageData } from "@/lib/adventurer-log/page-data";
 import {
   blocksStatement,
   type LogHeader,
@@ -38,8 +35,8 @@ export const dynamic = "force-dynamic";
 
 /**
  * `/account/adventurer-log` — the owner's settings for their own log, in
- * three boxes: what it says about them (one Save), its stylesheet with a
- * preview of the log under it, and who may not reply on it.
+ * three boxes: what it says about them (one Save), its stylesheet, and who
+ * may not reply on it. The log itself is one link away ("View your log").
  */
 export default async function LogSettingsPage() {
   const session = await requireSession();
@@ -65,29 +62,7 @@ export default async function LogSettingsPage() {
   }
   if (header.result !== "ok") return <Unavailable />;
 
-  // The style box's preview: the log as a visitor reads it (no one signed
-  // in, so the last 20 minutes are not on it yet, and nothing on it offers to
-  // post, reply or report), drawn without a stylesheet - the editor draws the
-  // draft on it. The settings still work if it cannot be read.
-  let visitor: LogPageData | null = null;
-  try {
-    visitor = await loadLogPage(username, null);
-  } catch (error) {
-    console.error("[adventurer-log] settings preview read failed", error);
-  }
-  const preview: ReactNode =
-    visitor?.result === "ok" ? (
-      <LogView
-        header={visitor.header}
-        name={visitor.name}
-        skills={visitor.skills}
-        first={visitor.first}
-        viewer={null}
-        css=""
-        outfits={visitor.outfits}
-      />
-    ) : null;
-  const sanitised = header.cssDisabled ? { css: "", dropped: [] } : sanitizeCss(header.customCss, username, CSS_MAX);
+  const dropped = header.cssDisabled ? [] : sanitizeCss(header.customCss, username, CSS_MAX).dropped;
 
   // The latest replies on the log, for managing them from here. A nicety:
   // if this one read fails, the rest of the page still works.
@@ -122,8 +97,8 @@ export default async function LogSettingsPage() {
         <CssEditor
           initial={header.customCss}
           disabled={header.cssDisabled}
-          sanitised={sanitised}
-          preview={preview}
+          dropped={dropped}
+          logHref={`/adventurer-log/${encodeURIComponent(username)}`}
         />
       </Panel>
       <Panel align="left" width="100%">

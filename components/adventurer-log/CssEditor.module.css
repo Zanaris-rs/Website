@@ -1,6 +1,5 @@
-/* The settings page's "Your adventurer log's style" box: the editor, the
-   picture picker, and the preview under them. None of these rules reach
-   inside the preview's .al-root, which is the log's own and the owner's. */
+/* The settings page's "Your adventurer log's style" box: the editor and the
+   picture picker. */
 
 .editor {
   font-size: 13px;
@@ -52,31 +51,6 @@
 .hint {
   margin: 0 0 6px;
   color: var(--text-muted);
-}
-
-/* --- the preview --- */
-
-.preview {
-  margin-top: 12px;
-  border-top: 1px solid var(--panel-border);
-  padding-top: 8px;
-}
-
-.previewTitle {
-  margin: 0 0 4px;
-  font-size: 13px;
-  color: #ffe139;
-}
-
-/* The log at the page's width, scrolling inside its own box when it is
-   taller than the screen, or wider than a phone's (a stylesheet can make it
-   so). */
-.previewBox {
-  max-height: 80vh;
-  overflow: auto;
-  overscroll-behavior: contain;
-  border: 1px dashed var(--panel-border);
-  padding: 6px;
 }
 
 /* --- the picture picker --- */

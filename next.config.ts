@@ -152,14 +152,13 @@ const nextConfig: NextConfig = {
         ],
       })),
       {
-        // The log's settings page draws the owner's *draft* stylesheet on a
-        // preview of their log (components/adventurer-log/CssEditor.tsx),
-        // through the same sanitiser, so it gets the log's backstop too: a
-        // stylesheet pasted in from someone else is drawn the moment it is
-        // pasted, before anyone has saved or looked at it. `data:` pictures
-        // as well, because the code editor draws its own lint marks with
-        // them; nothing an owner writes can use one (the sanitiser lets
-        // through /img/ and nothing else).
+        // The log's settings page holds the owner's stylesheet in a code
+        // editor (components/adventurer-log/CssEditor.tsx) and draws none of
+        // it, but it keeps the log's backstop all the same: it costs nothing,
+        // and the page is one change away from drawing a stylesheet pasted
+        // in from someone else. `data:` pictures as well, because the code
+        // editor draws its own lint marks with them; nothing an owner writes
+        // can use one (the sanitiser lets through /img/ and nothing else).
         //
         // After the /account entries, and repeating their frame-ancestors:
         // two entries that set the same header on one path do not merge, the
