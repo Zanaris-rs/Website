@@ -8,25 +8,15 @@ import Panel from "@/components/site/Panel";
 import TitleBox from "@/components/site/TitleBox";
 import { readSession } from "@/lib/account/session-server";
 import { sanitizeCss } from "@/lib/adventurer-log/css";
+import { nameFrom } from "@/lib/adventurer-log/name";
 import { loadLogPage, type LogPageData } from "@/lib/adventurer-log/page-data";
-import { INVALID_NAME, toDisplayName, toSafeName } from "@/lib/base37";
+import { toDisplayName } from "@/lib/base37";
 
 export const dynamic = "force-dynamic";
 
 type Params = {
   params: Promise<{ username: string }>;
 };
-
-function nameFrom(raw: string): string | null {
-  let decoded: string;
-  try {
-    decoded = decodeURIComponent(raw);
-  } catch {
-    return null;
-  }
-  const safe = toSafeName(decoded);
-  return safe === INVALID_NAME ? null : safe;
-}
 
 /**
  * The title and the link preview's text, from the name alone: this runs

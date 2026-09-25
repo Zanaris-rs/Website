@@ -1,8 +1,8 @@
 import { ImageResponse } from "next/og";
 
+import { nameFrom } from "@/lib/adventurer-log/name";
 import { logLook } from "@/lib/adventurer-log/page-data";
 import { logStatement, parseLog } from "@/lib/adventurer-log/queries";
-import { INVALID_NAME, toSafeName } from "@/lib/base37";
 import type { HeadTables } from "@/lib/chathead/head";
 import heads from "@/lib/chathead/heads.json";
 import { chatheadPng } from "@/lib/chathead/server";
@@ -41,7 +41,7 @@ export const contentType = "image/png";
 
 /** Ten minutes in a reader's cache, an hour at the edge, a day stale behind that. */
 const CACHE = "public, max-age=600, s-maxage=3600, stale-while-revalidate=86400";
-/** A failure is not cached anywhere, so the next request tries again. */
+/** A failure (the database, or a head that would not draw) is not cached anywhere. */
 const NO_CACHE = "no-store";
 
 const SCALE = 3;
@@ -77,18 +77,13 @@ type Card = {
   totalLevel: number | null;
   /** The chathead as a data URL, or null to leave it out. */
   head: string | null;
+  /**
+   * The look had a head but it failed to draw. The card is still served,
+   * but not cached: a broken renderer after a deploy would otherwise sit in
+   * the edge's and the chat apps' caches for a day after it was fixed.
+   */
+  headFailed: boolean;
 };
-
-function nameFrom(raw: string): string | null {
-  let decoded: string;
-  try {
-    decoded = decodeURIComponent(raw);
-  } catch {
-    return null;
-  }
-  const safe = toSafeName(decoded);
-  return safe === INVALID_NAME ? null : safe;
-}
 
 /** What the card shows for a log, or null for the plain card. */
 async function cardFor(username: string): Promise<Card | null> {
@@ -107,12 +102,14 @@ async function cardFor(username: string): Promise<Card | null> {
   // A chathead that fails to draw leaves the card without one, not without
   // a card: the name and the rest still make a preview.
   let head: string | null = null;
+  let headFailed = false;
   if (look) {
     try {
       const png = await chatheadPng(look, SCALE);
       if (png) head = `data:image/png;base64,${png.toString("base64")}`;
     } catch (error) {
       console.error("[adventurer-log] preview chathead failed", error);
+      headFailed = true;
     }
   }
 
@@ -121,6 +118,7 @@ async function cardFor(username: string): Promise<Card | null> {
     headline: header.headline,
     totalLevel: overall ? overall.level : null,
     head,
+    headFailed,
   };
 }
 
@@ -182,7 +180,7 @@ export default async function Image({ params }: Params) {
         </div>
       </div>
     ),
-    { ...size, headers: { "Cache-Control": CACHE } },
+    { ...size, headers: { "Cache-Control": card.headFailed ? NO_CACHE : CACHE } },
   );
 }
 
