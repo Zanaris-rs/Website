@@ -12,6 +12,7 @@ const COMPONENTS = path.join(__dirname, "../../components");
 /** Everything drawn inside `.al-root`, which is where an owner's classes live. */
 const LOG_SOURCES = [
   "adventurer-log/LogView.tsx",
+  "adventurer-log/Skills.tsx",
   "adventurer-log/Wardrobe.tsx",
   "adventurer-log/Timeline.tsx",
   "adventurer-log/Entry.tsx",
