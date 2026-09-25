@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import Chathead from "@/components/game/Chathead";
 import SkillIcon from "@/components/game/SkillIcon";
 import { formatMonth } from "@/lib/adventurer-log/format";
+import type { WardrobeOutfit } from "@/lib/adventurer-log/wardrobe";
 import type { LogHeader } from "@/lib/adventurer-log/queries";
 import type { TimelinePage } from "@/lib/adventurer-log/view";
 import type { PlayerSkill } from "@/lib/hiscores/api";
@@ -11,6 +12,7 @@ import { statOfCategory } from "@/lib/skills/icons";
 
 import styles from "./Log.module.css";
 import Timeline, { type TimelineViewer } from "./Timeline";
+import Wardrobe from "./Wardrobe";
 
 /**
  * A player's Adventurer Log: who they are on the left - chathead, headline,
@@ -28,6 +30,7 @@ export default function LogView({
   bar,
   viewer,
   css,
+  outfits = [],
 }: {
   header: LogHeader & { result: "ok" };
   name: string;
@@ -38,6 +41,8 @@ export default function LogView({
   viewer: TimelineViewer | null;
   /** The owner's stylesheet, already through `sanitizeCss`; empty for none. */
   css: string;
+  /** The owner's saved outfits, for the Wardrobe; none hides it. */
+  outfits?: readonly WardrobeOutfit[];
 }) {
   const levels = new Map(skills.map((skill) => [skill.category, skill.level]));
 
@@ -96,6 +101,8 @@ export default function LogView({
                 </div>
               </section>
             ) : null}
+
+            <Wardrobe name={name} outfits={outfits} />
 
             <section className="al-timeline al-box">
               <h2>{name}&rsquo;s Adventurer Log</h2>

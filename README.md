@@ -1586,6 +1586,13 @@ scrolls, as the game records them - mixed with the updates they post.
   chathead draws (the hat): the picture is the same, and a log does not
   publish the rest of what the player had on. A player the game has not saved since migration 11 has an empty
   frame.
+- **Wardrobe.** Every outfit the owner has saved is on their log for anyone
+  to see, with a star on the one that is their picture
+  (`components/adventurer-log/Wardrobe.tsx`, read through
+  `accounts.outfits`). Only saved outfits: the look from the game that the
+  header falls back to is never in it. Its classes (`.al-wardrobe`,
+  `.al-outfits`, `.al-outfit`, `.al-outfit--default`, `.al-outfit-name`) are
+  part of the styling contract.
 - Times are fixed UTC text (`formatWhen`), not "5 minutes ago": a relative time
   would differ between the server's render and the browser's hydration.
 - Every element inside `.al-root` carries a stable `al-` class. Those names are

@@ -45,7 +45,8 @@ export default async function Outfits() {
         <p>
           The outfit you choose as your picture is your chathead on your
           Adventurer Log. Until you choose one, the log shows how you looked
-          the last time the game saved you.
+          the last time the game saved you. Every outfit you save is on show
+          in the Wardrobe on your log.
         </p>
         <AccountOutfits initial={initial} />
       </Panel>
