@@ -1,16 +1,22 @@
 #!/usr/bin/env bash
 #
-# Rebuild what the site draws chatheads with — a player's head as a quest
-# dialogue shows it, drawn from their look:
+# Rebuild what the site draws players with, from their look — a chathead,
+# their head as a quest dialogue shows it, and a figure, their whole body
+# standing as the world shows it:
 #
-#   public/game/chathead/renderer.js  the client's Model, Pix3D and Pix2D
+#   public/game/chathead/renderer.js  the client's Model, Pix3D, Pix2D and AnimFrame
 #   public/game/chathead/models.bin   every head model a look can use
 #   lib/chathead/heads.json           kits, hats, what hides what, palettes
 #   lib/chathead/golden.json          reference pictures for the golden test
+#   public/game/chathead/bodies.bin   every body model, their textures, the stance frames
+#   lib/chathead/bodies.json          kits, worn objects, what hides what, stances
+#   lib/chathead/figure.json          the figure's frame, and the version
+#   lib/chathead/figure-golden.json   reference figures for their golden test
 #
-# All four are committed. Re-run after a content bump, once the engine has
-# been repacked, and commit the result; then `npm test` draws every golden
-# look with the committed renderer and checks it pixel for pixel.
+# All of them are committed (and the outfit editor's tab, below). Re-run
+# after a content bump, once the engine has been repacked, and commit the
+# result; then `npm test` draws every golden look with the committed renderer
+# and checks it pixel for pixel.
 #
 # Usage:  npm run chathead:update
 #         ENGINE_DIR=/path/to/engine bash scripts/update-chathead.sh
@@ -23,18 +29,23 @@
 # software, every frame. So the site does exactly that, with the client's own
 # renderer bundled from the same Client-TS clone the map applet and the item
 # icons come from — about 16 KB gzipped, and pixel for pixel the game's
-# drawing because it is the game's code.
+# drawing because it is the game's code. A figure is the same again for the
+# whole body: every kit and worn object's model, posed in the first frame of
+# the stance the player's weapon gives them (`AnimFrame`, which the renderer
+# carries anyway for `Model.animate`, is exported for that).
 #
 # What the browser does not get is the client's config decoding: the build
-# reads `idk.dat` and `obj.dat` here and writes the few hundred numbers a head
-# needs as JSON, and copies out only the head models (a hundred-odd KB of the
-# 38 MB cache). It also reads the *server's* `obj.dat`, because the slots a
-# worn object empties (a full helm's hair and jaw) are never sent to the
-# client.
+# reads `idk.dat`, `obj.dat` and `seq.dat` here and writes the numbers a head
+# or a body needs as JSON, and copies out only the models, textures and anim
+# frames they use (a few hundred KB of the 38 MB cache). It also reads the
+# *server's* `obj.dat` and `param.dat`, because the slots a worn object
+# empties (a full helm's hair and jaw, a platebody's arms) and the stance a
+# weapon gives (`ready_baseanim`) are never sent to the client.
 #
 # The reference pictures are drawn by the client's own `ClientPlayer.
-# getHeadModel`, not by the site's code, so the golden test checks the site's
-# head assembly, the exported tables and the bundled renderer together.
+# getHeadModel` and `getTempModel2`, not by the site's code, so the golden
+# tests check the site's assembly, the exported tables and the bundled
+# renderer together.
 
 set -euo pipefail
 
@@ -52,14 +63,14 @@ ensure_client_ts
 (cd "$CACHE_DIR" && bun install --frozen-lockfile > /dev/null)
 
 PACK="$ENGINE_DIR/data/pack"
-for file in main_file_cache.dat client/config server/obj.dat; do
+for file in main_file_cache.dat client/config client/textures server/obj.dat server/param.dat; do
   if [ ! -f "$PACK/$file" ]; then
     echo "note     $PACK/$file is missing; packing the engine's data"
     npm --prefix "$ENGINE_DIR" run build
     break
   fi
 done
-for file in main_file_cache.dat client/config server/obj.dat; do
+for file in main_file_cache.dat client/config client/textures server/obj.dat server/param.dat; do
   if [ ! -f "$PACK/$file" ]; then
     echo "error: $PACK/$file still missing after a pack; check ENGINE_DIR" >&2
     exit 1
@@ -67,7 +78,7 @@ for file in main_file_cache.dat client/config server/obj.dat; do
 done
 echo "pack     $PACK ($(date -r "$PACK/client/config" '+%Y-%m-%d %H:%M'))"
 
-# The renderer: three of the client's classes and nothing else. The entry is
+# The renderer: four of the client's classes and nothing else. The entry is
 # written outside this repository and imports the clone by absolute path, so
 # the `#/` imports inside the client resolve against its own package.json.
 CLIENT_SRC="$(cd "$CACHE_DIR" && pwd)/src"
@@ -77,6 +88,7 @@ cat > "$ENTRY_DIR/renderer.ts" << EOF
 export { default as Model } from "$CLIENT_SRC/dash3d/Model.ts";
 export { default as Pix3D } from "$CLIENT_SRC/dash3d/Pix3D.ts";
 export { default as Pix2D } from "$CLIENT_SRC/graphics/Pix2D.ts";
+export { default as AnimFrame } from "$CLIENT_SRC/dash3d/AnimFrame.ts";
 EOF
 
 mkdir -p public/game/chathead

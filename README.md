@@ -42,7 +42,7 @@ npm run db:check             # prove DATABASE_URL connects and is the right role
 npm run assets:vendor        # re-vendor the 2004 graphics (see "2004 assets")
 npm run worldmap:update      # rebuild the map applet and map data (see "World map assets")
 npm run icons:update         # redraw the item and skill icons from the cache (see "Game icons")
-npm run chathead:update      # rebuild the chathead renderer and its data (see "Chatheads")
+npm run chathead:update      # rebuild the chathead and figure renderer and data (see "Chatheads")
 ```
 
 Without a `DATABASE_URL` the site still runs: the hiscores API answers 503 and
@@ -1507,7 +1507,7 @@ browser, with the client's own code:
 
 | File | What |
 | --- | --- |
-| `public/game/chathead/renderer.js` | the client's `Model`, `Pix3D` and `Pix2D`, bundled (about 16 KB gzipped) |
+| `public/game/chathead/renderer.js` | the client's `Model`, `Pix3D`, `Pix2D` and `AnimFrame`, bundled (about 16 KB gzipped) |
 | `public/game/chathead/models.bin` | the head models of every kit and hat, out of the 38 MB cache |
 | `lib/chathead/heads.json` | kits, hats, which worn objects hide the hair or jaw, the colour palettes, the frame |
 | `lib/chathead/golden.json` | reference pictures drawn by the client's own `ClientPlayer.getHeadModel` |
@@ -1532,11 +1532,51 @@ both genders, every colour of every part — with the committed renderer, models
 and tables, and checks each against the client's own picture pixel for pixel.
 `/dev/chathead` (development only) shows them all on a page.
 
+### Figures
+
+A figure is the whole player, standing as the world shows them: the same
+build draws it the way the client draws a player who is standing still
+(`ClientPlayer.getTempModel2`) — every kit's and worn object's model joined,
+recoloured and lit, then posed in the first frame of their stance — at the
+character design screen's camera (`player_kit.if`, `zoom=650 xan=150`, turned
+the way the dialogue turns the chathead). Its files come from the same run:
+
+| File | What |
+| --- | --- |
+| `public/game/chathead/bodies.bin` | every kit's body models and every wearable's worn models (295), the five textures the chainbodies and a few staves and shields use, and the stance frames: about 90 KB gzipped |
+| `lib/chathead/bodies.json` | kits, worn models per gender with their offsets and recolours, every object that empties a slot, each weapon's stance, the palettes |
+| `lib/chathead/figure.json` | the frame and the version, all a page needs before the rest arrives |
+| `lib/chathead/figure-golden.json` | reference figures drawn by the client's own `ClientPlayer.getTempModel2` |
+
+Pages use `<Figure look>` (`components/game/Figure.tsx`), which works like
+`<Chathead>` — a canvas of the frame's size, `scale` for square pixels, a
+`label` for screen readers — and shares its renderer, so a page with both
+fetches `renderer.js` once and adds `bodies.bin` (and `bodies.json`, as a
+chunk of its own) when its first figure mounts. `next.config.ts` caches it
+with the rest of `/game/chathead/*`.
+
+Two things a figure needs that a chathead does not, both from the engine's
+*server* config: every slot an object empties, not only the head's (a
+platebody hides the arms, a two-handed sword the shield — 145 objects in
+all), and the stance a weapon gives its holder (the obj param
+`ready_baseanim`: the staves stand differently). The frame fits every golden
+figure whole, the halberd's blade and the widest shield included.
+
+`figure-golden.test.ts` draws every golden figure — every kit, every colour,
+every wearable object on both genders, and a few whole outfits — and checks
+each against the client's own. The reference took the emptied slots and the
+stances from the server's config rather than from `bodies.json`, so a table
+written wrong fails the test. `/dev/figure` (development only) shows them.
+
+**A figure is only for a look its player chose to show** — a saved outfit.
+A look from the game is cut down to its chathead before it leaves the server
+(see "Adventurer Log"), and is never drawn whole.
+
 ### The outfit editor
 
 `components/outfits/OutfitEditor.tsx` is fashionscape: up to ten outfits,
-one of them the player's picture, each a `Look` whose chathead is drawn live
-as it changes. Anyone may wear anything, but only in a slot it is worn in, and
+one of them the player's picture, each a `Look` whose chathead and figure
+are drawn live as it changes. Anyone may wear anything, but only in a slot it is worn in, and
 only with a body the game's design screen allows — `lib/chathead/validate.ts`
 holds both rules and runs on each side. The same build writes what it draws
 with:
@@ -1558,8 +1598,8 @@ look from the game; see "Adventurer Log"). Every write answers
 with the outfits as they now are. `/dev/outfits` (development only) runs the
 same editor over memory.
 
-**Chatheads go stale like the icons.** Repack the engine after a content bump,
-re-run `chathead:update`, and commit what it writes.
+**Chatheads and figures go stale like the icons.** Repack the engine after a
+content bump, re-run `chathead:update`, and commit what it writes.
 
 ## Adventurer Log
 
@@ -1584,7 +1624,8 @@ scrolls, as the game records them - mixed with the updates they post.
   `outfit_import_look` for every name on the page in one statement). Before
   that look leaves the server, `headOnly` takes off everything but what the
   chathead draws (the hat): the picture is the same, and a log does not
-  publish the rest of what the player had on. A player the game has not saved since migration 11 has an empty
+  publish the rest of what the player had on. For the same reason a
+  `<Figure>`, which draws everything, is only ever given a saved outfit. A player the game has not saved since migration 11 has an empty
   frame.
 - Times are fixed UTC text (`formatWhen`), not "5 minutes ago": a relative time
   would differ between the server's render and the browser's hydration.

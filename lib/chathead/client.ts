@@ -1,12 +1,13 @@
 /**
- * The slice of the game client the chathead is drawn with.
+ * The slice of the game client chatheads and figures are drawn with.
  *
- * `public/game/chathead/renderer.js` is the client's own `Model`, `Pix3D`
- * and `Pix2D`, bundled straight from the Client-TS source by
+ * `public/game/chathead/renderer.js` is the client's own `Model`, `Pix3D`,
+ * `Pix2D` and `AnimFrame`, bundled straight from the Client-TS source by
  * `scripts/update-chathead.sh` — the same code that draws the head in a
- * quest dialogue, so a chathead here is pixel for pixel the one in game. It is
- * not ported and not part of this app's bundle; these types are the part of
- * its surface the site calls, and the golden test holds the two together.
+ * quest dialogue and the player in the world, so a picture here is pixel for
+ * pixel the one in game. It is not ported and not part of this app's bundle;
+ * these types are the part of its surface the site calls, and the golden
+ * tests hold the two together.
  *
  * The build script passes the Client-TS source classes to the same functions,
  * which is how it draws the reference pictures that test checks against.
@@ -14,6 +15,15 @@
 
 export interface ClientModel {
   recolour(src: number, dst: number): void;
+  /** Move every point; the arguments are y, x, z, in that order. */
+  translate(y: number, x: number, z: number): void;
+  /** Group the points and faces by their animation labels. */
+  prepareAnim(): void;
+  /** Pose the model with one `AnimFrame`, by frame id. */
+  animate(frame: number): void;
+  /** Become a copy of `src` that an animation can move without moving it. */
+  set(src: ClientModel, shareAlpha: boolean): void;
+  calcBoundingCylinder(): void;
   calculateNormals(
     ambient: number,
     contrast: number,
@@ -38,6 +48,8 @@ export interface ClientModelClass {
   unpack(id: number, src: Uint8Array | null): void;
   load(id: number): ClientModel | null;
   combineForAnim(models: (ClientModel | null)[], count: number): ClientModel;
+  /** The one scratch model the client animates players in. */
+  tempModel: ClientModel;
 }
 
 export interface ClientPix3D {
@@ -47,6 +59,22 @@ export interface ClientPix3D {
   cosTable: Int32Array;
   initColourTable(brightness: number): void;
   setRenderClipping(): void;
+  /**
+   * Unpack the textures from an archive — the client's `JagFile`, or
+   * anything that hands out the same files by name (`index.dat`, `<id>.dat`).
+   */
+  unpackTextures(textures: { read(name: string): Uint8Array | null }): void;
+  /** Make room to expand `size` textures at once. */
+  initPool(size: number): void;
+}
+
+export interface ClientAnimFrame {
+  /** Size the frame table for ids up to `total`. */
+  init(total: number): void;
+  /** Read one anim file: a skeleton (`AnimBase`) and frames on it. */
+  unpack(data: Uint8Array): void;
+  /** Whether a frame leaves the model's alpha alone: only "no frame" (-1). */
+  animateTransparencies(frame: number): boolean;
 }
 
 export interface ClientPix2D {
@@ -58,15 +86,20 @@ export type Client = {
   Model: ClientModelClass;
   Pix3D: ClientPix3D;
   Pix2D: ClientPix2D;
+  AnimFrame: ClientAnimFrame;
 };
 
 /**
- * The client's start-up, the part a chathead depends on.
+ * The client's start-up, the part a chathead or a figure depends on.
  *
  * The client shades with a colour table it builds once, nudging the
  * brightness by up to ±0.015 at random so no two sessions shade a model
  * identically. Pinned to the midpoint, as the icon build does, every browser
  * draws the same pixels and the golden test can compare them exactly.
+ *
+ * The table also holds each texture's palette, so the client builds it after
+ * unpacking the textures. Running this again after `unpackTextures` does the
+ * same; with the brightness pinned, the colours come out as before.
  */
 export function prepare(client: Client): void {
   const random = Math.random;

@@ -16,7 +16,8 @@ const eslintConfig = defineConfig([
     // the clone they are built from. Narrow on purpose — anything else that
     // lands in `public/` is ours and should be linted.
     "public/js/mapview.js",
-    // Likewise the client's Model/Pix3D/Pix2D, bundled for the chathead.
+    // Likewise the client's Model/Pix3D/Pix2D/AnimFrame, bundled for the
+    // chathead and the figure.
     "public/game/chathead/renderer.js",
     ".cache/**",
   ]),

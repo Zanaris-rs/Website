@@ -10,8 +10,9 @@
  *   OUT_DIR     this repository
  *
  * Writes `public/game/chathead/models.bin`, `lib/chathead/heads.json` and
- * `lib/chathead/golden.json`, and through `outfits.ts` what the outfit
- * editor draws the Worn Equipment tab with.
+ * `lib/chathead/golden.json`; through `outfits.ts` what the outfit editor
+ * draws the Worn Equipment tab with; and through `bodies.ts` what the site
+ * draws a whole body with, and its golden pictures.
  */
 
 import "./browser-stub.ts";
@@ -27,8 +28,10 @@ import type { HeadTables } from "../../lib/chathead/head.ts";
 import { type Look, toAppearance } from "../../lib/chathead/look.ts";
 import { encodeModels } from "../../lib/chathead/models.ts";
 import FileCache from "../game-icons/cache.ts";
+import { type BodyInputs, exportBodies } from "./bodies.ts";
 import { exportOutfitEditor, type SpriteClient } from "./outfits.ts";
 import { readWearPos } from "./server-obj.ts";
+import { readParamTypes } from "./server-param.ts";
 
 // --- the slice of Client-TS this uses -------------------------------------
 
@@ -103,22 +106,35 @@ const Pix3D = await client<Client["Pix3D"] & { colourTable: Int32Array }>(
 const Pix2D = await client<Client["Pix2D"]>("graphics/Pix2D.ts");
 const Pix8 = await client<SpriteClient["Pix8"]>("graphics/Pix8.ts");
 const Pix32 = await client<SpriteClient["Pix32"]>("graphics/Pix32.ts");
-const IdkType = await client<IdkTypeClass>("config/IdkType.ts");
-const ObjType = await client<ObjTypeClass>("config/ObjType.ts");
-const ClientPlayer = await client<ClientPlayerClass>("dash3d/ClientPlayer.ts");
+const AnimFrame = await client<Client["AnimFrame"]>("dash3d/AnimFrame.ts");
+const IdkType = await client<IdkTypeClass & BodyInputs["IdkType"]>("config/IdkType.ts");
+const ObjType = await client<ObjTypeClass & BodyInputs["ObjType"]>("config/ObjType.ts");
+const SeqType = await client<BodyInputs["SeqType"] & { init(config: Jag): void }>(
+  "config/SeqType.ts",
+);
+const ClientPlayer = await client<ClientPlayerClass & BodyInputs["ClientPlayer"]>(
+  "dash3d/ClientPlayer.ts",
+);
 
-const source: Client = { Model, Pix3D, Pix2D };
+const source: Client = { Model, Pix3D, Pix2D, AnimFrame };
 
 // --- the cache ------------------------------------------------------------
 
 const PACK = path.join(ENGINE_DIR, "data/pack");
 const config = new JagFile(readFileSync(path.join(PACK, "client/config")));
 const media = new JagFile(readFileSync(path.join(PACK, "client/media")));
+const textures = new JagFile(readFileSync(path.join(PACK, "client/textures")));
 const cache = new FileCache(PACK, 5);
 
+// The client's start-up order, as `loadBodies` repeats it in the browser:
+// the textures (a few body models use them; no head does), the colour
+// table, which holds their palettes, and room to expand them.
+Pix3D.unpackTextures(textures);
 prepare(source);
+Pix3D.initPool(20);
 IdkType.init(config);
 ObjType.init(config, true);
+SeqType.init(config);
 
 const modelTotal = cache.count(1);
 Model.init(modelTotal, {
@@ -401,6 +417,24 @@ writeFileSync(
   JSON.stringify({ version, looks: goldenFile }, null, 1) + "\n",
 );
 
+const bodies = exportBodies({
+  source,
+  IdkType,
+  ObjType,
+  SeqType,
+  ClientPlayer,
+  cache,
+  modelTotal,
+  textures,
+  wearpos,
+  params: readParamTypes(path.join(PACK, "server/param.dat")),
+  recol1d: ClientPlayer.recol1d,
+  recol2d: ClientPlayer.recol2d,
+  maleKits: MALE_KITS,
+  femaleKits: FEMALE_KITS,
+  outDir: OUT_DIR,
+});
+
 const wearables = exportOutfitEditor({
   client: { Pix2D, Pix8, Pix32, colourTable: Pix3D.colourTable },
   media,
@@ -422,6 +456,21 @@ console.log(
 );
 console.log(
   `golden   ${goldenFile.length} looks (${drawn} drawn, ${goldenFile.length - drawn} blank) -> lib/chathead/golden.json`,
+);
+console.log(
+  `bodies   ${bodies.models} body models, ${bodies.textures.length} textures (${bodies.textures.join(", ")}), ` +
+    `${bodies.stances} stances for ${bodies.weapons} weapons in ${bodies.anims.length} cut anim files ` +
+    `(${bodies.anims.join(" + ")} bytes), ${bodies.bytes} bytes -> public/game/chathead/bodies.bin?v=${bodies.version}`,
+);
+console.log(
+  `         ${bodies.objs} worn objects, ${bodies.hides} that empty a slot -> lib/chathead/bodies.json`,
+);
+console.log(
+  `figure   ${bodies.frame.width}x${bodies.frame.height}, origin ${bodies.frame.originX},${bodies.frame.originY}, ` +
+    `every golden look whole -> lib/chathead/figure.json`,
+);
+console.log(
+  `         ${bodies.golden} golden looks (${bodies.drawn} drawn, ${bodies.golden - bodies.drawn} blank) -> lib/chathead/figure-golden.json`,
 );
 const wearableCount = Object.values(wearables.slots).flat().length;
 console.log(

@@ -10,6 +10,9 @@ import type { Look } from "./look.ts";
  */
 export const CAMERA = { zoom: 796, xan: 40, yan: 166 } as const;
 
+/** Where a model component's eye sits: its distance and its two angles. */
+export type Camera = { zoom: number; xan: number; yan: number };
+
 /**
  * A pixel the renderer did not touch. Every colour it writes is 24-bit, so a
  * bit above them marks the background — unlike 0, which the colour table can
@@ -21,13 +24,15 @@ export const BACKGROUND = 0x1000000;
 export type Frame = HeadTables["frame"];
 
 /**
- * Draw a lit head into a frame-sized buffer and return the pixels. The model
- * is expected to have been lit already (`calculateNormals`).
+ * Draw a lit model into a frame-sized buffer and return the pixels. The model
+ * is expected to have been lit already (`calculateNormals`). The camera is
+ * the dialogue's unless another is given (a figure's, `body.ts`).
  */
 export function drawModel(
   client: Client,
   model: ClientModel,
   frame: Frame,
+  camera: Camera = CAMERA,
 ): Int32Array {
   const pixels = new Int32Array(frame.width * frame.height).fill(BACKGROUND);
   client.Pix2D.setPixels(pixels, frame.width, frame.height);
@@ -35,9 +40,9 @@ export function drawModel(
   client.Pix3D.originX = frame.originX;
   client.Pix3D.originY = frame.originY;
 
-  const eyeY = (client.Pix3D.sinTable[CAMERA.xan] * CAMERA.zoom) >> 16;
-  const eyeZ = (client.Pix3D.cosTable[CAMERA.xan] * CAMERA.zoom) >> 16;
-  model.objRender(0, CAMERA.yan, 0, CAMERA.xan, 0, eyeY, eyeZ);
+  const eyeY = (client.Pix3D.sinTable[camera.xan] * camera.zoom) >> 16;
+  const eyeZ = (client.Pix3D.cosTable[camera.xan] * camera.zoom) >> 16;
+  model.objRender(0, camera.yan, 0, camera.xan, 0, eyeY, eyeZ);
   return pixels;
 }
 

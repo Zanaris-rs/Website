@@ -3,7 +3,8 @@ import type { Client } from "./client.ts";
 /**
  * `public/game/chathead/models.bin`: the handful of models a chathead can be
  * made of — every kit's and every hat's head models, about a hundred KB —
- * out of the thousands in the game cache.
+ * out of the thousands in the game cache. `bodies.bin` carries a body's
+ * models in the same format (`bodies-file.ts`).
  *
  * Each model is the cache's own bytes after gunzip, which is the format the
  * client's `Model.unpack` takes, so nothing is converted. The layout is
@@ -56,16 +57,31 @@ export function decodeModels(bytes: Uint8Array): ModelFile {
   return { total, models };
 }
 
+/** Each renderer's model table, once made: `Model.init` empties it. */
+const tables = new WeakMap<object, number>();
+
 /**
  * Hand the models to the client. Any other model is absent, and the client
- * asking for one is a bug in the build (a head part it did not export), so
- * it throws rather than drawing a head with a piece missing.
+ * asking for one is a bug in the build (a part it did not export), so it
+ * throws rather than drawing a head or a body with a piece missing.
+ *
+ * A page with chatheads and figures loads `models.bin` and `bodies.bin` into
+ * the same renderer, in either order, so the table is made once and each
+ * file adds to it. Both come from one cache and size it the same.
  */
 export function loadModels(client: Client, file: ModelFile): void {
-  client.Model.init(file.total, {
-    requestModel(id: number) {
-      throw new Error(`chathead: model ${id} is not in models.bin`);
-    },
-  });
+  const total = tables.get(client.Model);
+  if (total === undefined) {
+    client.Model.init(file.total, {
+      requestModel(id: number) {
+        throw new Error(`chathead: model ${id} is not in models.bin or bodies.bin`);
+      },
+    });
+    tables.set(client.Model, file.total);
+  } else if (total !== file.total) {
+    throw new Error(
+      `chathead: model files from different caches (${total} and ${file.total} models)`,
+    );
+  }
   for (const [id, bytes] of file.models) client.Model.unpack(id, bytes);
 }

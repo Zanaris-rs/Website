@@ -11,6 +11,11 @@ import { readFileSync } from "node:fs";
  * beard disappear under it. The chathead has to make the same decision, so
  * the build reads the server's file for it.
  *
+ * The file also carries each object's params, which the client never sees
+ * either. The full-body figure needs one of them: a weapon's
+ * `ready_baseanim`, the stance the player stands in while holding it
+ * (`content/scripts/player/scripts/appearance.rs2`, `update_bas`).
+ *
  * The file is a 2-byte count, then one opcode stream per object, each ended
  * by a 0. The engine's decoder (`src/cache/config/ObjType.ts`) reads the
  * client and the server streams with the same `decode`, so every opcode it
@@ -25,9 +30,12 @@ export type WearPos = {
   wearpos3: number;
   /** A `dummyitem`: an engine placeholder, never a real object to wear. */
   dummy: boolean;
+  /** The object's params (`param=`), by param id: see `server-param.ts`. */
+  params: ReadonlyMap<number, number | string>;
 };
 
-class Reader {
+/** A cursor over a server config file, reading the engine's `Packet` encodings. */
+export class Reader {
   pos = 0;
 
   constructor(private readonly data: Buffer) {}
@@ -50,11 +58,29 @@ class Reader {
     this.pos += bytes;
   }
 
+  g3(): number {
+    const value = this.data.readUIntBE(this.pos, 3);
+    this.pos += 3;
+    return value;
+  }
+
+  g4s(): number {
+    const value = this.data.readInt32BE(this.pos);
+    this.pos += 4;
+    return value;
+  }
+
   /** A newline-terminated string, the engine's `gjstr`. */
-  skipString(): void {
+  gjstr(): string {
     const end = this.data.indexOf(10, this.pos);
     if (end === -1) throw new Error(`unterminated string at ${this.pos}`);
+    const value = this.data.toString("latin1", this.pos, end);
     this.pos = end + 1;
+    return value;
+  }
+
+  skipString(): void {
+    this.gjstr();
   }
 }
 
@@ -95,7 +121,14 @@ const FIXED: ReadonlyMap<number, number> = new Map([
 ]);
 
 function decode(dat: Reader, id: number): WearPos {
-  const out: WearPos = { wearpos: -1, wearpos2: -1, wearpos3: -1, dummy: false };
+  const params = new Map<number, number | string>();
+  const out: WearPos = {
+    wearpos: -1,
+    wearpos2: -1,
+    wearpos3: -1,
+    dummy: false,
+    params,
+  };
 
   while (dat.available > 0) {
     const code = dat.g1();
@@ -121,12 +154,12 @@ function decode(dat: Reader, id: number): WearPos {
     } else if (code >= 100 && code < 110) {
       dat.skip(4); // countobj + countco
     } else if (code === 249) {
+      // `ParamHelper.decodeParams`: a 3-byte id, then a string or an int.
       const count = dat.g1();
       for (let i = 0; i < count; i++) {
-        dat.skip(3); // param id
+        const key = dat.g3();
         const isString = dat.g1() === 1;
-        if (isString) dat.skipString();
-        else dat.skip(4);
+        params.set(key, isString ? dat.gjstr() : dat.g4s());
       }
     } else {
       throw new Error(
