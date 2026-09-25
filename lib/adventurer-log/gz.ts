@@ -1,12 +1,12 @@
 import { displayName } from "@/lib/hiscores/format";
 import { parseId } from "@/lib/messages/queries";
 
-import type { Gz } from "./queries";
+import { GZ_TAKE_MAX, type Gz } from "./queries";
 
 /**
  * "gz" on adventures, as the timeline draws and changes it: a level run's gz
- * gathered from its levels, the change a give or a take-back makes before
- * the server answers, and who gave it, in words. Migration 15 keeps one row
+ * gathered from its levels, what pressing gz sends and the change it makes
+ * before the server answers, and who gave it, in words. Migration 15 keeps one row
  * per (adventure, giver); `adventure_timeline` answers each adventure's
  * count, its newest fifty givers by username and whether the viewer is one.
  *
@@ -14,12 +14,10 @@ import type { Gz } from "./queries";
  */
 
 export type { Gz };
+export { GZ_TAKE_MAX };
 
 /** The most givers an adventure's gz names (the timeline's newest fifty). */
 export const GZ_NAMES = 50;
-
-/** The most adventures one take-back names: `adventure_gz_take` reads the first fifty. */
-export const GZ_TAKE_MAX = 50;
 
 /**
  * A level run's gz: everyone who gave one to any level in it, counted once,
@@ -58,6 +56,58 @@ export function withGiven(gz: Gz, me: string): Gz {
 export function withTaken(gz: Gz, me: string): Gz {
   if (!gz.mine) return gz;
   return { count: Math.max(gz.count - 1, 0), names: gz.names.filter((name) => name !== me), mine: false };
+}
+
+/**
+ * The gz once the owner has blocked `name`: the timeline leaves blocked
+ * givers out, so they go from the names and the count. When they are not
+ * among the names (a list cut short), nothing changes until a reload.
+ */
+export function withoutGiver(gz: Gz, name: string): Gz {
+  if (!gz.names.includes(name)) return gz;
+  return { count: Math.max(gz.count - 1, 0), names: gz.names.filter((given) => given !== name), mine: gz.mine };
+}
+
+/** One request to `/api/adventurer-log/gz`, and the adventures it is about. */
+export type GzRequest =
+  | { method: "POST"; body: { event: number }; ids: number[] }
+  | { method: "DELETE"; body: { events: number[] }; ids: number[] };
+
+/**
+ * What pressing gz does: `taking` it back or giving one, the adventures whose
+ * gz `change` at once, and the requests to send, in order.
+ */
+export type GzPlan = { taking: boolean; change: number[]; requests: GzRequest[] };
+
+/**
+ * The plan for pressing gz on one adventure, or on a level run's (newest
+ * first). When any of them has the viewer's gz, it is taken back from every
+ * one, in batches of `GZ_TAKE_MAX`; otherwise one is given, to the newest.
+ */
+export function gzPlan(events: readonly { id: number; gz: Gz }[]): GzPlan {
+  if (events.length === 0) return { taking: false, change: [], requests: [] };
+
+  if (!runGz(events).mine) {
+    const id = events[0].id;
+    return { taking: false, change: [id], requests: [{ method: "POST", body: { event: id }, ids: [id] }] };
+  }
+
+  const change = events.map((event) => event.id);
+  const requests: GzRequest[] = [];
+  for (let i = 0; i < change.length; i += GZ_TAKE_MAX) {
+    const ids = change.slice(i, i + GZ_TAKE_MAX);
+    requests.push({ method: "DELETE", body: { events: ids }, ids });
+  }
+  return { taking: true, change, requests };
+}
+
+/**
+ * The adventures to put back as they were when request `failed` of `plan`
+ * is refused: its own and those of every request after it, which were never
+ * sent. The ones before it went through, so they stay as they are.
+ */
+export function gzRestoreIds(plan: GzPlan, failed: number): number[] {
+  return plan.requests.slice(failed).flatMap((request) => request.ids);
 }
 
 /** "Lynx Titan, B0aty and 3 more": the newest fifty givers by display name. */

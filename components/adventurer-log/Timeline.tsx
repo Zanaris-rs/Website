@@ -7,7 +7,7 @@ import { GZ_MESSAGES, send } from "@/lib/adventurer-log/client";
 import { type Filter, filterOf, showsPosts, visibleFilters } from "@/lib/adventurer-log/filters";
 import { checkText, REPLY_MAX, UPDATE_MAX } from "@/lib/adventurer-log/format";
 import { type EventEntry, groupLevels } from "@/lib/adventurer-log/groups";
-import { type Gz as GzState, GZ_TAKE_MAX, runGz, withGiven, withTaken } from "@/lib/adventurer-log/gz";
+import { type Gz as GzState, gzPlan, gzRestoreIds, withGiven, withoutGiver, withTaken } from "@/lib/adventurer-log/gz";
 import type { Cursor } from "@/lib/adventurer-log/queries";
 import type { EntryView, PinnedView, ReplyView, TimelinePage, UpdateEntry } from "@/lib/adventurer-log/view";
 import type { Look } from "@/lib/chathead/look";
@@ -29,6 +29,7 @@ export type TimelineViewer = {
 };
 
 const UNPINNED = "Unpinned. It is back in its place in your log the next time the page loads.";
+const REPINNED = "Pinned. Your previous pin is back in its place the next time the page loads.";
 
 /**
  * The timeline, newest first, and everything a reader can do to it: the
@@ -93,34 +94,28 @@ export default function Timeline({
   }
 
   /**
-   * Give a gz, or take yours back: shown at once, and put back as it was,
-   * with the reason, if the server refuses. `events` is one adventure, or a
-   * level run's, newest first: a run's gz goes on its newest level, and
-   * taking it back takes it from every level in the run.
+   * Give a gz, or take yours back (`gzPlan`): shown at once, and put back as
+   * it was, with the reason, if the server refuses. `events` is one
+   * adventure, or a level run's, newest first: a run's gz goes on its newest
+   * level, and taking it back takes it from every level, in batches. When a
+   * batch fails, only it and the ones after it are put back: the earlier
+   * ones were taken back.
    */
   async function toggleGz(events: readonly EventEntry[]) {
     if (!viewer || events.length === 0) return;
     const me = viewer.username;
-    const taking = runGz(events).mine;
-    const ids = taking ? events.map((event) => event.id) : [events[0].id];
+    const plan = gzPlan(events);
     const before = new Map(events.map((event) => [event.id, event.gz]));
 
-    changeGz(ids, (gz) => (taking ? withTaken(gz, me) : withGiven(gz, me)));
+    changeGz(plan.change, (gz) => (plan.taking ? withTaken(gz, me) : withGiven(gz, me)));
 
-    let refused: string | null = null;
-    if (taking) {
-      for (let i = 0; i < ids.length && refused === null; i += GZ_TAKE_MAX) {
-        const result = await send("/api/adventurer-log/gz", { events: ids.slice(i, i + GZ_TAKE_MAX) }, "DELETE", GZ_MESSAGES);
-        if (!result.ok) refused = result.message;
+    for (const [i, request] of plan.requests.entries()) {
+      const result = await send("/api/adventurer-log/gz", request.body, request.method, GZ_MESSAGES);
+      if (!result.ok) {
+        changeGz(gzRestoreIds(plan, i), (gz, id) => before.get(id) ?? gz);
+        setNotice(result.message);
+        return;
       }
-    } else {
-      const result = await send("/api/adventurer-log/gz", { event: ids[0] }, "POST", GZ_MESSAGES);
-      if (!result.ok) refused = result.message;
-    }
-
-    if (refused !== null) {
-      changeGz(ids, (gz, id) => before.get(id) ?? gz);
-      setNotice(refused);
     }
   }
 
@@ -142,7 +137,10 @@ export default function Timeline({
       if (!response.ok) throw new Error(String(response.status));
       const page = (await response.json()) as TimelinePage;
       setEntries((shown) => {
+        // The pinned update too: a page read after the owner unpinned it
+        // elsewhere has it in date order, and it is already drawn on top.
         const seen = new Set(shown.map((entry) => entry.key));
+        if (pinned) seen.add(pinned.key);
         return [...shown, ...page.entries.filter((entry) => !seen.has(entry.key))];
       });
       setLooks((known) => ({ ...known, ...page.looks }));
@@ -200,7 +198,7 @@ export default function Timeline({
     const result = await send("/api/adventurer-log/pin", { id: update.id }, "PUT");
     if (!result.ok) return setNotice(result.message);
     setEntries((shown) => shown.filter((entry) => !(entry.kind === "update" && entry.id === update.id)));
-    setNotice(pinned ? UNPINNED : null);
+    setNotice(pinned ? REPINNED : null);
     setPinned(update);
   }
 
@@ -241,7 +239,12 @@ export default function Timeline({
       ...update,
       replies: update.replies.filter((reply) => reply.author !== author),
     });
-    setEntries((shown) => shown.map((entry) => (entry.kind === "update" ? hide(entry) : entry)));
+    // The timeline leaves a blocked player's gz out too, from the next load.
+    const drop = (entry: EventEntry) => {
+      const gz = withoutGiver(entry.gz, author);
+      return gz === entry.gz ? entry : { ...entry, gz };
+    };
+    setEntries((shown) => shown.map((entry) => (entry.kind === "update" ? hide(entry) : drop(entry))));
     setPinned((top) => (top ? hide(top) : top));
   }
 

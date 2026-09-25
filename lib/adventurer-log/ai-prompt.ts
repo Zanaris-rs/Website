@@ -177,7 +177,7 @@ ${FENCE}
 - \`.al-outfit--default\` is the outfit my chathead wears.
 - \`.al-filter[aria-current]\` is the filter being shown. \`.al-edited\` is on an update only when I changed it after posting.
 - \`.al-post\`, \`.al-actions\` and \`.al-reply-form\` hold buttons and forms that only signed-in readers see. Style them if you like, but keep them usable.
-- \`.al-gz-button\` shows only to signed-in readers other than me; \`.al-gz-button[aria-pressed="true"]\` is a gz that reader gave.
+- \`.al-gz-button\` shows only to signed-in readers other than me, and never to players I blocked; \`.al-gz-button[aria-pressed="true"]\` is a gz that reader gave.
 - Chatheads and outfits are drawn on \`<canvas>\`: you can frame, size and place them, but not recolour them.
 
 Its look before your CSS: a black page; each \`.al-box\` black with a 1px #3a3a3a border; each box title (\`.al-box > h2\`) a #2b2b2b bar with white 13px bold text; text #e4e4e4 in 13px Arial; links #c8ccd2; times #9a9a9a.`,

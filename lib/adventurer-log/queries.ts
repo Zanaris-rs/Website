@@ -499,6 +499,9 @@ export function gzGiveStatement(username: string, eventId: number): Statement {
   };
 }
 
+/** The most adventures one take-back names: `adventure_gz_take` reads the first fifty. */
+export const GZ_TAKE_MAX = 50;
+
 /**
  * Take your gz back from up to fifty adventures, all of a level run's at
  * once. Always 'ok' for a real account: ids you never gave to are no matter.
@@ -506,7 +509,7 @@ export function gzGiveStatement(username: string, eventId: number): Statement {
 export function gzTakeStatement(username: string, eventIds: readonly number[]): Statement {
   return {
     text: "select accounts.adventure_gz_take($1, $2::int[]) as result",
-    values: [username, eventIds.slice(0, 50)],
+    values: [username, eventIds.slice(0, GZ_TAKE_MAX)],
   };
 }
 
