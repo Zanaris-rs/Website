@@ -9,7 +9,7 @@ of somebody else's work with no connection to Jagex Ltd.
 | Path | What is there |
 | --- | --- |
 | `/` and `/disclaimer` | the non-affiliation disclaimer; `/` is the front page, as it is on Lost City |
-| `/title` | the main menu: the wordmark, the live player count, the latest news, the latest Adventurer Logs, and the four menu panels |
+| `/title` | the main menu: the wordmark, the live player count, the latest news, and the three menu panels |
 | `/news` | news posts, from Markdown files in `content/news` — plus `/news/page/N`, `/news/category/<cat>` and `/news/<slug>` |
 | `/rules` and `/rules/original` | what the twelve rules mean here, and the twelve rules themselves |
 | `/worldmap` | the 2004 map applet, drawn from the game's own map data |
@@ -1221,8 +1221,6 @@ renders per request (`export const revalidate = 0`), because it reads the
 session cookie to decide whether to show the Staff Inbox tile. The world polls
 behind the live player count are cached for fifteen seconds per fetch, so
 however many people load the page, the worlds are asked once in that window.
-The Adventurer Logs panel is cached the same way, for a minute
-(`lib/title/logs.ts`, `unstable_cache`), since it is the same for everybody.
 `public/worlds.json` is read at build time, so a world added by the
 deploy script appears in `/title`'s count on the next deploy — `/serverlist`
 fetches the file in the browser and picks it up immediately.
@@ -1284,7 +1282,7 @@ fetches the file in the browser and picks it up immediately.
 | `components/WorldTable.tsx` | the world list itself |
 | `lib/site.ts` | the site name, the revision, the credit line, the URLs |
 | `lib/news/` | frontmatter and filename parsing, categories, pagination, dates, Markdown |
-| `lib/title/` | the player-count sum and the sentence, the server-side fetch, and the cached Adventurer Logs read |
+| `lib/title/` | the player-count sum and the sentence, and the server-side fetch |
 | `lib/rules/original.ts` | the twelve rules as data |
 | `lib/db.ts` | the one `pg.Pool`, and the only `query()` |
 | `lib/base37.ts` | name encoding, ported from the engine's `util/JString.ts` |
@@ -1469,10 +1467,11 @@ the map applet) under `bun`, fed from the engine's pack. The header of
 Thieving, are recoloured the way the 2004 site's hiscores recoloured them,
 because their black silhouettes vanish on black panels.
 
-The two menu tiles are drawn the same way, for the same reason. `/title` gives
-every tile a picture and 2004 drew none for a wiki or for a desktop client, so
-`render.ts` poses those objects' own models instead — the sextant for LostHQ,
-the Dramen staff for Zanaris Kit — at four times tile size, averaged down,
+The three menu tiles are drawn the same way, for the same reason. `/title`
+gives every tile a picture and 2004 drew none for a wiki, a desktop client or
+a player's diary, so `render.ts` poses those objects' own models instead — the
+sextant for LostHQ, the Dramen staff for Zanaris Kit, the book for Adventurer
+Logs — at four times tile size, averaged down,
 which is where their smooth edges come from beside the 2004 photographs. Its
 `TILES` table is where the object, the angle and the framing live.
 
@@ -1627,8 +1626,7 @@ scrolls, as the game records them - mixed with the updates they post.
   (`accounts.adventure_log_directory`, migration 14, keyset-paged on
   `(at, username)`). It is never ordered by logins: the directory says
   nothing sooner, or more, than the logs do. A name box (a plain GET form)
-  goes to anyone's log. `/title`'s Adventurer Logs panel is the directory's
-  first six rows (`lib/title/logs.ts`), cached for a minute.
+  goes to anyone's log. `/title`'s Adventurer Logs tile opens it.
 - Everyone else sees an adventure **twenty minutes** after it happened, so a
   log cannot be used to follow someone around the game; the owner sees theirs
   at once. That rule, and every other one - who may write, blocks, the rates -
