@@ -104,13 +104,19 @@ const OUTLINE = `<div class="al-root">                 <!-- the log; your CSS re
             </li>
             <li class="al-event al-event--level">
               <span class="al-event-icon"><img></span>
-              <span class="al-event-text">Levelled up Attack from 98 to 99</span>
+              <span class="al-event-text">Levelled up Attack from 98 to 99
+                <span class="al-gz">                                  <!-- readers' "gz"; nothing when there is none to show -->
+                  <button class="al-gz-button" aria-pressed="false">gz</button> <button class="al-gz-count" title="Lynx Titan, B0aty">2 gz</button>
+                  <span class="al-gz-names">Lynx Titan, B0aty</span>     <!-- after clicking the count -->
+                </span>
+              </span>
               <time class="al-time">24 Sep 2026, 14:05</time>
             </li>
             <li class="al-event al-event--level al-levels">          <!-- a run of level-ups, next to each other and within an hour -->
               <span class="al-event-icon"><img></span>
               <div class="al-event-text al-levels-body">           <!-- one text-column child, like any other event row -->
                 <span class="al-levels-summary">Gained 7 levels</span>
+                <span class="al-gz">...</span>                          <!-- the run's gz, as above -->
                 <ul class="al-levels-skills">
                   <li class="al-levels-skill">Woodcutting 53 → 58</li>
                   <li class="al-levels-skill">Firemaking 30 → 32</li>
@@ -188,6 +194,7 @@ ${FENCE}
 - \`.al-outfit--default\` is the outfit my chathead wears.
 - \`.al-filter[aria-current]\` is the filter being shown. \`.al-edited\` is on an update only when I changed it after posting.
 - \`.al-post\`, \`.al-actions\` and \`.al-reply-form\` hold buttons and forms that only signed-in readers see. Style them if you like, but keep them usable.
+- \`.al-gz-button\` shows only to signed-in readers other than me, and never to players I blocked; \`.al-gz-button[aria-pressed="true"]\` is a gz that reader gave.
 - Chatheads and outfits are drawn on \`<canvas>\`: you can frame, size and place them, but not recolour them.
 
 Its look before your CSS: a black page; each \`.al-box\` black with a 1px #3a3a3a border; each box title (\`.al-box > h2\`) a #2b2b2b bar with white 13px bold text; text #e4e4e4 in 13px Arial; links #c8ccd2; times #9a9a9a.`,

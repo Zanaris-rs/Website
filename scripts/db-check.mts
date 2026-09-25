@@ -63,6 +63,8 @@ import {
   blockStatement,
   blocksStatement,
   directoryStatement,
+  gzGiveStatement,
+  gzTakeStatement,
   logSaveStatement,
   logStatement,
   parseDirectory,
@@ -1042,8 +1044,8 @@ async function checkAdventurerLog(): Promise<void> {
     ["adventure_update_edit", updateEditStatement("__db_check__", 1, "db check")],
     ["adventure_log_pin", pinStatement("__db_check__", 1)],
     ["adventure_log_pin (unpin)", pinStatement("__db_check__", null)],
-    ["adventure_gz_give", { text: "select accounts.adventure_gz_give($1, $2) as result", values: ["__db_check__", 1] }],
-    ["adventure_gz_take", { text: "select accounts.adventure_gz_take($1, $2::int[]) as result", values: ["__db_check__", [1]] }],
+    ["adventure_gz_give", gzGiveStatement("__db_check__", 1)],
+    ["adventure_gz_take", gzTakeStatement("__db_check__", [1])],
   ];
   for (const [name, statement] of writes) {
     const [row] = await query<{ result: unknown }>(statement.text, statement.values);

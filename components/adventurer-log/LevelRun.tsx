@@ -5,9 +5,11 @@ import { useState } from "react";
 import SkillIcon from "@/components/game/SkillIcon";
 import { formatWhen } from "@/lib/adventurer-log/format";
 import type { LevelRun as LevelRunItem } from "@/lib/adventurer-log/groups";
+import { runGz } from "@/lib/adventurer-log/gz";
 import type { Look } from "@/lib/chathead/look";
 
 import Entry from "./Entry";
+import Gz from "./Gz";
 
 /**
  * One row for a run of level-ups `groupLevels` merged (`lib/adventurer-log/
@@ -15,17 +17,24 @@ import Entry from "./Entry";
  * "Show each" to expand back into the ordinary `Entry` rows it was built
  * from. The icon is the skill with the most levels - `run.skills` is already
  * sorted that way.
+ *
+ * The run has one gz, everyone's who gave any level in it (`runGz`): giving
+ * one puts it on the newest level, and taking it back takes it from every
+ * level (`onGz`, which the timeline passes only to a reader who may give).
+ * The levels "Show each" draws have none of their own.
  */
 export default function LevelRun({
   run,
   ownerName,
   ownerLook,
   looks,
+  onGz,
 }: {
   run: LevelRunItem;
   ownerName: string;
   ownerLook: Look | null;
   looks: Readonly<Record<string, Look>>;
+  onGz?: () => Promise<void>;
 }) {
   const [expanded, setExpanded] = useState(false);
   const top = run.skills[0];
@@ -43,6 +52,7 @@ export default function LevelRun({
        */}
       <div className="al-event-text al-levels-body">
         <span className="al-levels-summary">Gained {run.gained} levels</span>
+        <Gz gz={runGz(run.events)} onToggle={onGz} />
         <ul className="al-levels-skills">
           {run.skills.map((skill) => (
             <li className="al-levels-skill" key={skill.stat}>

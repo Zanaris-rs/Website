@@ -226,6 +226,33 @@
   justify-content: center;
 }
 
+.root :global(.al-gz) {
+  font-size: 11px;
+}
+
+.root :global(.al-gz-button) {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 11px;
+}
+
+.root :global(.al-gz-button[aria-pressed="true"]) {
+  font-weight: bold;
+}
+
+.root :global(.al-gz-count) {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--link);
+  font: inherit;
+  cursor: pointer;
+}
+
+.root :global(.al-gz-names) {
+  display: block;
+  color: var(--text-muted);
+}
+
 .root :global(.al-time) {
   color: var(--text-muted);
   font-size: 11px;

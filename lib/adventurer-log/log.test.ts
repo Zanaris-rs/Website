@@ -7,6 +7,8 @@ import { checkCss, checkText, CSS_MAX, formatMonth, formatWhen, HEADLINE_MAX } f
 import {
   aboutSaveStatement,
   cursorOf,
+  gzGiveStatement,
+  gzTakeStatement,
   logStatement,
   logStatusFor,
   parseAboutSave,
@@ -311,6 +313,19 @@ describe("queries", () => {
       values: ["hero", 7],
     });
     expect(pinStatement("hero", null).values).toEqual(["hero", null]);
+  });
+
+  it("give a gz and take gz back, the ids as values", () => {
+    expect(gzGiveStatement("fan", 3)).toEqual({
+      text: "select accounts.adventure_gz_give($1, $2) as result",
+      values: ["fan", 3],
+    });
+    expect(gzTakeStatement("fan", [3, 4])).toEqual({
+      text: "select accounts.adventure_gz_take($1, $2::int[]) as result",
+      values: ["fan", [3, 4]],
+    });
+    const many = Array.from({ length: 60 }, (_, i) => i + 1);
+    expect(gzTakeStatement("fan", many).values[1]).toEqual(many.slice(0, 50));
   });
 
   it("take a cursor from the URL only when all of it is sound", () => {
