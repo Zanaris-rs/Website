@@ -117,6 +117,37 @@
   color: var(--text-muted);
 }
 
+/* --- the wardrobe: every saved outfit, a row of chatheads that wraps --- */
+
+.root :global(.al-outfits) {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.root :global(.al-outfit) {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100px;
+  border: 1px solid var(--panel-border);
+  padding: 2px 0 4px;
+}
+
+.root :global(.al-outfit--default) {
+  border-color: #ffe139;
+}
+
+.root :global(.al-outfit-name) {
+  max-width: 96px;
+  font-size: 12px;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
 /* --- the timeline --- */
 
 .root :global(.al-entries),
