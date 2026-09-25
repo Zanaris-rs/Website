@@ -1,6 +1,7 @@
 import { itemName } from "@/lib/items/names";
 import { allItemIds, debugName } from "@/lib/items/objects";
-import { SKILLS } from "@/lib/skills/icons";
+
+import { skillByName } from "./skill-name";
 
 /**
  * Update and reply text, with the game's pictures in it.
@@ -37,15 +38,7 @@ function itemByDebugName(name: string): number | null {
   return itemsByDebugName.get(name) ?? null;
 }
 
-const SKILLS_BY_NAME = new Map(
-  SKILLS.map((skill) => [skill.name.toLowerCase(), skill]),
-);
-// the hiscores say Runecrafting; the stats tab and the engine say Runecraft
-SKILLS_BY_NAME.set("runecrafting", SKILLS_BY_NAME.get("runecraft")!);
-
-export function skillByName(name: string) {
-  return SKILLS_BY_NAME.get(name.toLowerCase()) ?? null;
-}
+export { skillByName };
 
 export function parseBody(text: string): BodyToken[] {
   const tokens: BodyToken[] = [];

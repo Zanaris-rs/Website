@@ -16,6 +16,7 @@ const LOG_SOURCES = [
   "adventurer-log/Wardrobe.tsx",
   "adventurer-log/Timeline.tsx",
   "adventurer-log/Entry.tsx",
+  "adventurer-log/LevelRun.tsx",
   "adventurer-log/Body.tsx",
   "adventurer-log/Composer.tsx",
   "adventurer-log/ReportButton.tsx",
