@@ -5,6 +5,7 @@ import { toPlayerResponse, type PlayerSkill } from "@/lib/hiscores/api";
 import { displayName } from "@/lib/hiscores/format";
 import { DEFAULT_PROFILE } from "@/lib/hiscores/params";
 import { playerQuery, type PlayerRow } from "@/lib/hiscores/queries";
+import { gameLooks } from "@/lib/outfits/looks";
 
 import { type LogHeader, logStatement, parseLog } from "./queries";
 import { loadTimeline, type TimelinePage } from "./view";
@@ -13,7 +14,8 @@ import { loadTimeline, type TimelinePage } from "./view";
  * Everything a log page reads, one query after another on the site's
  * two-connection pool: the header (which also says whether there is a log to
  * show), the first page of the timeline with its replies and chatheads, and
- * the player's hiscore levels.
+ * the player's hiscore levels. The header's look is the default outfit; with
+ * none, it is the player's look from the game, when the game has one.
  */
 export type LogPageData =
   | { result: "not_found" | "banned" }
@@ -31,6 +33,8 @@ export async function loadLogPage(username: string, viewer: string | null): Prom
     await query<Record<string, unknown>>(headerStatement.text, headerStatement.values),
   );
   if (header.result !== "ok") return { result: header.result };
+  const look =
+    header.look ?? (await gameLooks([header.username])).get(header.username) ?? null;
 
   const first = await loadTimeline(username, viewer, null);
 
@@ -38,5 +42,5 @@ export async function loadLogPage(username: string, viewer: string | null): Prom
   const rows = await query<PlayerRow>(hiscores.text, hiscores.values);
   const skills = toPlayerResponse(username, rows, displayName).skills;
 
-  return { result: "ok", header, name: displayName(header.username), first, skills };
+  return { result: "ok", header: { ...header, look }, name: displayName(header.username), first, skills };
 }

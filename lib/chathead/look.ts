@@ -68,6 +68,28 @@ export function toAppearance(
   return appearance;
 }
 
+/**
+ * The look with only what its chathead shows still worn: every object with a
+ * head model (`objs`) or that empties a slot the head shows (`hides`) stays,
+ * everything else comes off. It draws the same chathead - the objects taken
+ * off have no head to draw - and says nothing about the rest of what the
+ * player had on, which is what a look from the game must not publish.
+ */
+export function headOnly(
+  look: Look,
+  tables: {
+    objs: Readonly<Record<string, unknown>>;
+    hides: Readonly<Record<string, readonly number[]>>;
+  },
+): Look {
+  return {
+    ...look,
+    worn: look.worn.map((obj) =>
+      obj >= 0 && (obj in tables.objs || obj in tables.hides) ? obj : -1,
+    ),
+  };
+}
+
 /** A stable string for a look, for caching one drawing per distinct look. */
 export function lookKey(look: Look): string {
   return [

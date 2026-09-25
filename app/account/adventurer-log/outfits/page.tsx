@@ -44,6 +44,11 @@ export default async function Outfits() {
         links={[{ href: "/account", text: "Account Centre" }]}
       />
       <Panel width="100%">
+        <p>
+          The outfit you choose as your picture is your chathead on your
+          Adventurer Log. Until you choose one, the log shows how you looked
+          the last time the game saved you.
+        </p>
         <AccountOutfits initial={initial} />
       </Panel>
     </Frame>

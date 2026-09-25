@@ -201,16 +201,43 @@ export function defaultLooksStatement(usernames: readonly string[]): Statement {
   };
 }
 
-export function parseDefaultLooks(rows: readonly unknown[]): Map<string, Look> {
+/** Rows of `username` plus a look's four columns, by name. */
+function looksByName(rows: readonly unknown[], where: string): Map<string, Look> {
   const looks = new Map<string, Look>();
   for (const raw of rows) {
     const row = asRecord(raw);
     if (!row || typeof row.username !== "string") {
-      throw new Error("outfit_default_looks: not a row");
+      throw new Error(`${where}: not a row`);
     }
-    looks.set(row.username, parseLook(row, "outfit_default_looks"));
+    looks.set(row.username, parseLook(row, where));
   }
   return looks;
+}
+
+export function parseDefaultLooks(rows: readonly unknown[]): Map<string, Look> {
+  return looksByName(rows, "outfit_default_looks");
+}
+
+/**
+ * The look of each name's last save in the game, for a chathead when they
+ * have no default outfit: `outfit_import_look` once per name, in one
+ * statement. A name the game has not saved since migration 11, or nobody
+ * has, has no row. The caller keeps only the head (`headOnly`) before any of
+ * it leaves the server.
+ */
+export function gameLooksStatement(usernames: readonly string[]): Statement {
+  return {
+    text:
+      "select u.username, l.gender, l.kits, l.colours, l.worn" +
+      " from unnest($1::text[]) as u(username)" +
+      " cross join lateral accounts.outfit_import_look(u.username) as l" +
+      " where l.result = 'ok'",
+    values: [usernames.slice(0, DEFAULT_LOOKS_MAX)],
+  };
+}
+
+export function parseGameLooks(rows: readonly unknown[]): Map<string, Look> {
+  return looksByName(rows, "outfit_import_look (game looks)");
 }
 
 // --- HTTP -------------------------------------------------------------------------

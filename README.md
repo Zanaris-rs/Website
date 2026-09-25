@@ -1552,8 +1552,9 @@ site that is `/account/adventurer-log/outfits` over the `/api/outfits` routes
 and engine migration 12's functions (`lib/outfits/queries.ts`): `outfits`,
 `outfit_save`, `outfit_delete`, `outfit_set_default`, `outfit_import_look`
 (the look of the player's last save, which the login server keeps in
-`account_look` since migration 11) and `outfit_default_looks`, the one public
-read - the default look behind a name, for a chathead. Every write answers
+`account_look` since migration 11) and `outfit_default_looks`, the default
+look behind a name, for a chathead (a name with no default falls back to its
+look from the game; see "Adventurer Log"). Every write answers
 with the outfits as they now are. `/dev/outfits` (development only) runs the
 same editor over memory.
 
@@ -1577,6 +1578,14 @@ scrolls, as the game records them - mixed with the updates they post.
   chathead looks of everyone on the page) so the first render and every
   "Older adventures" (`GET /api/adventurer-log/<name>/timeline`) are the same
   shape, and the item tables stay on the server.
+- **Chatheads.** A name's picture - in the header, beside the owner's updates
+  and beside every reply - is their default outfit, and until they choose one
+  their look at their last save in the game (`lib/outfits/looks.ts`:
+  `outfit_import_look` for every name on the page in one statement). Before
+  that look leaves the server, `headOnly` takes off everything but what the
+  chathead draws (the hat): the picture is the same, and a log does not
+  publish the rest of what the player had on. A player the game has not saved since migration 11 has an empty
+  frame.
 - Times are fixed UTC text (`formatWhen`), not "5 minutes ago": a relative time
   would differ between the server's render and the browser's hydration.
 - Every element inside `.al-root` carries a stable `al-` class. Those names are
