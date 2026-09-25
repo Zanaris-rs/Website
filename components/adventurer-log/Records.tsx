@@ -24,7 +24,7 @@ export default function Records({ records }: { records: readonly LogRecord[] }) 
                 key={record.durationSeconds}
                 className={`al-record al-record--${record.durationSeconds}`}
               >
-                <span>{duration?.label ?? `${record.durationSeconds}s`}</span>
+                <span className="al-record-label">{duration?.label ?? `${record.durationSeconds}s`}</span>
                 <span className="al-record-xp">{formatNumber(record.gained)} xp</span>
                 <a
                   className="al-record-rank"

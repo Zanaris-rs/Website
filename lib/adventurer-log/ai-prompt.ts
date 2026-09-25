@@ -59,7 +59,7 @@ const OUTLINE = `<div class="al-root">                 <!-- the log; your CSS re
         <h2>Records</h2>
         <div class="al-box-body">
           <ul>
-            <li class="al-record al-record--300"><span>5 minutes</span> <span class="al-record-xp">12,345 xp</span> <a class="al-record-rank">#4</a></li> ...
+            <li class="al-record al-record--300"><span class="al-record-label">5 minutes</span> <span class="al-record-xp">12,345 xp</span> <a class="al-record-rank">#4</a></li> ...
           </ul>
         </div>
       </section>
