@@ -1,17 +1,20 @@
 import type { NextRequest } from "next/server";
 
 import { readSession } from "@/lib/account/session-server";
+import { filterOf } from "@/lib/adventurer-log/filters";
 import { nameFrom } from "@/lib/adventurer-log/name";
 import { parseCursor } from "@/lib/adventurer-log/queries";
 import { loadTimeline } from "@/lib/adventurer-log/view";
 import { isConfigured } from "@/lib/db";
 
 /**
- * `GET /api/adventurer-log/<name>/timeline?at=&rank=&id=` — the next page of
- * a log's timeline, before the cursor, in the shape the page's first one
- * came in (`TimelinePage`). The viewer is the signed session's name, if
- * any: the owner sees their own adventures without the twenty minutes.
- * Never cached - it depends on who is asking and on the clock.
+ * `GET /api/adventurer-log/<name>/timeline?at=&rank=&id=&show=` — the next
+ * page of a log's timeline, before the cursor, in the shape the page's first
+ * one came in (`TimelinePage`), under the same filter (`show`, a slug from
+ * `filters.ts`; Everything for none or one it does not know). The viewer is
+ * the signed session's name, if any: the owner sees their own adventures
+ * without the twenty minutes. Never cached - it depends on who is asking and
+ * on the clock.
  */
 
 export const runtime = "nodejs";
@@ -36,9 +39,10 @@ export async function GET(
     return Response.json({ error: "unavailable" }, { status: 503, headers: NO_STORE });
   }
 
+  const show = filterOf(request.nextUrl.searchParams.get("show")).mask;
   const viewer = (await readSession())?.u ?? null;
   try {
-    const page = await loadTimeline(username, viewer, before);
+    const page = await loadTimeline(username, viewer, before, show);
     return Response.json(page, { status: 200, headers: NO_STORE });
   } catch (error) {
     console.error("[adventurer-log] timeline read failed", error);

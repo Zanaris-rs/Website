@@ -11,10 +11,14 @@ import { type EventIcon, eventIcon } from "./events";
 import {
   type Cursor,
   cursorOf,
+  type Gz,
+  parsePinned,
   parseReplies,
   parseTimeline,
+  pinnedStatement,
   repliesStatement,
   TIMELINE_PAGE,
+  type TimelineRow,
   timelineStatement,
 } from "./queries";
 
@@ -44,16 +48,23 @@ export type EntryView =
       slug: string;
       text: string;
       icon: EventIcon;
+      gz: Gz;
     }
   | {
       kind: "update";
       key: string;
       id: number;
       at: string;
+      /** The text as the owner wrote it, codes and all: what Edit starts from. */
+      body: string;
       tokens: BodyToken[];
+      /** When the text last changed; null for never. */
+      editedAt: string | null;
       replyCount: number;
       replies: ReplyView[];
     };
+
+export type UpdateEntry = Extract<EntryView, { kind: "update" }>;
 
 export type TimelinePage = {
   entries: EntryView[];
@@ -62,17 +73,55 @@ export type TimelinePage = {
   looks: Record<string, Look>;
 };
 
+/** The update pinned to the top of a log, and the looks its repliers need. */
+export type PinnedView = {
+  entry: UpdateEntry;
+  looks: Record<string, Look>;
+};
+
+/**
+ * A page of the timeline. `show` is a filter's mask (`filters.ts`), null
+ * for everything; the database does the filtering, so every page of a
+ * filtered view is full.
+ */
 export async function loadTimeline(
   name: string,
   viewer: string | null,
   before: Cursor | null,
+  show: number | null,
 ): Promise<TimelinePage> {
-  const statement = timelineStatement(name, viewer, before);
+  const statement = timelineStatement(name, viewer, before, show);
   const page = parseTimeline(
     await query<Record<string, unknown>>(statement.text, statement.values),
   );
 
-  const updateIds = page.rows.filter((row) => row.kind === "update").map((row) => row.id);
+  const { entries, looks } = await entriesOf(name, viewer, page.rows);
+  const last = page.rows[page.rows.length - 1];
+  return {
+    entries,
+    next: page.more && last ? cursorOf(last) : null,
+    looks,
+  };
+}
+
+/** The pinned update, or null for none (or one since deleted or hidden). */
+export async function loadPinned(name: string, viewer: string | null): Promise<PinnedView | null> {
+  const statement = pinnedStatement(name, viewer);
+  const row = parsePinned(await query<Record<string, unknown>>(statement.text, statement.values));
+  if (!row) return null;
+
+  const { entries, looks } = await entriesOf(name, viewer, [row]);
+  const [entry] = entries;
+  return entry?.kind === "update" ? { entry, looks } : null;
+}
+
+/** Rows ready to draw: each update's replies read, and every replier's look. */
+async function entriesOf(
+  name: string,
+  viewer: string | null,
+  rows: readonly TimelineRow[],
+): Promise<{ entries: EntryView[]; looks: Record<string, Look> }> {
+  const updateIds = rows.filter((row) => row.kind === "update").map((row) => row.id);
   const replies =
     updateIds.length === 0
       ? []
@@ -100,7 +149,7 @@ export async function loadTimeline(
     byUpdate.set(reply.updateId, list);
   }
 
-  const entries = page.rows.map((row): EntryView =>
+  const entries = rows.map((row): EntryView =>
     row.kind === "event"
       ? {
           kind: "event",
@@ -111,24 +160,22 @@ export async function loadTimeline(
           slug: categorySlug(row.category),
           text: row.body,
           icon: eventIcon(row.category, row.body),
+          gz: row.gz,
         }
       : {
           kind: "update",
           key: `u${row.id}`,
           id: row.id,
           at: row.at,
+          body: row.body,
           tokens: parseBody(row.body),
+          editedAt: row.editedAt,
           replyCount: row.replyCount,
           replies: byUpdate.get(row.id) ?? [],
         },
   );
 
-  const last = page.rows[page.rows.length - 1];
-  return {
-    entries,
-    next: page.more && last ? cursorOf(last) : null,
-    looks,
-  };
+  return { entries, looks };
 }
 
 export { TIMELINE_PAGE };

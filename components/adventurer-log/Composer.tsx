@@ -13,23 +13,30 @@ type Match =
  * A text box for an update or a reply, with the game's pictures a search
  * away: typing in the picker asks the server for items and skills, and
  * clicking one puts its shortcode where the cursor is. The post itself is
- * plain text; the server turns the codes into pictures.
+ * plain text; the server turns the codes into pictures. Editing an update
+ * starts it from that update's text (`initial`) and adds a Cancel button.
  */
 export default function Composer({
   max,
   rows = 3,
   placeholder,
   submitLabel,
+  initial = "",
   onSubmit,
+  onCancel,
 }: {
   max: number;
   rows?: number;
   placeholder: string;
   submitLabel: string;
+  /** The text to start from; empty for a new post. */
+  initial?: string;
   /** Resolves to an error sentence, or null when it was posted. */
   onSubmit: (text: string) => Promise<string | null>;
+  /** Given, there is a Cancel button, and this is what it does. */
+  onCancel?: () => void;
 }) {
-  const [text, setText] = useState("");
+  const [text, setText] = useState(initial);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [picking, setPicking] = useState(false);
@@ -96,6 +103,11 @@ export default function Composer({
         <button type="submit" disabled={busy || text.trim() === ""}>
           {submitLabel}
         </button>
+        {onCancel ? (
+          <button type="button" onClick={onCancel} disabled={busy}>
+            Cancel
+          </button>
+        ) : null}
         <button type="button" onClick={() => setPicking(!picking)} aria-expanded={picking}>
           Add an item or skill
         </button>

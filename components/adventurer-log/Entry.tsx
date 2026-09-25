@@ -4,7 +4,7 @@ import ChatheadFace from "@/components/game/ChatheadFace";
 import ItemIcon from "@/components/game/ItemIcon";
 import SkillIcon from "@/components/game/SkillIcon";
 import { formatWhen } from "@/lib/adventurer-log/format";
-import type { EntryView, ReplyView } from "@/lib/adventurer-log/view";
+import type { EntryView, ReplyView, UpdateEntry } from "@/lib/adventurer-log/view";
 import type { Look } from "@/lib/chathead/look";
 
 import Body from "./Body";
@@ -16,24 +16,30 @@ import Body from "./Body";
  * targets them), so they are plain class names, never CSS-module hashes.
  *
  * `updateActions` and `replyActions` let the interactive timeline add its
- * buttons without this file knowing about requests.
+ * buttons without this file knowing about requests, and `editor` its edit
+ * box: when it draws something, that takes the place of the update's text
+ * and buttons. `pinned` is the update the owner pinned to the top.
  */
 export default function Entry({
   entry,
   ownerName,
   ownerLook,
   looks,
+  pinned = false,
   updateActions,
   replyActions,
   replyForm,
+  editor,
 }: {
   entry: EntryView;
   ownerName: string;
   ownerLook: Look | null;
   looks: Readonly<Record<string, Look>>;
-  updateActions?: (entry: EntryView & { kind: "update" }) => ReactNode;
+  pinned?: boolean;
+  updateActions?: (entry: UpdateEntry) => ReactNode;
   replyActions?: (reply: ReplyView, updateId: number) => ReactNode;
-  replyForm?: (entry: EntryView & { kind: "update" }) => ReactNode;
+  replyForm?: (entry: UpdateEntry) => ReactNode;
+  editor?: (entry: UpdateEntry) => ReactNode;
 }) {
   if (entry.kind === "event") {
     return (
@@ -53,8 +59,10 @@ export default function Entry({
     );
   }
 
+  const editing = editor?.(entry);
+
   return (
-    <li className="al-update" id={`update-${entry.id}`}>
+    <li className={pinned ? "al-update al-update--pinned" : "al-update"} id={`update-${entry.id}`}>
       <div className="al-update-head">
         <ChatheadFace look={ownerLook} size={48} label={`${ownerName}'s chathead`} className="al-avatar" />
         <div className="al-update-main">
@@ -63,11 +71,31 @@ export default function Entry({
             <time className="al-time" dateTime={entry.at}>
               {formatWhen(entry.at)}
             </time>
+            {entry.editedAt ? (
+              <>
+                {" "}
+                <span className="al-edited" title={`Edited ${formatWhen(entry.editedAt)}`}>
+                  (edited)
+                </span>
+              </>
+            ) : null}
+            {pinned ? (
+              <>
+                {" "}
+                <span className="al-pinned-label">Pinned</span>
+              </>
+            ) : null}
           </div>
-          <p className="al-update-body">
-            <Body tokens={entry.tokens} />
-          </p>
-          {updateActions ? <div className="al-actions">{updateActions(entry)}</div> : null}
+          {editing ? (
+            editing
+          ) : (
+            <>
+              <p className="al-update-body">
+                <Body tokens={entry.tokens} />
+              </p>
+              {updateActions ? <div className="al-actions">{updateActions(entry)}</div> : null}
+            </>
+          )}
         </div>
       </div>
 

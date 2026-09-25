@@ -3,16 +3,18 @@ import { describe, expect, it } from "vitest";
 import { groupLevels, type LevelRun, RUN_GAP_MS } from "./groups";
 import type { EntryView } from "./view";
 
+const NO_GZ = { count: 0, names: [], mine: false };
+
 function level(id: number, at: string, text: string): EntryView {
-  return { kind: "event", key: `e${id}`, id, at, category: 1, slug: "level", text, icon: null };
+  return { kind: "event", key: `e${id}`, id, at, category: 1, slug: "level", text, icon: null, gz: NO_GZ };
 }
 
 function milestone(id: number, at: string, text: string): EntryView {
-  return { kind: "event", key: `e${id}`, id, at, category: 2, slug: "milestone", text, icon: null };
+  return { kind: "event", key: `e${id}`, id, at, category: 2, slug: "milestone", text, icon: null, gz: NO_GZ };
 }
 
 function update(id: number, at: string): EntryView {
-  return { kind: "update", key: `u${id}`, id, at, tokens: [], replyCount: 0, replies: [] };
+  return { kind: "update", key: `u${id}`, id, at, body: "", tokens: [], editedAt: null, replyCount: 0, replies: [] };
 }
 
 function isRun(item: EntryView | LevelRun): item is LevelRun {
@@ -120,7 +122,7 @@ describe("groupLevels", () => {
 
   it("unparseable level text never merges, even next to another one", () => {
     const entries: EntryView[] = [
-      { kind: "event", key: "e2", id: 2, at: "2026-09-25T12:10:00Z", category: 1, slug: "level", text: "Reached 99 Woodcutting!", icon: null },
+      { kind: "event", key: "e2", id: 2, at: "2026-09-25T12:10:00Z", category: 1, slug: "level", text: "Reached 99 Woodcutting!", icon: null, gz: NO_GZ },
       level(1, "2026-09-25T12:00:00Z", "Levelled up woodcutting from 55 to 56"),
     ];
 

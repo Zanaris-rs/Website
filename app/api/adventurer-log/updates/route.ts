@@ -42,7 +42,9 @@ export async function POST(request: NextRequest) {
       key: `u${posted.id}`,
       id: posted.id,
       at: new Date().toISOString(),
+      body: text.value,
       tokens: parseBody(text.value),
+      editedAt: null,
       replyCount: 0,
       replies: [],
     };

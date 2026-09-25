@@ -16,6 +16,7 @@ export const dynamic = "force-dynamic";
 
 type Params = {
   params: Promise<{ username: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
 /**
@@ -44,17 +45,19 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
  * `/adventurer-log/<name>` — a player's public page. Anyone can read it;
  * what the viewer may do on it is decided by the database from the signed
  * session's name (the header's `is_owner`, `viewer_can_post`).
+ * `?show=<filter>` narrows the timeline to one kind of entry (`filters.ts`).
  */
-export default async function AdventurerLog({ params }: Params) {
+export default async function AdventurerLog({ params, searchParams }: Params) {
   const username = nameFrom((await params).username);
   if (!username) notFound();
+  const show = (await searchParams).show;
 
   const session = await readSession();
   const viewer = session?.u ?? null;
 
   let data: LogPageData;
   try {
-    data = await loadLogPage(username, viewer);
+    data = await loadLogPage(username, viewer, typeof show === "string" ? show : null);
   } catch (error) {
     console.error("[adventurer-log] page read failed", error);
     return <Unavailable text="Adventurer Logs are unavailable right now. Try again shortly." />;
@@ -104,6 +107,8 @@ export default async function AdventurerLog({ params }: Params) {
         name={data.name}
         skills={data.skills}
         first={data.first}
+        show={data.show}
+        pinned={data.pinned}
         bar={bar}
         viewer={reader}
         css={css}

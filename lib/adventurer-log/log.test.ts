@@ -14,13 +14,53 @@ import {
   parseLog,
   parsePost,
   parseReplies,
+  parsePinned,
   parseTimeline,
   parseWrite,
+  pinnedStatement,
+  pinStatement,
   reportStatement,
   timelineStatement,
+  updateEditStatement,
 } from "./queries";
 
 const HOSTILE = "x'); drop table account; --";
+
+/** A row of migration 15's timeline, as pg hands it over: an adventure. */
+function eventRow(over: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    kind: "event",
+    rank: 0,
+    id: 3,
+    at: new Date("2026-09-24T11:00:00Z"),
+    category: 1,
+    body: "Levelled up woodcutting from 40 to 41",
+    reply_count: null,
+    edited_at: null,
+    gz_count: 0,
+    gz_names: [],
+    viewer_gz: false,
+    ...over,
+  };
+}
+
+/** ...and an update: no category, and the gz columns always 0, {} and false. */
+function updateRow(over: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    kind: "update",
+    rank: 1,
+    id: 7,
+    at: new Date("2026-09-24T12:00:00Z"),
+    category: null,
+    body: "hi",
+    reply_count: 2,
+    edited_at: null,
+    gz_count: 0,
+    gz_names: [],
+    viewer_gz: false,
+    ...over,
+  };
+}
 
 describe("parseBody", () => {
   it("turns known codes into pictures and leaves the rest as text", () => {
@@ -128,7 +168,10 @@ describe("queries", () => {
   it("keep names in the values", () => {
     for (const statement of [
       logStatement(HOSTILE, HOSTILE),
-      timelineStatement(HOSTILE, null, null),
+      timelineStatement(HOSTILE, HOSTILE, null, null),
+      pinnedStatement(HOSTILE, HOSTILE),
+      updateEditStatement(HOSTILE, 1, HOSTILE),
+      pinStatement(HOSTILE, 1),
       reportStatement(HOSTILE, "log", null, HOSTILE, HOSTILE),
       aboutSaveStatement(HOSTILE, HOSTILE, HOSTILE, 0),
     ]) {
@@ -164,15 +207,110 @@ describe("queries", () => {
 
   it("read a page and say whether there is another", () => {
     const rows = [
-      { kind: "update", rank: 1, id: 7, at: "2026-09-24T12:00:00Z", category: null, body: "hi", reply_count: 2 },
-      { kind: "event", rank: 0, id: 3, at: "2026-09-24T11:00:00Z", category: 1, body: "Levelled up", reply_count: null },
-      { kind: "event", rank: 0, id: 2, at: "2026-09-24T10:00:00Z", category: 1, body: "Levelled up", reply_count: null },
+      updateRow({ id: 7, at: "2026-09-24T12:00:00Z", reply_count: 2 }),
+      eventRow({ id: 3, at: "2026-09-24T11:00:00Z" }),
+      eventRow({ id: 2, at: "2026-09-24T10:00:00Z" }),
     ];
     const page = parseTimeline(rows, 2);
     expect(page.more).toBe(true);
     expect(page.rows).toHaveLength(2);
     expect(cursorOf(page.rows[1])).toEqual({ at: "2026-09-24T11:00:00.000Z", rank: 0, id: 3 });
     expect(parseTimeline(rows, 5).more).toBe(false);
+  });
+
+  it("call the seven-argument timeline, with the filter's mask last", () => {
+    expect(timelineStatement("hero", null, null, null)).toEqual({
+      text: "select * from accounts.adventure_timeline($1, $2, $3, $4, $5, $6, $7)",
+      values: ["hero", null, null, null, null, 30, null],
+    });
+    const cursor = { at: "2026-09-24T11:00:00.000Z", rank: 0 as const, id: 3 };
+    expect(timelineStatement("hero", "fan", cursor, 8, 5).values).toEqual([
+      "hero",
+      "fan",
+      "2026-09-24T11:00:00.000Z",
+      0,
+      3,
+      5,
+      8,
+    ]);
+  });
+
+  it("read an adventure's gz and an update's edit time", () => {
+    const page = parseTimeline([
+      updateRow({ edited_at: new Date("2026-09-24T12:30:00Z") }),
+      updateRow({ id: 6, edited_at: null }),
+      eventRow({ gz_count: 2, gz_names: ["b0aty", "lynx_titan"], viewer_gz: true }),
+      eventRow({ id: 2 }),
+    ]);
+    expect(page.rows).toEqual([
+      { kind: "update", rank: 1, id: 7, at: "2026-09-24T12:00:00.000Z", body: "hi", replyCount: 2, editedAt: "2026-09-24T12:30:00.000Z" },
+      { kind: "update", rank: 1, id: 6, at: "2026-09-24T12:00:00.000Z", body: "hi", replyCount: 2, editedAt: null },
+      {
+        kind: "event",
+        rank: 0,
+        id: 3,
+        at: "2026-09-24T11:00:00.000Z",
+        category: 1,
+        body: "Levelled up woodcutting from 40 to 41",
+        gz: { count: 2, names: ["b0aty", "lynx_titan"], mine: true },
+      },
+      {
+        kind: "event",
+        rank: 0,
+        id: 2,
+        at: "2026-09-24T11:00:00.000Z",
+        category: 1,
+        body: "Levelled up woodcutting from 40 to 41",
+        gz: { count: 0, names: [], mine: false },
+      },
+    ]);
+  });
+
+  it("throw on a new column nobody documented", () => {
+    for (const bad of [
+      eventRow({ gz_names: "{b0aty}" }),
+      eventRow({ gz_names: ["b0aty", 3] }),
+      eventRow({ gz_names: null }),
+      eventRow({ gz_count: "2" }),
+      eventRow({ gz_count: null }),
+      eventRow({ viewer_gz: null }),
+      eventRow({ viewer_gz: "t" }),
+      updateRow({ edited_at: undefined }),
+      updateRow({ edited_at: "nonsense" }),
+    ]) {
+      expect(() => parseTimeline([bad]), JSON.stringify(bad)).toThrow(/adventure_timeline/);
+    }
+  });
+
+  it("read the pinned update: none, or one update and never anything else", () => {
+    expect(pinnedStatement("hero", null)).toEqual({
+      text: "select * from accounts.adventure_pinned($1, $2)",
+      values: ["hero", null],
+    });
+    expect(parsePinned([])).toBeNull();
+    expect(parsePinned([updateRow({ id: 9, reply_count: 0, edited_at: "2026-09-24T13:00:00Z" })])).toEqual({
+      kind: "update",
+      rank: 1,
+      id: 9,
+      at: "2026-09-24T12:00:00.000Z",
+      body: "hi",
+      replyCount: 0,
+      editedAt: "2026-09-24T13:00:00.000Z",
+    });
+    expect(() => parsePinned([eventRow()])).toThrow(/adventure_pinned/);
+    expect(() => parsePinned([updateRow(), updateRow({ id: 8 })])).toThrow(/adventure_pinned/);
+  });
+
+  it("edit an update and pin one, or none", () => {
+    expect(updateEditStatement("hero", 7, "new text")).toEqual({
+      text: "select accounts.adventure_update_edit($1, $2, $3) as result",
+      values: ["hero", 7, "new text"],
+    });
+    expect(pinStatement("hero", 7)).toEqual({
+      text: "select accounts.adventure_log_pin($1, $2) as result",
+      values: ["hero", 7],
+    });
+    expect(pinStatement("hero", null).values).toEqual(["hero", null]);
   });
 
   it("take a cursor from the URL only when all of it is sound", () => {
