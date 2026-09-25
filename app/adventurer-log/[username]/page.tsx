@@ -28,13 +28,25 @@ function nameFrom(raw: string): string | null {
   return safe === INVALID_NAME ? null : safe;
 }
 
+/**
+ * The title and the link preview's text, from the name alone: this runs
+ * alongside the page, so reading the log here would be a second trip to the
+ * database on every view. The preview's picture (`opengraph-image.tsx`, which
+ * Next adds as `og:image` itself) is where the log is read — it is fetched
+ * by a chat app or a crawler, not by every reader — and it carries the
+ * headline, so the description does not need it.
+ */
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const name = nameFrom((await params).username);
   if (!name) return { title: "Adventurer Log" };
   const display = toDisplayName(name);
+  const title = `${display}'s Adventurer Log`;
+  const description = `${display}'s adventures, updates and outfits on Zanaris.`;
   return {
-    title: `${display}'s Adventurer Log`,
-    description: `${display}'s adventures, updates and outfits on Zanaris.`,
+    title,
+    description,
+    openGraph: { title, description, type: "profile" },
+    twitter: { card: "summary_large_image" },
   };
 }
 
