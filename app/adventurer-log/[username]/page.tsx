@@ -85,7 +85,7 @@ export default async function AdventurerLog({ params }: Params) {
 
   return (
     <Frame>
-      <TitleBox title="Adventurer Log" />
+      <TitleBox title="Adventurer Log" links={[{ href: "/adventurer-log", text: "All Adventurer Logs" }]} />
       <LogView
         header={data.header}
         name={data.name}

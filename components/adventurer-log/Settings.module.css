@@ -100,3 +100,31 @@
   width: 12em;
   margin: 0;
 }
+
+/* Recent replies on the log, newest first, each with Delete and Block. A
+   reply by someone blocked is dimmed: the log no longer shows it. */
+.subtitle {
+  margin: 12px 0 6px;
+  font-size: 13px;
+}
+
+.replies {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.replies li {
+  padding: 6px 0;
+  border-top: 1px solid var(--panel-border);
+}
+
+.replyBody {
+  margin: 2px 0 4px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.hiddenReply {
+  opacity: 0.6;
+}

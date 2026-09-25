@@ -1,0 +1,88 @@
+/* `/adventurer-log`: the name search, then one row per recently active log -
+   a small chathead, the name and headline, and what the log last showed. */
+
+.search {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.search input[type="text"] {
+  width: 12em;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 13px;
+}
+
+.search button {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 13px;
+  padding: 2px 12px;
+}
+
+.notice {
+  text-align: center;
+  margin: 0 0 8px;
+}
+
+.logs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+}
+
+.log {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 6px 0;
+  border-top: 1px solid var(--panel-border);
+}
+
+.face {
+  flex: none;
+  border: 1px solid var(--panel-border);
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+}
+
+.name {
+  font-weight: bold;
+}
+
+.headline {
+  margin-left: 6px;
+  color: var(--text-muted);
+  font-style: italic;
+  overflow-wrap: anywhere;
+}
+
+.activity {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-top: 2px;
+  overflow-wrap: anywhere;
+}
+
+.icon {
+  flex: none;
+}
+
+.time {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.pages {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 8px;
+  border-top: 1px solid var(--panel-border);
+}

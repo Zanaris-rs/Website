@@ -1597,6 +1597,13 @@ scrolls, as the game records them - mixed with the updates they post.
   chathead draws (the hat): the picture is the same, and a log does not
   publish the rest of what the player had on. A player the game has not saved since migration 11 has an empty
   frame.
+- **`/adventurer-log`** is the directory: every log with something to show,
+  ordered by the latest thing it shows the public - an adventure once its
+  twenty minutes are up, in a kind the owner shows, or an update
+  (`accounts.adventure_log_directory`, migration 14, keyset-paged on
+  `(at, username)`). It is never ordered by logins: the directory says
+  nothing sooner, or more, than the logs do. A name box (a plain GET form)
+  goes to anyone's log.
 - Times are fixed UTC text (`formatWhen`), not "5 minutes ago": a relative time
   would differ between the server's render and the browser's hydration.
 - Every element inside `.al-root` carries a stable `al-` class. Those names are
@@ -1608,7 +1615,10 @@ scrolls, as the game records them - mixed with the updates they post.
     (`POST /api/adventurer-log/about`) as one statement, so they succeed or
     fail together.
   - **Your adventurer log's style:** the owner's CSS (below).
-  - **Blocked players:** unblock, or block someone by name.
+  - **Blocked players:** unblock, or block someone by name, and the latest
+    replies on the log (`accounts.adventure_log_recent_replies`, migration
+    14) with Delete and Block beside each - a blocked author's replies stay
+    listed, dimmed, so the owner can see what a block hides.
 
   It, `/account/adventurer-log/outfits` and the log itself link to each other
   from their title boxes (`OwnerNav`). The Account Centre reaches them from
