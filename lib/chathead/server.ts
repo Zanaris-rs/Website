@@ -2,7 +2,6 @@ import "server-only";
 
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { pathToFileURL } from "node:url";
 
 import { encodePng } from "@/lib/png";
 
@@ -44,8 +43,14 @@ function loadRenderer(): Promise<Client> {
       // ship all of `public/game/chathead`, figures' `bodies.bin` included.
       const script = path.join(process.cwd(), "public/game/chathead/renderer.js");
       const models = path.join(process.cwd(), "public/game/chathead/models.bin");
+      // Imported as a data: URL, which Node always reads as a module.
+      // `renderer.js` is an ES module in a package with no "type", and a
+      // file: import of it only works where Node guesses the syntax (22.7+,
+      // 20.19+): on Vercel's Node 20 it threw "Unexpected token 'export'"
+      // and every preview went out without a head.
+      const source = readFileSync(script).toString("base64");
       const client = (await import(
-        /* webpackIgnore: true */ /* turbopackIgnore: true */ pathToFileURL(script).href
+        /* webpackIgnore: true */ /* turbopackIgnore: true */ `data:text/javascript;base64,${source}`
       )) as Client;
       prepare(client);
       loadModels(client, decodeModels(readFileSync(models)));
