@@ -85,9 +85,10 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        // The chathead renderer and its models (`scripts/update-chathead.sh`),
-        // on the same terms as the icons: `lib/chathead/load.ts` asks for
-        // both with the build's `?v=`, so a year is safe and a regeneration
+        // The chathead renderer and what it draws from — `models.bin` for
+        // chatheads, `bodies.bin` for figures (`scripts/update-chathead.sh`)
+        // — on the same terms as the icons: `lib/chathead/load.ts` asks for
+        // each with its build's `?v=`, so a year is safe and a regeneration
         // reaches readers at once.
         source: "/game/chathead/:path*",
         headers: [

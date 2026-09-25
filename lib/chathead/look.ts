@@ -36,8 +36,10 @@ export const OBJ = 0x200;
  * names is left empty — the hair and beard under a full helm.
  *
  * `hides` maps an object id to the slots it empties. Objects missing from it
- * empty nothing, which is right for every object that is not in it: the
- * build writes every object that empties a slot the head can show.
+ * empty nothing, which is right for every object that is not in it: for a
+ * chathead the build writes every object that empties a slot the head can
+ * show (`heads.json`), and for a figure every object that empties any slot
+ * (`bodies.json`).
  */
 export function toAppearance(
   look: Look,

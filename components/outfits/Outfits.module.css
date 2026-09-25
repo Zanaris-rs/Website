@@ -1,5 +1,6 @@
-/* The outfit editor: the chathead, the Worn Equipment tab and the design
-   controls side by side, wrapping under each other on a narrow screen. */
+/* The outfit editor: the chathead and the figure, the Worn Equipment tab and
+   the design controls side by side, wrapping under each other on a narrow
+   screen. */
 
 .editor {
   font-size: 13px;
@@ -42,6 +43,13 @@
   gap: 16px;
   justify-content: center;
   align-items: flex-start;
+}
+
+/* The chathead and the figure stand on one line, their captions level. */
+.previews {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
 }
 
 .preview {

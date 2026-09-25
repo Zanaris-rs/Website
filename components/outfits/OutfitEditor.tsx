@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import Chathead from "@/components/game/Chathead";
+import Figure from "@/components/game/Figure";
 import type { Look } from "@/lib/chathead/look";
 import type { OutfitStore, SavedOutfits } from "@/lib/chathead/outfit-store";
 import {
@@ -21,12 +22,13 @@ import WornTab from "./WornTab";
 
 /**
  * Fashionscape: up to ten outfits, each a look — body, colours, and anything
- * the game lets you wear — with its chathead drawn live as you change it. One
- * outfit is the default, and its chathead is the player's picture.
+ * the game lets you wear — with its chathead and its figure drawn live as you
+ * change it. One outfit is the default, and its chathead is the player's
+ * picture.
  *
  * The chathead shows the head, so only the hat, the hair and jaw, and the
- * hair and skin colours change it; the rest of the outfit is kept for when
- * the whole body is drawn.
+ * hair and skin colours change it; the figure beside it is the whole body,
+ * standing as the world shows it, and shows everything.
  */
 
 const COLOUR_PARTS = ["Hair", "Torso", "Legs", "Feet", "Skin"] as const;
@@ -203,12 +205,18 @@ export default function OutfitEditor({
       </nav>
 
       <div className={styles.workbench}>
-        <figure className={styles.preview}>
-          <Chathead look={draft.look} label={`${draft.name}, chathead`} />
-          <figcaption>
-            {saved.defaultSlot === slot ? "Your picture" : "Chathead"}
-          </figcaption>
-        </figure>
+        <div className={styles.previews}>
+          <figure className={styles.preview}>
+            <Chathead look={draft.look} label={`${draft.name}, chathead`} />
+            <figcaption>
+              {saved.defaultSlot === slot ? "Your picture" : "Chathead"}
+            </figcaption>
+          </figure>
+          <figure className={styles.preview}>
+            <Figure look={draft.look} label={`${draft.name}, whole body`} />
+            <figcaption>Whole body</figcaption>
+          </figure>
+        </div>
 
         <div className={styles.wornColumn}>
           <WornTab
