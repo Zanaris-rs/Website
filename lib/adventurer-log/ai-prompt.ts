@@ -1,4 +1,5 @@
 import { CATEGORIES } from "@/lib/hiscores/categories";
+import { RECORD_DURATIONS } from "@/lib/records/durations";
 
 import { ADVENTURE_CATEGORIES } from "./categories";
 import { CSS_MAX } from "./format";
@@ -52,6 +53,14 @@ const OUTLINE = `<div class="al-root">                 <!-- the log; your CSS re
         <div class="al-box-body">
           <table><tr class="al-skill al-skill--1"><td><img></td><td>Attack</td><td>99</td></tr> ...</table>
           <!-- or, before they are on the hiscores: <p class="al-empty">Not on the hiscores yet.</p> -->
+        </div>
+      </section>
+      <section class="al-records al-box">                    <!-- only when the owner holds a place on a Records board -->
+        <h2>Records</h2>
+        <div class="al-box-body">
+          <ul>
+            <li class="al-record al-record--300"><span>5 minutes</span> <span class="al-record-xp">12,345 xp</span> <a class="al-record-rank">#4</a></li> ...
+          </ul>
         </div>
       </section>
     </aside>
@@ -123,6 +132,7 @@ function pictureLines(pictures: readonly Picture[]): string {
 export function aiPrompt(current: string): string {
   const skills = CATEGORIES.map((category) => `${category.id} ${category.name}`).join(", ");
   const kinds = ADVENTURE_CATEGORIES.map((category) => `\`--${category.slug}\` (${category.label.toLowerCase()})`).join(", ");
+  const durations = RECORD_DURATIONS.map((duration) => `${duration.seconds} (${duration.label})`).join(", ");
   const sheet = current.trim();
 
   const sections = [
@@ -147,6 +157,7 @@ ${FENCE}
 - One column on a phone. From 900px wide there are two: \`.al-side\` is 280px on the left and \`.al-main\` takes the rest (a CSS grid on \`.al-page\`).
 - \`.al-skill--<id>\` is one skill's row: ${skills}.
 - \`.al-event--<kind>\` is one kind of adventure: ${kinds}.
+- \`.al-record--<seconds>\` is one record length, shown only when I hold a place on it: ${durations}.
 - \`.al-outfit--default\` is the outfit my chathead wears.
 - \`.al-post\`, \`.al-actions\` and \`.al-reply-form\` hold buttons and forms that only signed-in readers see. Style them if you like, but keep them usable.
 - Chatheads and outfits are drawn on \`<canvas>\`: you can frame, size and place them, but not recolour them.
