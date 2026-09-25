@@ -1,4 +1,5 @@
 import { CATEGORIES } from "@/lib/hiscores/categories";
+import { RECORD_DURATIONS } from "@/lib/records/durations";
 
 import { ADVENTURE_CATEGORIES } from "./categories";
 import { CSS_MAX } from "./format";
@@ -50,8 +51,22 @@ const OUTLINE = `<div class="al-root">                 <!-- the log; your CSS re
       <section class="al-stats al-box">
         <h2>Skills</h2>
         <div class="al-box-body">
-          <table><tr class="al-skill al-skill--1"><td><img></td><td>Attack</td><td>99</td></tr> ...</table>
-          <!-- or, before they are on the hiscores: <p class="al-empty">Not on the hiscores yet.</p> -->
+          <p class="al-skill-total"><a>Total level 513 &middot; 1,234,567 xp &middot; #45</a></p>
+          <p class="al-combat">Combat 45</p>                          <!-- or "Combat 23-27" when it cannot be exact -->
+          <table>
+            <tr class="al-skill al-skill--1"><td><img></td><td><a>Attack</a><span class="al-skill-xp">224,466 xp &middot; #12</span></td><td class="al-skill-level">99</td></tr>
+            <tr class="al-skill al-skill--2 al-skill--unranked"><td><img></td><td><a>Defence</a><span class="al-skill-xp">under 15</span></td><td class="al-skill-level">&lt;15</td></tr> ...
+          </table>
+          <p class="al-skills-note">A note shown once a skill is under 15</p>
+          <!-- or, before any skill is on the hiscores: <p class="al-empty">Not on the hiscores yet.</p> -->
+        </div>
+      </section>
+      <section class="al-records al-box">                    <!-- only when the owner holds a place on a Records board -->
+        <h2>Records</h2>
+        <div class="al-box-body">
+          <ul>
+            <li class="al-record al-record--300"><span class="al-record-label">5 minutes</span> <span class="al-record-xp">12,345 xp</span> <a class="al-record-rank">#4</a></li> ...
+          </ul>
         </div>
       </section>
     </aside>
@@ -144,6 +159,7 @@ function pictureLines(pictures: readonly Picture[]): string {
 export function aiPrompt(current: string): string {
   const skills = CATEGORIES.map((category) => `${category.id} ${category.name}`).join(", ");
   const kinds = ADVENTURE_CATEGORIES.map((category) => `\`--${category.slug}\` (${category.label.toLowerCase()})`).join(", ");
+  const durations = RECORD_DURATIONS.map((duration) => `${duration.seconds} (${duration.label})`).join(", ");
   const sheet = current.trim();
 
   const sections = [
@@ -168,6 +184,7 @@ ${FENCE}
 - One column on a phone. From 900px wide there are two: \`.al-side\` is 280px on the left and \`.al-main\` takes the rest (a CSS grid on \`.al-page\`).
 - \`.al-skill--<id>\` is one skill's row: ${skills}.
 - \`.al-event--<kind>\` is one kind of adventure: ${kinds}.
+- \`.al-record--<seconds>\` is one record length, shown only when I hold a place on it: ${durations}.
 - \`.al-outfit--default\` is the outfit my chathead wears.
 - \`.al-filter[aria-current]\` is the filter being shown. \`.al-edited\` is on an update only when I changed it after posting.
 - \`.al-post\`, \`.al-actions\` and \`.al-reply-form\` hold buttons and forms that only signed-in readers see. Style them if you like, but keep them usable.

@@ -102,6 +102,7 @@ export default async function AdventurerLog({ params, searchParams }: Params) {
         viewer={reader}
         css={css}
         outfits={data.outfits}
+        records={data.records}
       />
     </Frame>
   );

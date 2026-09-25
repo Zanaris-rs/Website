@@ -106,15 +106,50 @@
 
 .root :global(.al-stats td) {
   padding: 1px 4px;
+  vertical-align: middle;
 }
 
 .root :global(.al-stats td:last-child) {
   text-align: right;
 }
 
+/* The name's second line - xp and rank, or "under 15" - below it rather than
+   running on: a block breaks onto its own line after the inline <a> before it
+   without having to touch the name's own markup. */
+.root :global(.al-skill-xp) {
+  display: block;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
 .root :global(.al-empty) {
   margin: 0;
   color: var(--text-muted);
+}
+
+/* --- records --- */
+
+.root :global(.al-records ul) {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.root :global(.al-record) {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 2px 0;
+}
+
+.root :global(.al-record-xp) {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.root :global(.al-record-rank) {
+  flex: none;
 }
 
 /* --- the wardrobe: every saved outfit, a row of figures that wraps --- */

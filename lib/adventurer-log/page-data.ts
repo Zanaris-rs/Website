@@ -11,6 +11,7 @@ import { outfitsStatement, parseOutfits } from "@/lib/outfits/queries";
 
 import { type Filter, FILTERS, filterOf, showsPosts, visibleFilters } from "./filters";
 import { type LogHeader, logStatement, parseLog } from "./queries";
+import { type LogRecord, parseRecords, recordsStatement } from "./records";
 import { loadPinned, loadTimeline, type PinnedView, type TimelinePage } from "./view";
 import { type WardrobeOutfit, wardrobeOf } from "./wardrobe";
 
@@ -23,6 +24,11 @@ import { type WardrobeOutfit, wardrobeOf } from "./wardrobe";
  * header's look is the default outfit; with none, it is the player's look
  * from the game, when the game has one. That look is never in the Wardrobe:
  * only outfits the player saved are, and every one of them is.
+ *
+ * Migration 015's Records read is its own try/catch, separate from the rest
+ * of this function: a rehearsal or a prod database behind the migration
+ * should still show the log, only without its Records box, rather than the
+ * whole page failing on a function that doesn't exist yet.
  */
 
 export type LogPageData =
@@ -38,6 +44,7 @@ export type LogPageData =
       first: TimelinePage;
       skills: PlayerSkill[];
       outfits: WardrobeOutfit[];
+      records: LogRecord[];
     };
 
 /**
@@ -82,6 +89,16 @@ export async function loadLogPage(
     parseOutfits(await query<Record<string, unknown>>(wanted.text, wanted.values)),
   );
 
+  let records: LogRecord[] = [];
+  try {
+    const wantedRecords = recordsStatement(header.username);
+    records = parseRecords(
+      await query<Record<string, unknown>>(wantedRecords.text, wantedRecords.values),
+    );
+  } catch (error) {
+    console.error("[adventurer-log] records read failed", error);
+  }
+
   return {
     result: "ok",
     header: { ...header, look },
@@ -91,5 +108,6 @@ export async function loadLogPage(
     first,
     skills,
     outfits,
+    records,
   };
 }
