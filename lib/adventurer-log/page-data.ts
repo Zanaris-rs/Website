@@ -8,14 +8,16 @@ import { playerQuery, type PlayerRow } from "@/lib/hiscores/queries";
 import { gameLooks } from "@/lib/outfits/looks";
 import { outfitsStatement, parseOutfits } from "@/lib/outfits/queries";
 
+import { type Filter, FILTERS, filterOf, showsPosts, visibleFilters } from "./filters";
 import { type LogHeader, logStatement, parseLog } from "./queries";
-import { loadTimeline, type TimelinePage } from "./view";
+import { loadPinned, loadTimeline, type PinnedView, type TimelinePage } from "./view";
 import { type WardrobeOutfit, wardrobeOf } from "./wardrobe";
 
 /**
  * Everything a log page reads, one query after another on the site's
  * two-connection pool: the header (which also says whether there is a log to
- * show), the first page of the timeline with its replies and chatheads, and
+ * show), the pinned update and the first page of the timeline under the
+ * `?show=` filter, with their replies and chatheads, and
  * the player's hiscore levels, and their saved outfits for the Wardrobe. The
  * header's look is the default outfit; with none, it is the player's look
  * from the game, when the game has one. That look is never in the Wardrobe:
@@ -28,12 +30,20 @@ export type LogPageData =
       result: "ok";
       header: LogHeader & { result: "ok" };
       name: string;
+      /** The filter `?show=` chose: Everything for none, or one this log has no button for. */
+      show: Filter["slug"];
+      /** The pinned update, when there is one and the filter shows updates. */
+      pinned: PinnedView | null;
       first: TimelinePage;
       skills: PlayerSkill[];
       outfits: WardrobeOutfit[];
     };
 
-export async function loadLogPage(username: string, viewer: string | null): Promise<LogPageData> {
+export async function loadLogPage(
+  username: string,
+  viewer: string | null,
+  show: string | null,
+): Promise<LogPageData> {
   const headerStatement = logStatement(username, viewer);
   const header = parseLog(
     await query<Record<string, unknown>>(headerStatement.text, headerStatement.values),
@@ -42,7 +52,13 @@ export async function loadLogPage(username: string, viewer: string | null): Prom
   const look =
     header.look ?? (await gameLooks([header.username])).get(header.username) ?? null;
 
-  const first = await loadTimeline(username, viewer, null);
+  // A filter for kinds the owner hides has no button, so a link to one
+  // (shared before they hid it) shows Everything rather than an empty list
+  // with no button lit.
+  const asked = filterOf(show);
+  const filter = visibleFilters(header.hiddenCategories).includes(asked) ? asked : FILTERS[0];
+  const pinned = showsPosts(filter) ? await loadPinned(username, viewer) : null;
+  const first = await loadTimeline(username, viewer, null, filter.mask);
 
   const hiscores = playerQuery({ profile: DEFAULT_PROFILE, username });
   const rows = await query<PlayerRow>(hiscores.text, hiscores.values);
@@ -60,6 +76,8 @@ export async function loadLogPage(username: string, viewer: string | null): Prom
     result: "ok",
     header: { ...header, look },
     name: displayName(header.username),
+    show: filter.slug,
+    pinned,
     first,
     skills,
     outfits,

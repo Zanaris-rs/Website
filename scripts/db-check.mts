@@ -67,6 +67,10 @@ import {
   logStatement,
   parseDirectory,
   parseLog,
+  parsePinned,
+  parseTimeline,
+  pinnedStatement,
+  pinStatement,
   recentRepliesStatement,
   replyDeleteStatement,
   replyPostStatement,
@@ -77,6 +81,7 @@ import {
   timelineStatement,
   unblockStatement,
   updateDeleteStatement,
+  updateEditStatement,
   updatePostStatement,
 } from "../lib/adventurer-log/queries.ts";
 import { RECORD_DURATIONS } from "../lib/records/durations.ts";
@@ -195,6 +200,9 @@ async function main(): Promise<void> {
     "public.adventure_reply",
     "public.adventure_block",
     "public.adventure_report",
+    // 15_adventure_timeline_v2. Who gave a gz is read only through the
+    // timeline, which leaves out banned givers and those the owner blocked.
+    "public.adventure_gz",
   ]) {
     try {
       await query(`select 1 from ${table} limit 1`);
@@ -312,6 +320,17 @@ async function main(): Promise<void> {
     // recent replies for managing them.
     "accounts.adventure_log_directory(timestamptz, text, int)",
     "accounts.adventure_log_recent_replies(text, int)",
+    // 15_adventure_timeline_v2: the timeline with a filter, gz and edit
+    // times (the site reads this one; 13's six-argument one above stays
+    // granted until a later migration drops it), the pinned update, a log's
+    // records, gz, editing and pinning.
+    "accounts.adventure_timeline(text, text, timestamptz, int, int, int, int)",
+    "accounts.adventure_pinned(text, text)",
+    "accounts.adventure_log_records(text)",
+    "accounts.adventure_gz_give(text, int)",
+    "accounts.adventure_gz_take(text, int[])",
+    "accounts.adventure_update_edit(text, int, text)",
+    "accounts.adventure_log_pin(text, int)",
   ];
   const withheld = [
     "accounts.throttled(text, text)",
@@ -341,6 +360,19 @@ async function main(): Promise<void> {
     "accounts.adventure_text(text, int, boolean)",
     "accounts.adventure_author(text, boolean)",
   ];
+
+  // ...and nothing else: every function in `accounts` this role can run is
+  // on the list above, so a grant nobody wrote down here fails too.
+  const [{ executable }] = await query<{ executable: number }>(
+    "select count(*)::int as executable from pg_proc p join pg_namespace n on n.oid = p.pronamespace" +
+      " where n.nspname = 'accounts' and has_function_privilege(current_user, p.oid, 'EXECUTE')",
+  );
+  if (executable === granted.length) {
+    console.log(`accounts.*: ${executable} functions executable, all of them listed (expected)`);
+  } else {
+    console.error(`FAIL: this role can run ${executable} functions in accounts; ${granted.length} are listed.`);
+    process.exitCode = 1;
+  }
 
   for (const [list, expected] of [
     [granted, true],
@@ -979,7 +1011,10 @@ async function checkAdventurerLog(): Promise<void> {
   }
 
   for (const [name, statement] of [
-    ["adventure_timeline", timelineStatement("__db_check__", null, null)],
+    ["adventure_timeline", timelineStatement("__db_check__", null, null, null)],
+    ["adventure_timeline (posts only)", timelineStatement("__db_check__", "__db_check__", null, 256)],
+    ["adventure_pinned", pinnedStatement("__db_check__", null)],
+    ["adventure_log_records", { text: "select * from accounts.adventure_log_records($1)", values: ["__db_check__"] }],
     ["adventure_replies", repliesStatement("__db_check__", null, [1])],
     ["adventure_blocks", blocksStatement("__db_check__")],
     ["adventure_log_recent_replies", recentRepliesStatement("__db_check__")],
@@ -1002,6 +1037,13 @@ async function checkAdventurerLog(): Promise<void> {
     ["adventure_block", blockStatement("__db_check__", "__db_check__")],
     ["adventure_unblock", unblockStatement("__db_check__", "__db_check__")],
     ["adventure_report", reportStatement("__db_check__", "log", null, "__db_check__", "db check")],
+    // 15_adventure_timeline_v2's writes. gz_take answers not_found only for
+    // a name nobody has, which is what this is.
+    ["adventure_update_edit", updateEditStatement("__db_check__", 1, "db check")],
+    ["adventure_log_pin", pinStatement("__db_check__", 1)],
+    ["adventure_log_pin (unpin)", pinStatement("__db_check__", null)],
+    ["adventure_gz_give", { text: "select accounts.adventure_gz_give($1, $2) as result", values: ["__db_check__", 1] }],
+    ["adventure_gz_take", { text: "select accounts.adventure_gz_take($1, $2::int[]) as result", values: ["__db_check__", [1]] }],
   ];
   for (const [name, statement] of writes) {
     const [row] = await query<{ result: unknown }>(statement.text, statement.values);
@@ -1066,6 +1108,40 @@ async function checkAdventurerLog(): Promise<void> {
   } catch (error) {
     console.error(
       `FAIL: adventure_log_directory did not parse. ${error instanceof Error ? error.message : String(error)}`,
+    );
+    process.exitCode = 1;
+  }
+
+  // Migration 15's new columns - edit times, gz counts and the gz_names
+  // text[] - only come back from a log with something on it, so the first
+  // log in the directory is read as a reader sees it, parsed as the site
+  // parses it: the timeline under Everything and under Posts, and its pin.
+  try {
+    const [someone] = await query<Record<string, unknown>>(directory.text, directory.values);
+    if (typeof someone?.username !== "string") {
+      console.log("adventure_timeline / adventure_pinned (a real log): no log to read, skipped");
+      return;
+    }
+    const name = someone.username;
+    for (const [label, show] of [
+      ["everything", null],
+      ["posts", 256],
+    ] as const) {
+      const statement = timelineStatement(name, null, null, show, 5);
+      const page = parseTimeline(await query<Record<string, unknown>>(statement.text, statement.values), 5);
+      if (show === 256 && page.rows.some((row) => row.kind !== "update")) {
+        console.error(`FAIL: adventure_timeline for posts only returned an adventure (${name}).`);
+        process.exitCode = 1;
+      } else {
+        console.log(`accounts.adventure_timeline(${name}, ${label}, 5): ${page.rows.length} rows, parsed (expected)`);
+      }
+    }
+    const pin = pinnedStatement(name, null);
+    const pinned = parsePinned(await query<Record<string, unknown>>(pin.text, pin.values));
+    console.log(`accounts.adventure_pinned(${name}): ${pinned ? `update ${pinned.id}` : "none"}, parsed (expected)`);
+  } catch (error) {
+    console.error(
+      `FAIL: migration 15's timeline did not parse. ${error instanceof Error ? error.message : String(error)}`,
     );
     process.exitCode = 1;
   }

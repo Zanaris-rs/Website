@@ -2,7 +2,7 @@ import type { Statement } from "@/lib/account/register";
 import type { Look } from "@/lib/chathead/look";
 
 /**
- * Every call into migrations 13 and 14's Adventurer Log functions, and the parsing of
+ * Every call into migrations 13, 14 and 15's Adventurer Log functions, and the parsing of
  * what they answer. The same discipline as the other `queries.ts` files:
  * statements are `{ text, values }` with nothing interpolated, and an answer
  * nobody documented throws instead of being guessed at. The viewer and the
@@ -31,6 +31,17 @@ function asInt(value: unknown, where: string): number {
 function asText(value: unknown, where: string): string {
   if (typeof value === "string") return value;
   throw new Error(`${where}: not text: ${JSON.stringify(value)}`);
+}
+
+function asBool(value: unknown, where: string): boolean {
+  if (typeof value === "boolean") return value;
+  throw new Error(`${where}: not true or false: ${JSON.stringify(value)}`);
+}
+
+/** A `text[]`, which pg hands over as an array of strings. */
+function asTextArray(value: unknown, where: string): string[] {
+  if (Array.isArray(value) && value.every((item) => typeof item === "string")) return value;
+  throw new Error(`${where}: not a list of text: ${JSON.stringify(value)}`);
 }
 
 function oneOf<T extends string>(allowed: readonly T[], raw: unknown, where: string): T {
@@ -116,19 +127,76 @@ export const TIMELINE_PAGE = 30;
 
 export type Cursor = { at: string; rank: number; id: number };
 
-export type TimelineRow =
-  | { kind: "event"; rank: 0; id: number; at: string; category: number; body: string }
-  | { kind: "update"; rank: 1; id: number; at: string; body: string; replyCount: number };
+/**
+ * Who said "gz" to an adventure: how many, the newest fifty of them by name
+ * (banned givers and players the owner blocked are in neither), and whether
+ * the viewer is one of them.
+ */
+export type Gz = { count: number; names: string[]; mine: boolean };
 
+export type TimelineRow =
+  | { kind: "event"; rank: 0; id: number; at: string; category: number; body: string; gz: Gz }
+  | {
+      kind: "update";
+      rank: 1;
+      id: number;
+      at: string;
+      body: string;
+      replyCount: number;
+      /** When the text last changed; null for never. */
+      editedAt: string | null;
+    };
+
+export type UpdateRow = Extract<TimelineRow, { kind: "update" }>;
+
+/**
+ * Migration 15's seven-argument timeline. `show` is a filter's mask
+ * (`filters.ts`): null for everything, else bit n for adventure category n
+ * and 256 for updates. The pinned update is never in it.
+ */
 export function timelineStatement(
   name: string,
   viewer: string | null,
   before: Cursor | null,
+  show: number | null,
   limit: number = TIMELINE_PAGE,
 ): Statement {
   return {
-    text: "select * from accounts.adventure_timeline($1, $2, $3, $4, $5, $6)",
-    values: [name, viewer, before?.at ?? null, before?.rank ?? null, before?.id ?? null, limit],
+    text: "select * from accounts.adventure_timeline($1, $2, $3, $4, $5, $6, $7)",
+    values: [name, viewer, before?.at ?? null, before?.rank ?? null, before?.id ?? null, limit, show],
+  };
+}
+
+/** One row of the timeline's shape, which `adventure_pinned` answers too. */
+function parseTimelineRow(raw: unknown, where: string): TimelineRow {
+  const row = asRecord(raw, where);
+  const kind = oneOf(["event", "update"] as const, row.kind, `${where} kind`);
+  const id = asInt(row.id, `${where} id`);
+  const at = asIso(row.at, `${where} at`);
+  const body = asText(row.body, `${where} body`);
+  if (kind === "event") {
+    return {
+      kind,
+      rank: 0,
+      id,
+      at,
+      category: asInt(row.category, `${where} category`),
+      body,
+      gz: {
+        count: asInt(row.gz_count, `${where} gz_count`),
+        names: asTextArray(row.gz_names, `${where} gz_names`),
+        mine: asBool(row.viewer_gz, `${where} viewer_gz`),
+      },
+    };
+  }
+  return {
+    kind,
+    rank: 1,
+    id,
+    at,
+    body,
+    replyCount: asInt(row.reply_count, `${where} reply_count`),
+    editedAt: row.edited_at === null ? null : asIso(row.edited_at, `${where} edited_at`),
   };
 }
 
@@ -140,17 +208,25 @@ export function parseTimeline(
   rows: readonly unknown[],
   limit: number = TIMELINE_PAGE,
 ): { rows: TimelineRow[]; more: boolean } {
-  const parsed = rows.map((raw): TimelineRow => {
-    const row = asRecord(raw, "adventure_timeline");
-    const kind = oneOf(["event", "update"] as const, row.kind, "adventure_timeline kind");
-    const id = asInt(row.id, "adventure_timeline id");
-    const at = asIso(row.at, "adventure_timeline at");
-    const body = asText(row.body, "adventure_timeline body");
-    return kind === "event"
-      ? { kind, rank: 0, id, at, category: asInt(row.category, "adventure_timeline category"), body }
-      : { kind, rank: 1, id, at, body, replyCount: asInt(row.reply_count, "adventure_timeline reply_count") };
-  });
+  const parsed = rows.map((raw) => parseTimelineRow(raw, "adventure_timeline"));
   return { rows: parsed.slice(0, limit), more: parsed.length > limit };
+}
+
+/** The update pinned to the top of a log, in the timeline's shape. */
+export function pinnedStatement(name: string, viewer: string | null): Statement {
+  return {
+    text: "select * from accounts.adventure_pinned($1, $2)",
+    values: [name, viewer],
+  };
+}
+
+/** None, or the one update: nothing pinned, or it is deleted or hidden, is no rows. */
+export function parsePinned(rows: readonly unknown[]): UpdateRow | null {
+  if (rows.length === 0) return null;
+  if (rows.length !== 1) throw new Error(`adventure_pinned returned ${rows.length} rows; at most one`);
+  const row = parseTimelineRow(rows[0], "adventure_pinned");
+  if (row.kind !== "update") throw new Error("adventure_pinned returned an adventure; only ever an update");
+  return row;
 }
 
 export function cursorOf(row: TimelineRow): Cursor {
@@ -368,6 +444,22 @@ export function updatePostStatement(username: string, body: string): Statement {
   return {
     text: "select * from accounts.adventure_update_post($1, $2)",
     values: [username, body],
+  };
+}
+
+/** 'ok' when saved, and when the text is what it was (edited_at is left alone then). */
+export function updateEditStatement(username: string, id: number, body: string): Statement {
+  return {
+    text: "select accounts.adventure_update_edit($1, $2, $3) as result",
+    values: [username, id, body],
+  };
+}
+
+/** Pin one of your updates to the top of your log, replacing any other; null unpins. */
+export function pinStatement(username: string, id: number | null): Statement {
+  return {
+    text: "select accounts.adventure_log_pin($1, $2) as result",
+    values: [username, id],
   };
 }
 
