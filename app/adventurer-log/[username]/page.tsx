@@ -8,8 +8,9 @@ import Panel from "@/components/site/Panel";
 import TitleBox from "@/components/site/TitleBox";
 import { readSession } from "@/lib/account/session-server";
 import { sanitizeCss } from "@/lib/adventurer-log/css";
+import { nameFrom } from "@/lib/adventurer-log/name";
 import { loadLogPage, type LogPageData } from "@/lib/adventurer-log/page-data";
-import { INVALID_NAME, toDisplayName, toSafeName } from "@/lib/base37";
+import { toDisplayName } from "@/lib/base37";
 
 export const dynamic = "force-dynamic";
 
@@ -18,24 +19,25 @@ type Params = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
-function nameFrom(raw: string): string | null {
-  let decoded: string;
-  try {
-    decoded = decodeURIComponent(raw);
-  } catch {
-    return null;
-  }
-  const safe = toSafeName(decoded);
-  return safe === INVALID_NAME ? null : safe;
-}
-
+/**
+ * The title and the link preview's text, from the name alone: this runs
+ * alongside the page, so reading the log here would be a second trip to the
+ * database on every view. The preview's picture (`opengraph-image.tsx`, which
+ * Next adds as `og:image` itself) is where the log is read — it is fetched
+ * by a chat app or a crawler, not by every reader — and it carries the
+ * headline, so the description does not need it.
+ */
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const name = nameFrom((await params).username);
   if (!name) return { title: "Adventurer Log" };
   const display = toDisplayName(name);
+  const title = `${display}'s Adventurer Log`;
+  const description = `${display}'s adventures, updates and outfits on Zanaris.`;
   return {
-    title: `${display}'s Adventurer Log`,
-    description: `${display}'s adventures, updates and outfits on Zanaris.`,
+    title,
+    description,
+    openGraph: { title, description, type: "profile" },
+    twitter: { card: "summary_large_image" },
   };
 }
 
@@ -105,6 +107,7 @@ export default async function AdventurerLog({ params, searchParams }: Params) {
         viewer={reader}
         css={css}
         outfits={data.outfits}
+        records={data.records}
       />
     </Frame>
   );
