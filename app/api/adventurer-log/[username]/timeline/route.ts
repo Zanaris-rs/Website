@@ -2,9 +2,9 @@ import type { NextRequest } from "next/server";
 
 import { readSession } from "@/lib/account/session-server";
 import { filterOf } from "@/lib/adventurer-log/filters";
+import { nameFrom } from "@/lib/adventurer-log/name";
 import { parseCursor } from "@/lib/adventurer-log/queries";
 import { loadTimeline } from "@/lib/adventurer-log/view";
-import { INVALID_NAME, toSafeName } from "@/lib/base37";
 import { isConfigured } from "@/lib/db";
 
 /**
@@ -25,14 +25,8 @@ export async function GET(
   request: NextRequest,
   context: RouteContext<"/api/adventurer-log/[username]/timeline">,
 ) {
-  let decoded: string;
-  try {
-    decoded = decodeURIComponent((await context.params).username);
-  } catch {
-    decoded = "";
-  }
-  const username = toSafeName(decoded);
-  if (username === INVALID_NAME) {
+  const username = nameFrom((await context.params).username);
+  if (!username) {
     return Response.json({ error: "bad_name" }, { status: 400, headers: NO_STORE });
   }
 
