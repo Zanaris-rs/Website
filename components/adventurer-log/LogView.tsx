@@ -1,16 +1,14 @@
 import type { ReactNode } from "react";
 
 import Chathead from "@/components/game/Chathead";
-import SkillIcon from "@/components/game/SkillIcon";
 import { formatMonth } from "@/lib/adventurer-log/format";
 import type { WardrobeOutfit } from "@/lib/adventurer-log/wardrobe";
 import type { LogHeader } from "@/lib/adventurer-log/queries";
 import type { TimelinePage } from "@/lib/adventurer-log/view";
 import type { PlayerSkill } from "@/lib/hiscores/api";
-import { CATEGORIES } from "@/lib/hiscores/categories";
-import { statOfCategory } from "@/lib/skills/icons";
 
 import styles from "./Log.module.css";
+import Skills from "./Skills";
 import Timeline, { type TimelineViewer } from "./Timeline";
 import Wardrobe from "./Wardrobe";
 
@@ -44,8 +42,6 @@ export default function LogView({
   /** The owner's saved outfits, for the Wardrobe; none hides it. */
   outfits?: readonly WardrobeOutfit[];
 }) {
-  const levels = new Map(skills.map((skill) => [skill.category, skill.level]));
-
   return (
     <>
       {bar ? <div className={styles.bar}>{bar}</div> : null}
@@ -68,28 +64,7 @@ export default function LogView({
               </p>
             </section>
 
-            <section className="al-stats al-box">
-              <h2>Skills</h2>
-              <div className="al-box-body">
-                {skills.length === 0 ? (
-                  <p className="al-empty">Not on the hiscores yet.</p>
-                ) : (
-                  <table>
-                    <tbody>
-                      {CATEGORIES.filter((category) => levels.has(category.id)).map((category) => (
-                        <tr key={category.id} className={`al-skill al-skill--${category.id}`}>
-                          <td>
-                            <SkillIcon stat={statOfCategory(category.id)} size={16} />
-                          </td>
-                          <td>{category.name}</td>
-                          <td>{levels.get(category.id)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </div>
-            </section>
+            <Skills username={header.username} skills={skills} />
           </aside>
 
           <div className="al-main">
