@@ -84,6 +84,7 @@ export default async function LogSettingsPage() {
         first={visitor.first}
         viewer={null}
         css=""
+        outfits={visitor.outfits}
       />
     ) : null;
   const sanitised = header.cssDisabled ? { css: "", dropped: [] } : sanitizeCss(header.customCss, username, CSS_MAX);

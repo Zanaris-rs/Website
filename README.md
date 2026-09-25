@@ -1646,7 +1646,8 @@ scrolls, as the game records them - mixed with the updates they post.
   `<Figure>`, which draws everything, is only ever given a saved outfit. A player the game has not saved since migration 11 has an empty
   frame.
 - **Wardrobe.** Every outfit the owner has saved is on their log for anyone
-  to see, with a star on the one that is their picture
+  to see, as a full figure (`<Figure>`), with a star on the one that is their
+  picture
   (`components/adventurer-log/Wardrobe.tsx`, read through
   `accounts.outfits`). Only saved outfits: the look from the game that the
   header falls back to is never in it. Its classes (`.al-wardrobe`,
