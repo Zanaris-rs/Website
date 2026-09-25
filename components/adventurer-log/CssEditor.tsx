@@ -1,7 +1,8 @@
 "use client";
 
-import { type ComponentType, useEffect, useId, useImperativeHandle, useRef, useState } from "react";
+import { type ComponentType, useEffect, useId, useImperativeHandle, useMemo, useRef, useState } from "react";
 
+import { aiPrompt } from "@/lib/adventurer-log/ai-prompt";
 import { send } from "@/lib/adventurer-log/client";
 import type { Dropped } from "@/lib/adventurer-log/css";
 import { CSS_MAX } from "@/lib/adventurer-log/format";
@@ -24,6 +25,13 @@ import settings from "./Settings.module.css";
  *
  * The page renders what the sanitiser made of the saved sheet, so the first
  * paint's marks are already right.
+ *
+ * "Copy a prompt for an AI" is for owners who would rather describe a look
+ * than write it: the prompt (`lib/adventurer-log/ai-prompt.ts`) tells any AI
+ * chat what the log is made of and what this box keeps, with the draft to
+ * start from, and what it writes back is pasted in here and checked like
+ * anything else. The same prompt is under "Style it with an AI", to copy by
+ * hand when the browser will not.
  */
 
 const CLASSES: readonly [string, string][] = [
@@ -172,6 +180,7 @@ export default function CssEditor({
   const [pictureSource, setPictureSource] = useState<PictureSource>("site");
   const [Code, setCode] = useState<ComponentType<CodeProps>>(() => PlainCode);
   const code = useRef<CodeHandle | null>(null);
+  const aiBox = useRef<HTMLDetailsElement>(null);
   const checkSeq = useRef(0);
   const id = useId();
 
@@ -216,6 +225,21 @@ export default function CssEditor({
   function change(next: string) {
     setCss(next);
     setStatus(null);
+  }
+
+  const prompt = useMemo(() => aiPrompt(css), [css]);
+
+  async function copyPrompt() {
+    try {
+      await navigator.clipboard.writeText(prompt);
+      setStatus(
+        "Copied. Paste it into an AI chat, say what look you want where it asks, then paste the CSS it writes in here.",
+      );
+    } catch {
+      // No clipboard permission: the same text is on the page to copy by hand.
+      if (aiBox.current) aiBox.current.open = true;
+      setStatus("Your browser would not copy it. The prompt is under “Style it with an AI” below.");
+    }
   }
 
   function tooLong() {
@@ -276,6 +300,9 @@ export default function CssEditor({
           <button type="button" disabled={disabled} onClick={() => setPicking(true)} aria-haspopup="dialog">
             Insert a picture
           </button>
+          <button type="button" disabled={disabled} onClick={copyPrompt}>
+            Copy a prompt for an AI
+          </button>
           <span className={settings.count}>
             {css.length}/{CSS_MAX}
           </span>
@@ -329,6 +356,32 @@ export default function CssEditor({
             </li>
           ))}
         </ul>
+      </details>
+
+      <details className={styles.classes} ref={aiBox}>
+        <summary>Style it with an AI</summary>
+        <ol>
+          <li>
+            Press <b>Copy a prompt for an AI</b>. It tells the AI what your log is made of, what a stylesheet here
+            can and cannot do, the pictures it can use, and what is in the box now.
+          </li>
+          <li>
+            Paste it into any AI chat, and replace the line in [square brackets] with the look you want.
+          </li>
+          <li>
+            Paste the CSS it writes into the box above. Anything your log would leave out is marked on its line, so
+            you can ask the AI to fix it. Then Save.
+          </li>
+        </ol>
+        <textarea
+          className={styles.prompt}
+          value={prompt}
+          readOnly
+          rows={10}
+          spellCheck={false}
+          aria-label="The prompt for an AI"
+          onFocus={(event) => event.currentTarget.select()}
+        />
       </details>
     </div>
   );

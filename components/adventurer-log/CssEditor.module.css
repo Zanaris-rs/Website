@@ -35,7 +35,8 @@
 }
 
 .dropped ul,
-.classes ul {
+.classes ul,
+.classes ol {
   margin: 0;
   padding-left: 20px;
 }
@@ -44,8 +45,21 @@
   margin-top: 8px;
 }
 
-.classes ul {
+.classes ul,
+.classes ol {
   margin-top: 4px;
+}
+
+/* "Style it with an AI": the prompt, to read or copy by hand. */
+.prompt {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  font: 12px/1.4 ui-monospace, Menlo, Consolas, monospace;
+  background: #000;
+  color: var(--text);
+  border: 1px solid var(--panel-border);
+  resize: vertical;
 }
 
 .hint {
