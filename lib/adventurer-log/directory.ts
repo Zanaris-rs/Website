@@ -7,7 +7,7 @@ import { chatheadLooks } from "@/lib/outfits/looks";
 
 import { activityOf } from "./activity";
 import type { EventIcon } from "./events";
-import { type DirectoryCursor, directoryCursorOf, directoryStatement, parseDirectory } from "./queries";
+import { DIRECTORY_PAGE, type DirectoryCursor, directoryCursorOf, directoryStatement, parseDirectory } from "./queries";
 
 /**
  * A page of `/adventurer-log`, the directory of recently active logs, ready
@@ -29,9 +29,13 @@ export type DirectoryEntry = {
 
 export type DirectoryPage = { entries: DirectoryEntry[]; next: DirectoryCursor | null };
 
-export async function loadDirectory(before: DirectoryCursor | null): Promise<DirectoryPage> {
-  const statement = directoryStatement(before);
-  const page = parseDirectory(await query<Record<string, unknown>>(statement.text, statement.values));
+/** `limit` is the page's length: the directory's own, or `/title`'s few. */
+export async function loadDirectory(
+  before: DirectoryCursor | null,
+  limit: number = DIRECTORY_PAGE,
+): Promise<DirectoryPage> {
+  const statement = directoryStatement(before, limit);
+  const page = parseDirectory(await query<Record<string, unknown>>(statement.text, statement.values), limit);
   const looks = await chatheadLooks(page.rows.map((row) => row.username));
 
   const entries = page.rows.map(
