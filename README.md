@@ -1579,6 +1579,13 @@ their chathead, headline, skills and about on one side, and on the other a
 timeline of their adventures - levels, milestones, quests, rare drops, clue
 scrolls, as the game records them - mixed with the updates they post.
 
+- **`/adventurer-log`** is the directory: every log with something to show,
+  ordered by the latest thing it shows the public - an adventure once its
+  twenty minutes are up, in a kind the owner shows, or an update
+  (`accounts.adventure_log_directory`, migration 14, keyset-paged on
+  `(at, username)`). It is never ordered by logins: the directory says
+  nothing sooner, or more, than the logs do. A name box (a plain GET form)
+  goes to anyone's log.
 - Everyone else sees an adventure **twenty minutes** after it happened, so a
   log cannot be used to follow someone around the game; the owner sees theirs
   at once. That rule, and every other one - who may write, blocks, the rates -
@@ -1597,13 +1604,6 @@ scrolls, as the game records them - mixed with the updates they post.
   chathead draws (the hat): the picture is the same, and a log does not
   publish the rest of what the player had on. A player the game has not saved since migration 11 has an empty
   frame.
-- **`/adventurer-log`** is the directory: every log with something to show,
-  ordered by the latest thing it shows the public - an adventure once its
-  twenty minutes are up, in a kind the owner shows, or an update
-  (`accounts.adventure_log_directory`, migration 14, keyset-paged on
-  `(at, username)`). It is never ordered by logins: the directory says
-  nothing sooner, or more, than the logs do. A name box (a plain GET form)
-  goes to anyone's log.
 - Times are fixed UTC text (`formatWhen`), not "5 minutes ago": a relative time
   would differ between the server's render and the browser's hydration.
 - Every element inside `.al-root` carries a stable `al-` class. Those names are
