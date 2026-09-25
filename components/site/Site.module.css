@@ -247,12 +247,6 @@
     grid-column: 1 / -1;
   }
 
-  /* A section with only two tiles keeps them together in the middle. */
-  .tileGridPair {
-    grid-template-columns: repeat(2, minmax(0, 260px));
-    justify-content: center;
-  }
-
   .tile {
     flex-direction: row;
     align-items: flex-start;
@@ -486,72 +480,3 @@
   padding-top: 8px;
 }
 
-/* Adventurer Logs: the most recently active logs, one to a row on a phone
-   and two to a row from 900px, each a small chathead beside the name, what
-   the log last showed and when - `/adventurer-log`'s rows, cut down. */
-.logRows {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 8px 16px;
-  margin: 0;
-  padding: 2px 0 0;
-  list-style: none;
-  text-align: left;
-}
-
-.logRow {
-  display: flex;
-  gap: 8px;
-  align-items: flex-start;
-  min-width: 0;
-}
-
-.logFace {
-  flex: none;
-  border: 1px solid var(--panel-border);
-}
-
-.logText {
-  flex: 1;
-  min-width: 0;
-}
-
-.logName {
-  font-weight: bold;
-}
-
-.logActivity {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-}
-
-.logIcon {
-  flex: none;
-  line-height: 0;
-}
-
-/* An update's excerpt runs to ninety characters; two lines of it is plenty
-   here, and the whole of it is one click away. */
-.logActivityText {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  overflow: hidden;
-  overflow-wrap: anywhere;
-}
-
-.logTime {
-  color: var(--text-muted);
-  font-size: 11px;
-}
-
-.logsNotice {
-  margin: 4px 0 0;
-}
-
-@media (min-width: 900px) {
-  .logRows {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}

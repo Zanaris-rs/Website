@@ -1,8 +1,5 @@
 import type { Metadata } from "next";
 
-import ChatheadFace from "@/components/game/ChatheadFace";
-import ItemIcon from "@/components/game/ItemIcon";
-import SkillIcon from "@/components/game/SkillIcon";
 import Frame from "@/components/site/Frame";
 import MenuTile from "@/components/site/MenuTile";
 import styles from "@/components/site/Site.module.css";
@@ -11,13 +8,11 @@ import StonePanel from "@/components/site/StonePanel";
 import Tile from "@/components/site/Tile";
 import Wordmark from "@/components/site/Wordmark";
 import { readSession } from "@/lib/account/session-server";
-import { formatWhen } from "@/lib/adventurer-log/format";
 import { latest } from "@/lib/news";
 import { formatShortDate, listHref, postHref } from "@/lib/news/parse";
 import { KIT_RELEASES_URL, LOSTHQ_URL, SITE_NAME } from "@/lib/site";
 import { loadStaff } from "@/lib/staff/staff-server";
 import { countPlayers, worldList } from "@/lib/title/fetch";
-import { latestLogs } from "@/lib/title/logs";
 import { titleTileSrc } from "@/lib/title/tiles";
 import { playingSentence } from "@/lib/title/players";
 import { showsStaffTile } from "@/lib/title/staff";
@@ -36,17 +31,15 @@ export const metadata: Metadata = {
  * revalidation, which a route-level `0` leaves alone (it only changes the
  * default for fetches that set nothing). `dynamic = "force-dynamic"` would
  * not — it forces every fetch to `no-store` and would ask every world on
- * every visit. The Adventurer Logs are cached the same way, for a minute
- * (`latestLogs`).
+ * every visit.
  */
 export const revalidate = 0;
 
 /** The main menu: what Lost City's `/title` is, under our name. */
 export default async function Title() {
-  const [players, session, logs] = await Promise.all([
+  const [players, session] = await Promise.all([
     countPlayers(worldList()),
     readSession(),
-    latestLogs(),
   ]);
   // Only a signed-in visitor costs a database read; the verdict decides one
   // tile and nothing else, so no outcome redirects or errors.
@@ -129,76 +122,8 @@ export default async function Title() {
           </div>
         </StonePanel>
 
-        {/* The first few rows of /adventurer-log: whose log last showed
-            something, and what. Everything here is at least as old as the
-            logs make it (twenty minutes for an adventure), so the list
-            gives away nothing about who is online. */}
-        <StonePanel title="Adventurer Logs" className={styles.sectionPanel}>
-          {logs === null ? (
-            <p className={styles.logsNotice}>
-              Adventurer Logs are unavailable right now.
-            </p>
-          ) : logs.length === 0 ? (
-            <p className={styles.logsNotice}>
-              Nobody has anything to show yet.
-            </p>
-          ) : (
-            <ul className={styles.logRows}>
-              {logs.map((entry) => (
-                <li key={entry.username} className={styles.logRow}>
-                  <ChatheadFace
-                    look={entry.look}
-                    size={40}
-                    label={`${entry.name}'s chathead`}
-                    className={styles.logFace}
-                  />
-                  <div className={styles.logText}>
-                    <a
-                      href={`/adventurer-log/${encodeURIComponent(entry.username)}`}
-                      className={`${frame.link} ${styles.logName}`}
-                    >
-                      {entry.name}
-                    </a>
-                    <div className={styles.logActivity}>
-                      {entry.icon ? (
-                        <span className={styles.logIcon} aria-hidden>
-                          {entry.icon.type === "skill" ? (
-                            <SkillIcon stat={entry.icon.stat} size={18} />
-                          ) : (
-                            <ItemIcon id={entry.icon.id} size={18} />
-                          )}
-                        </span>
-                      ) : null}
-                      <span className={styles.logActivityText}>
-                        {entry.activity}
-                      </span>
-                    </div>
-                    <time className={styles.logTime} dateTime={entry.at}>
-                      {formatWhen(entry.at)}
-                    </time>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-          <div className={styles.newsFooter}>
-            Every player&rsquo;s levels, quests and rare drops, and what they
-            have to say about them. To see every log,{" "}
-            <a href="/adventurer-log" className={frame.linkGreen}>
-              Click Here
-            </a>
-            . To write on your own,{" "}
-            <a href="/account/adventurer-log" className={frame.linkGreen}>
-              {session ? "Click Here" : "Login"}
-            </a>
-            .
-          </div>
-        </StonePanel>
-
         <StonePanel title="Account Services" className={styles.sectionPanel}>
-          <div
-            className={`${styles.tileGrid} ${staffTile ? "" : styles.tileGridPair}`}
-          >
+          <div className={styles.tileGrid}>
             <MenuTile
               href="/account"
               image="/img/title/mm_security.jpg"
@@ -212,6 +137,15 @@ export default async function Title() {
               caption="Message Centre"
               blurb="Communicate with our staff."
               linkText="Login"
+            />
+            {/* Public, but beside the Account Centre because that is where a
+                player writes their own. The picture is the game's book,
+                drawn like the two in Game Rules & Resources. */}
+            <MenuTile
+              href="/adventurer-log"
+              image={titleTileSrc("book") ?? undefined}
+              caption="Adventurer Logs"
+              blurb="Every player&rsquo;s levels, quests and drops, in their own words."
             />
             {staffTile ? (
               <MenuTile

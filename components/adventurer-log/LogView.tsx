@@ -73,6 +73,12 @@ export default function LogView({
               <p className="al-joined">Adventuring since {formatMonth(header.joinedAt)}</p>
               <p className="al-links">
                 <a href={`/hiscores/player/${encodeURIComponent(header.username)}`}>Hiscores</a>
+                {viewer?.isOwner ? (
+                  <>
+                    {" - "}
+                    <a href="/account/adventurer-log">Edit your log</a>
+                  </>
+                ) : null}
               </p>
             </section>
 

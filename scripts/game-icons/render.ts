@@ -300,7 +300,7 @@ console.log(`wrote    lib/items/icons.json, lib/skills/icons.json`);
 /**
  * The title screen's menu pictures are 77x120 (`components/site/MenuTile.tsx`).
  * 2004's own are photographs of props Jagex modelled for its website, and
- * `scripts/vendor-2004-assets.sh` recovers those. Two of our pages are pages
+ * `scripts/vendor-2004-assets.sh` recovers those. Three of our pages are pages
  * 2004 never had, and no tile it drew is about them, so we draw the game's own
  * answer instead: an object's model, lit and posed exactly as its inventory
  * icon is, in a tile-shaped box on black.
@@ -358,6 +358,9 @@ const TILES: readonly TileSpec[] = [
     xan: 100,
     y: -4,
   },
+  // Adventurer Logs, a diary of what every player has done: the game's own
+  // book, in the pose its icon has, which already stands it up to be read.
+  { file: "book", obj: 1509, what: "Book", scale: 2.8 },
 ];
 
 /** One tile at SUPERSAMPLE size, straight out of the client's renderer. */
