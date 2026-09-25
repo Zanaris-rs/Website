@@ -83,7 +83,12 @@ export default async function AdventurerLog({ params, searchParams }: Params) {
   ) : null;
 
   const reader = viewer
-    ? { username: viewer, isOwner: data.header.isOwner, canPost: data.header.viewerCanPost }
+    ? {
+        username: viewer,
+        isOwner: data.header.isOwner,
+        blocked: data.header.viewerBlocked,
+        canPost: data.header.viewerCanPost,
+      }
     : null;
 
   return (

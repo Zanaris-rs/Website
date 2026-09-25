@@ -4,6 +4,7 @@ import ChatheadFace from "@/components/game/ChatheadFace";
 import ItemIcon from "@/components/game/ItemIcon";
 import SkillIcon from "@/components/game/SkillIcon";
 import { formatWhen } from "@/lib/adventurer-log/format";
+import type { EventEntry } from "@/lib/adventurer-log/groups";
 import type { EntryView, ReplyView, UpdateEntry } from "@/lib/adventurer-log/view";
 import type { Look } from "@/lib/chathead/look";
 
@@ -18,7 +19,9 @@ import Body from "./Body";
  * `updateActions` and `replyActions` let the interactive timeline add its
  * buttons without this file knowing about requests, and `editor` its edit
  * box: when it draws something, that takes the place of the update's text
- * and buttons. `pinned` is the update the owner pinned to the top.
+ * and buttons. `gz` draws an adventure's gz, inside its text cell: the
+ * event row is a three-column grid (icon, text, time), so it never gets a
+ * fourth child. `pinned` is the update the owner pinned to the top.
  */
 export default function Entry({
   entry,
@@ -30,6 +33,7 @@ export default function Entry({
   replyActions,
   replyForm,
   editor,
+  gz,
 }: {
   entry: EntryView;
   ownerName: string;
@@ -40,6 +44,7 @@ export default function Entry({
   replyActions?: (reply: ReplyView, updateId: number) => ReactNode;
   replyForm?: (entry: UpdateEntry) => ReactNode;
   editor?: (entry: UpdateEntry) => ReactNode;
+  gz?: (entry: EventEntry) => ReactNode;
 }) {
   if (entry.kind === "event") {
     return (
@@ -51,7 +56,10 @@ export default function Entry({
             <ItemIcon id={entry.icon.id} size={25} />
           ) : null}
         </span>
-        <span className="al-event-text">{entry.text}</span>
+        <span className="al-event-text">
+          {entry.text}
+          {gz?.(entry)}
+        </span>
         <time className="al-time" dateTime={entry.at}>
           {formatWhen(entry.at)}
         </time>

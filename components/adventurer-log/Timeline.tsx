@@ -3,23 +3,27 @@
 import { useMemo, useState } from "react";
 
 import type { BodyToken } from "@/lib/adventurer-log/body";
-import { send } from "@/lib/adventurer-log/client";
+import { GZ_MESSAGES, send } from "@/lib/adventurer-log/client";
 import { type Filter, filterOf, showsPosts, visibleFilters } from "@/lib/adventurer-log/filters";
 import { checkText, REPLY_MAX, UPDATE_MAX } from "@/lib/adventurer-log/format";
-import { groupLevels } from "@/lib/adventurer-log/groups";
+import { type EventEntry, groupLevels } from "@/lib/adventurer-log/groups";
+import { type Gz as GzState, GZ_TAKE_MAX, runGz, withGiven, withTaken } from "@/lib/adventurer-log/gz";
 import type { Cursor } from "@/lib/adventurer-log/queries";
 import type { EntryView, PinnedView, ReplyView, TimelinePage, UpdateEntry } from "@/lib/adventurer-log/view";
 import type { Look } from "@/lib/chathead/look";
 
 import Composer from "./Composer";
 import Entry from "./Entry";
+import Gz from "./Gz";
 import LevelRunRow from "./LevelRun";
 import ReportButton from "./ReportButton";
 
-/** Who is reading, as the header's `is_owner` / `viewer_can_post` decided. */
+/** Who is reading, as the header's `is_owner` / `viewer_blocked` / `viewer_can_post` decided. */
 export type TimelineViewer = {
   username: string;
   isOwner: boolean;
+  /** The owner has blocked them: no replies, and no gz. */
+  blocked: boolean;
   /** Signed in, not banned or muted, and not blocked by the owner. */
   canPost: boolean;
 };
@@ -29,7 +33,9 @@ const UNPINNED = "Unpinned. It is back in its place in your log the next time th
 /**
  * The timeline, newest first, and everything a reader can do to it: the
  * owner posts, edits, pins and deletes updates, deletes any reply and blocks
- * repliers; anyone signed in who may post replies; anyone signed in reports.
+ * repliers; anyone signed in who may post replies; anyone signed in reports;
+ * anyone signed in but the owner and the players they blocked says "gz" to
+ * adventures (a mute does not stop it; the server refuses a banned account).
  * The first page arrives with the page; "Older adventures" reads the rest
  * (`GET /api/adventurer-log/<name>/timeline`), in the same shape and under
  * the same filter. The filter buttons are links (`?show=`), so choosing one
@@ -74,6 +80,48 @@ export default function Timeline({
   function changeUpdate(id: number, change: (update: UpdateEntry) => UpdateEntry) {
     setEntries((shown) => shown.map((entry) => (entry.kind === "update" && entry.id === id ? change(entry) : entry)));
     setPinned((top) => (top && top.id === id ? change(top) : top));
+  }
+
+  /** Change the gz of these adventures, wherever they are in the list. */
+  function changeGz(ids: readonly number[], change: (gz: GzState, id: number) => GzState) {
+    const wanted = new Set(ids);
+    setEntries((shown) =>
+      shown.map((entry) =>
+        entry.kind === "event" && wanted.has(entry.id) ? { ...entry, gz: change(entry.gz, entry.id) } : entry,
+      ),
+    );
+  }
+
+  /**
+   * Give a gz, or take yours back: shown at once, and put back as it was,
+   * with the reason, if the server refuses. `events` is one adventure, or a
+   * level run's, newest first: a run's gz goes on its newest level, and
+   * taking it back takes it from every level in the run.
+   */
+  async function toggleGz(events: readonly EventEntry[]) {
+    if (!viewer || events.length === 0) return;
+    const me = viewer.username;
+    const taking = runGz(events).mine;
+    const ids = taking ? events.map((event) => event.id) : [events[0].id];
+    const before = new Map(events.map((event) => [event.id, event.gz]));
+
+    changeGz(ids, (gz) => (taking ? withTaken(gz, me) : withGiven(gz, me)));
+
+    let refused: string | null = null;
+    if (taking) {
+      for (let i = 0; i < ids.length && refused === null; i += GZ_TAKE_MAX) {
+        const result = await send("/api/adventurer-log/gz", { events: ids.slice(i, i + GZ_TAKE_MAX) }, "DELETE", GZ_MESSAGES);
+        if (!result.ok) refused = result.message;
+      }
+    } else {
+      const result = await send("/api/adventurer-log/gz", { event: ids[0] }, "POST", GZ_MESSAGES);
+      if (!result.ok) refused = result.message;
+    }
+
+    if (refused !== null) {
+      changeGz(ids, (gz, id) => before.get(id) ?? gz);
+      setNotice(refused);
+    }
   }
 
   async function more() {
@@ -198,6 +246,7 @@ export default function Timeline({
   }
 
   const isOwner = viewer?.isOwner ?? false;
+  const canGz = viewer !== null && !viewer.isOwner && !viewer.blocked;
   // Grouped over the whole loaded list, so "Older adventures" continues a run
   // rather than starting a new one where the page boundary happens to fall.
   const items = useMemo(() => groupLevels(entries), [entries]);
@@ -212,6 +261,7 @@ export default function Timeline({
         ownerLook={ownerLook}
         looks={looks}
         pinned={isPinned}
+        gz={(event) => <Gz gz={event.gz} onToggle={canGz ? () => toggleGz([event]) : undefined} />}
         updateActions={
           viewer
             ? (update) =>
@@ -332,7 +382,14 @@ export default function Timeline({
           {top ? renderEntry(top, true) : null}
           {items.map((item) =>
             item.kind === "levels" ? (
-              <LevelRunRow key={item.key} run={item} ownerName={ownerName} ownerLook={ownerLook} looks={looks} />
+              <LevelRunRow
+                key={item.key}
+                run={item}
+                ownerName={ownerName}
+                ownerLook={ownerLook}
+                looks={looks}
+                onGz={canGz ? () => toggleGz(item.events) : undefined}
+              />
             ) : (
               renderEntry(item, false)
             ),

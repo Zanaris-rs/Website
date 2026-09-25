@@ -484,6 +484,32 @@ export function replyDeleteStatement(username: string, id: number): Statement {
   };
 }
 
+// --- gz -----------------------------------------------------------------------------
+
+/**
+ * Say "gz" to an adventure. 'ok', also when you already had; otherwise
+ * 'not_found' (not one anyone but its owner can see yet), 'banned', 'self'
+ * (your own), 'blocked' (its owner blocked you) or 'rate_limited' (300 an
+ * hour). A mute does not stop it: a gz has no words.
+ */
+export function gzGiveStatement(username: string, eventId: number): Statement {
+  return {
+    text: "select accounts.adventure_gz_give($1, $2) as result",
+    values: [username, eventId],
+  };
+}
+
+/**
+ * Take your gz back from up to fifty adventures, all of a level run's at
+ * once. Always 'ok' for a real account: ids you never gave to are no matter.
+ */
+export function gzTakeStatement(username: string, eventIds: readonly number[]): Statement {
+  return {
+    text: "select accounts.adventure_gz_take($1, $2::int[]) as result",
+    values: [username, eventIds.slice(0, 50)],
+  };
+}
+
 // --- blocks -------------------------------------------------------------------------
 
 export function blockStatement(username: string, target: string): Statement {
