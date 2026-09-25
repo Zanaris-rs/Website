@@ -5,6 +5,7 @@ import { useState } from "react";
 import type { BodyToken } from "@/lib/adventurer-log/body";
 import { send } from "@/lib/adventurer-log/client";
 import { formatWhen } from "@/lib/adventurer-log/format";
+import { logHref } from "@/lib/adventurer-log/href";
 import { INVALID_NAME, toDisplayName, toSafeName } from "@/lib/base37";
 
 import Body from "./Body";
@@ -133,7 +134,7 @@ export default function BlockList({
             return (
               <li key={reply.id} className={hidden ? styles.hiddenReply : undefined}>
                 <div>
-                  <a href={`/adventurer-log/${encodeURIComponent(reply.author)}`}>{reply.authorName}</a>{" "}
+                  <a href={logHref(reply.author)}>{reply.authorName}</a>{" "}
                   <time className={styles.count} dateTime={reply.at}>
                     {formatWhen(reply.at)}
                   </time>

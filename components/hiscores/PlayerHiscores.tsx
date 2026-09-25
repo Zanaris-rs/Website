@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import { useSearchParams } from "next/navigation";
 
+import { logHref } from "@/lib/adventurer-log/href";
 import { toDisplayName } from "@/lib/base37";
 import { parsePlayerResponse, type PlayerResponse } from "@/lib/hiscores/api";
 import { categoryName } from "@/lib/hiscores/categories";
@@ -107,7 +108,7 @@ export default function PlayerHiscores({ username }: { username: string }) {
             <div className={styles.playerHeading}>
               <a
                 className={frame.link}
-                href={`/adventurer-log/${encodeURIComponent(state.data.username)}`}
+                href={logHref(state.data.username)}
               >
                 Adventurer Log
               </a>

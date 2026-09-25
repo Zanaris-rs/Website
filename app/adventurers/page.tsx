@@ -11,6 +11,7 @@ import Panel from "@/components/site/Panel";
 import TitleBox from "@/components/site/TitleBox";
 import { type DirectoryPage, loadDirectory } from "@/lib/adventurer-log/directory";
 import { formatWhen } from "@/lib/adventurer-log/format";
+import { DIRECTORY_HREF, logHref } from "@/lib/adventurer-log/href";
 import { logStatement, parseDirectoryCursor, parseLog } from "@/lib/adventurer-log/queries";
 import { INVALID_NAME, toDisplayName, toSafeName } from "@/lib/base37";
 import { query } from "@/lib/db";
@@ -29,7 +30,7 @@ function one(value: string | string[] | undefined): string | null {
 }
 
 /**
- * `/adventurer-log` — the directory: every log with something to show,
+ * `/adventurers` — the directory: every log with something to show,
  * ordered by the latest thing it shows the public (an adventure once its
  * twenty minutes are up, or an update), and a box to go to anyone's by name.
  * Nothing here is sooner or more than the logs themselves show; in
@@ -55,7 +56,7 @@ export default async function AdventurerLogs({ searchParams }: Params) {
         console.error("[adventurer-log] directory search failed", error);
         notice = "Adventurer Logs are unavailable right now. Try again shortly.";
       }
-      if (found) redirect(`/adventurer-log/${encodeURIComponent(username)}`);
+      if (found) redirect(logHref(username));
       notice ??= `There is no Adventurer Log for ${toDisplayName(username)}.`;
     }
   }
@@ -83,7 +84,7 @@ export default async function AdventurerLogs({ searchParams }: Params) {
     <Frame>
       <TitleBox title="Adventurer Logs" />
       <Panel width="100%">
-        <form className={styles.search} action="/adventurer-log" method="get">
+        <form className={styles.search} action={DIRECTORY_HREF} method="get">
           <label htmlFor="log-name">Find a player&rsquo;s log</label>
           <input id="log-name" name="name" type="text" maxLength={12} defaultValue={wanted} autoComplete="off" />
           <button type="submit">Go</button>
@@ -98,7 +99,7 @@ export default async function AdventurerLogs({ searchParams }: Params) {
               <li key={entry.username} className={styles.log}>
                 <ChatheadFace look={entry.look} size={48} label={`${entry.name}'s chathead`} className={styles.face} />
                 <div className={styles.main}>
-                  <a className={`${frame.link} ${styles.name}`} href={`/adventurer-log/${encodeURIComponent(entry.username)}`}>
+                  <a className={`${frame.link} ${styles.name}`} href={logHref(entry.username)}>
                     {entry.name}
                   </a>
                   {entry.headline ? <span className={styles.headline}>&ldquo;{entry.headline}&rdquo;</span> : null}
@@ -125,7 +126,7 @@ export default async function AdventurerLogs({ searchParams }: Params) {
 
         <div className={styles.pages}>
           {before ? (
-            <a className={frame.link} href="/adventurer-log">
+            <a className={frame.link} href={DIRECTORY_HREF}>
               &laquo; Most recent
             </a>
           ) : (
@@ -134,7 +135,7 @@ export default async function AdventurerLogs({ searchParams }: Params) {
           {page.next ? (
             <a
               className={frame.link}
-              href={`/adventurer-log?${new URLSearchParams({ at: page.next.at, after: page.next.username })}`}
+              href={`${DIRECTORY_HREF}?${new URLSearchParams({ at: page.next.at, after: page.next.username })}`}
             >
               Older &raquo;
             </a>

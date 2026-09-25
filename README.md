@@ -1615,12 +1615,12 @@ content bump, re-run `chathead:update`, and commit what it writes.
 
 ## Adventurer Log
 
-`/adventurer-log/<name>` is a player's public page (engine migrations 11-13):
+`/adventurer/<name>` is a player's public page (engine migrations 11-13):
 their chathead, headline, skills and about on one side, and on the other a
 timeline of their adventures - levels, milestones, quests, rare drops, clue
 scrolls, as the game records them - mixed with the updates they post.
 
-- **`/adventurer-log`** is the directory: every log with something to show,
+- **`/adventurers`** is the directory: every log with something to show,
   ordered by the latest thing it shows the public - an adventure once its
   twenty minutes are up, in a kind the owner shows, or an update
   (`accounts.adventure_log_directory`, migration 14, keyset-paged on
