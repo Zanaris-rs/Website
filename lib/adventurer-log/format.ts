@@ -49,7 +49,7 @@ export function checkText(
 }
 
 /**
- * A stylesheet as the save and preview routes take it: CRLF made LF, so its
+ * A stylesheet as the save and check routes take it: CRLF made LF, so its
  * lines are the ones the editor numbers, and within CSS_MAX. Not trimmed:
  * every line stays where the owner wrote it. Not text at all is a
  * `bad_request`.

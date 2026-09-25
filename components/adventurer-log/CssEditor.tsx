@@ -1,10 +1,11 @@
 "use client";
 
-import { type ComponentType, type ReactNode, useEffect, useId, useImperativeHandle, useRef, useState } from "react";
+import { type ComponentType, useEffect, useId, useImperativeHandle, useRef, useState } from "react";
 
 import { send } from "@/lib/adventurer-log/client";
 import type { Dropped } from "@/lib/adventurer-log/css";
-import { CSS_MAX, PUBLIC_DELAY_MINUTES } from "@/lib/adventurer-log/format";
+import { CSS_MAX } from "@/lib/adventurer-log/format";
+import frame from "@/components/site/Frame.module.css";
 import { cssUrl } from "@/lib/adventurer-log/pictures";
 
 import type { CodeHandle, CodeProps, Lint } from "./CssCode";
@@ -14,18 +15,15 @@ import settings from "./Settings.module.css";
 
 /**
  * The owner's stylesheet: a code editor, the classes it can style, a skin to
- * start from, a picker for the site's pictures, and below it all the owner's
- * log with the draft drawn on it as they type.
+ * start from, and a picker for the site's pictures. The log itself is where
+ * a saved stylesheet is seen; this page draws none of it.
  *
- * The draft goes to `POST /api/adventurer-log/css/preview` once typing pauses,
- * and comes back through the same sanitiser the log uses: the preview draws
- * what the log will draw, and what it leaves out is listed and marked on its
- * line in the editor. Nothing is saved until Save.
+ * The draft goes to `POST /api/adventurer-log/css/check` once typing pauses,
+ * through the same sanitiser the log uses, and what it would leave out is
+ * listed and marked on its line in the editor. Nothing is saved until Save.
  *
- * The page renders the log (`preview`) and the saved sheet's sanitised form,
- * so the first paint is already right. The preview's `.al-root` is the only
- * one on the page and every rule the sanitiser prints starts with it, so the
- * draft cannot reach this box, the editor, or anything else on the page.
+ * The page renders what the sanitiser made of the saved sheet, so the first
+ * paint's marks are already right.
  */
 
 const CLASSES: readonly [string, string][] = [
@@ -81,13 +79,8 @@ body {
 }
 `;
 
-/** How long typing has to pause before the preview asks for the draft. */
-const PREVIEW_DELAY_MS = 400;
-
-type Sanitised = { css: string; dropped: Dropped[] };
-
-/** What the sanitiser made of one text, as the preview draws it. */
-type Shown = Lint & { css: string };
+/** How long typing has to pause before the draft is checked. */
+const CHECK_DELAY_MS = 400;
 
 function asDropped(raw: unknown): Dropped[] {
   if (!Array.isArray(raw)) return [];
@@ -159,27 +152,27 @@ function PlainCode({ value, onChange, max, onTooLong, disabled, label, described
 export default function CssEditor({
   initial,
   disabled,
-  sanitised,
-  preview,
+  dropped,
+  logHref,
 }: {
   initial: string;
   disabled: boolean;
-  /** `initial` through the sanitiser, from the page's own render. */
-  sanitised: Sanitised;
-  /** The owner's log as a visitor sees it, without a stylesheet; null when it could not be read. */
-  preview: ReactNode;
+  /** What the sanitiser leaves out of `initial`, from the page's own render. */
+  dropped: Dropped[];
+  /** The owner's log, where the saved stylesheet is drawn. */
+  logHref: string;
 }) {
   const [saved, setSaved] = useState(initial);
   const [css, setCss] = useState(initial);
-  const [shown, setShown] = useState<Shown>({ text: initial, ...sanitised });
-  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [shown, setShown] = useState<Lint>({ text: initial, dropped });
+  const [checkError, setCheckError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [picking, setPicking] = useState(false);
   const [pictureSource, setPictureSource] = useState<PictureSource>("site");
   const [Code, setCode] = useState<ComponentType<CodeProps>>(() => PlainCode);
   const code = useRef<CodeHandle | null>(null);
-  const previewSeq = useRef(0);
+  const checkSeq = useRef(0);
   const id = useId();
 
   const dirty = css !== saved;
@@ -201,26 +194,22 @@ export default function CssEditor({
     };
   }, []);
 
-  // The preview follows the draft once typing pauses. Only the newest answer
-  // is drawn: any answer still on its way when the draft changes again (an
-  // undo back to what is shown, too) is for a draft already gone.
+  // The marks follow the draft once typing pauses. Only the newest answer
+  // is kept: any answer still on its way when the draft changes again (an
+  // undo back to what is marked, too) is for a draft already gone.
   useEffect(() => {
-    const seq = ++previewSeq.current;
+    const seq = ++checkSeq.current;
     if (disabled || css === shown.text) return;
     const timer = setTimeout(async () => {
-      const result = await send("/api/adventurer-log/css/preview", { css });
-      if (seq !== previewSeq.current) return;
+      const result = await send("/api/adventurer-log/css/check", { css });
+      if (seq !== checkSeq.current) return;
       if (!result.ok) {
-        setPreviewError(result.message);
+        setCheckError(result.message);
         return;
       }
-      setPreviewError(null);
-      setShown({
-        text: css,
-        css: typeof result.data.css === "string" ? result.data.css : "",
-        dropped: asDropped(result.data.dropped),
-      });
-    }, PREVIEW_DELAY_MS);
+      setCheckError(null);
+      setShown({ text: css, dropped: asDropped(result.data.dropped) });
+    }, CHECK_DELAY_MS);
     return () => clearTimeout(timer);
   }, [css, disabled, shown.text]);
 
@@ -252,8 +241,7 @@ export default function CssEditor({
   return (
     <div className={styles.editor}>
       {/* Only the form gets the settings page's form styles: they style every
-          label and button inside, and the picker and the preview are not
-          theirs to restyle. */}
+          label and button inside, and the picker is not theirs to restyle. */}
       <form onSubmit={save} className={settings.form}>
         {disabled ? (
           <p role="status">Staff have turned off your log&rsquo;s stylesheet, so it cannot be changed.</p>
@@ -261,6 +249,11 @@ export default function CssEditor({
         <p id={`${id}-rules`} className={settings.hint}>
           CSS for your log, and nothing outside it. Pictures from the site&rsquo;s own <code>/img/</code> only;
           no <code>@import</code>, fonts or links elsewhere; <code>content</code> can draw symbols but not words.
+          Save it, then{" "}
+          <a href={logHref} className={frame.link}>
+            view your log
+          </a>{" "}
+          to see it.
         </p>
         <Code
           value={css}
@@ -302,6 +295,12 @@ export default function CssEditor({
         />
       ) : null}
 
+      {checkError ? (
+        <p role="status" className={styles.hint}>
+          Your stylesheet could not be checked just now: {checkError}
+        </p>
+      ) : null}
+
       {reasons.length > 0 ? (
         <div role="status" className={styles.dropped}>
           <p>Your log leaves these out:</p>
@@ -331,35 +330,6 @@ export default function CssEditor({
           ))}
         </ul>
       </details>
-
-      {preview ? (
-        <section className={styles.preview} aria-labelledby={`${id}-preview`}>
-          <h3 id={`${id}-preview`} className={styles.previewTitle}>
-            Preview
-          </h3>
-          <p className={settings.hint}>
-            Your log as everyone else sees it, drawn with the style above as it will be. Adventures from the last{" "}
-            {PUBLIC_DELAY_MINUTES} minutes are not on it yet, and nothing on it can be clicked.
-            {previewError ? <> The preview is not up to date: {previewError}</> : null}
-          </p>
-          {/* Clicks stop here, so a link in the preview cannot take the page -
-              and an unsaved draft - away. Hover still works, for styling it. */}
-          <div
-            className={styles.previewBox}
-            onClickCapture={(event) => {
-              if ((event.target as Element).closest("a, button, summary, label")) {
-                event.preventDefault();
-                event.stopPropagation();
-              }
-            }}
-          >
-            {/* A plain <style>, like the log's own (LogView). Its text is the
-                sanitiser's output, every rule under .al-root, with no "<". */}
-            {shown.css && !disabled ? <style>{shown.css}</style> : null}
-            {preview}
-          </div>
-        </section>
-      ) : null}
     </div>
   );
 }
