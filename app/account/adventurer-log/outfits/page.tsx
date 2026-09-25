@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
+import OwnerNav from "@/components/adventurer-log/OwnerNav";
 import AccountOutfits from "@/components/outfits/AccountOutfits";
 import Frame from "@/components/site/Frame";
 import Panel from "@/components/site/Panel";
@@ -39,10 +40,7 @@ export default async function Outfits() {
 
   return (
     <Frame>
-      <TitleBox
-        title="Outfits"
-        links={[{ href: "/account", text: "Account Centre" }]}
-      />
+      <OwnerNav title="Outfits" username={loaded.profile.username} current="outfits" />
       <Panel width="100%">
         <p>
           The outfit you choose as your picture is your chathead on your

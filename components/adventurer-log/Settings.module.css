@@ -1,14 +1,14 @@
-.settings {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  font-size: 13px;
-  text-align: left;
+/* The owner's settings page, `/account/adventurer-log`: three boxes, each a
+   panel with a title - About you, the log's style, and blocked players. */
+
+.title {
+  margin: 0 0 8px;
+  font-size: 14px;
 }
 
-.form h2 {
-  margin: 0 0 6px;
-  font-size: 14px;
+.form {
+  font-size: 13px;
+  text-align: left;
 }
 
 .form label {
@@ -30,10 +30,21 @@
   padding: 2px 12px;
 }
 
+.fieldset {
+  border: 1px solid var(--panel-border);
+  margin: 0 0 8px;
+  padding: 6px 10px;
+}
+
+.fieldset legend {
+  padding: 0 4px;
+}
+
 .row {
   display: flex;
   gap: 8px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .count {
@@ -48,11 +59,44 @@
 
 .categories {
   list-style: none;
-  margin: 0 0 6px;
+  margin: 0;
   padding: 0;
   columns: 2 180px;
 }
 
 .categories label {
   margin-bottom: 2px;
+}
+
+/* Blocked players: a name per line with its Unblock, and a box to block
+   someone by name. */
+.people {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+}
+
+.people li {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 2px 0;
+}
+
+.blockForm {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.blockForm label {
+  display: inline;
+  margin: 0;
+}
+
+.blockForm input[type="text"] {
+  display: inline-block;
+  width: 12em;
+  margin: 0;
 }

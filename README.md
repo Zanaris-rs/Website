@@ -1591,8 +1591,17 @@ scrolls, as the game records them - mixed with the updates they post.
 - Every element inside `.al-root` carries a stable `al-` class. Those names are
   the log's styling contract, so `Log.module.css` styles them through
   `:global()` rather than with hashed module classes.
-- `/account/adventurer-log` is the owner's side: headline and about, and which
-  kinds of adventure the log shows (hidden for everyone, the owner included).
+- `/account/adventurer-log` is the owner's side, in three boxes:
+  - **About you:** headline, about, and which kinds of adventure the log
+    shows (hidden for everyone, the owner included). One Save sends all three
+    (`POST /api/adventurer-log/about`) as one statement, so they succeed or
+    fail together.
+  - **Your adventurer log's style:** the owner's CSS (below).
+  - **Blocked players:** unblock, or block someone by name.
+
+  It, `/account/adventurer-log/outfits` and the log itself link to each other
+  from their title boxes (`OwnerNav`). The Account Centre reaches them from
+  its "Your Adventurer" panel, beside "Account services".
 - **Posting.** The owner posts updates; anyone signed in who is not muted,
   banned or blocked replies. Posts are plain text plus `[item:<debugname>]` and
   `[skill:<name>]`, which the composer's picker inserts
@@ -1612,8 +1621,9 @@ scrolls, as the game records them - mixed with the updates they post.
   reduced-motion readers. `.al-root` has `contain: paint` (with `!important`),
   so nothing inside - `position: fixed` included - is drawn outside the log.
   The log route sends `Content-Security-Policy: img-src 'self'; font-src
-  'self'; style-src 'self' 'unsafe-inline'` as a backstop. Readers can
-  `?plain=1`; staff can turn a log's stylesheet off from a report.
+  'self'; style-src 'self' 'unsafe-inline'` as a backstop. There is no
+  reader's switch to leave the owner's style out - it is their page - but
+  staff can turn a log's stylesheet off from a report.
 - **Reports.** "Report" on an update or reply, and "Report this log" in the
   bar above it (outside `.al-root`, so an owner's CSS cannot hide it). Staff
   read them at `/staff/adventure-reports` and resolve with a typed password,

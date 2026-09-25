@@ -7,10 +7,12 @@ import {
   formatWhen,
   presenceLine,
 } from "@/lib/account/profile";
+import ChatheadFace from "@/components/game/ChatheadFace";
 import frame from "@/components/site/Frame.module.css";
 import Panel from "@/components/site/Panel";
 import TitleBox from "@/components/site/TitleBox";
 import { colourClass } from "@/components/site/colour";
+import type { Look } from "@/lib/chathead/look";
 import { formatCitizen } from "@/lib/invite/format";
 import type { Citizen } from "@/lib/invite/queries";
 import { unreadLabel } from "@/lib/messages/format";
@@ -21,7 +23,8 @@ import styles from "./Account.module.css";
 
 /**
  * The account centre: what this account is, what is currently true about it,
- * where it has been logged in from, and the four things you can do to it.
+ * where it has been logged in from, and, side by side at the bottom, what you
+ * can do with the account and with the character everyone else sees.
  *
  * Everything on this page is read from the database on the request that
  * renders it — including the staff level, which the session cookie never
@@ -35,6 +38,7 @@ export default function AccountCentre({
   logins,
   unread,
   citizen,
+  look,
 }: {
   profile: Profile;
   logins: readonly RecentLogin[];
@@ -47,6 +51,8 @@ export default function AccountCentre({
   unread?: number;
   /** `accounts.citizen`; undefined when that read failed. */
   citizen?: Citizen;
+  /** The chathead on your Adventurer Log (`chatheadLooks`), if there is one. */
+  look?: Look | null;
 }) {
   const notices = accountStatus(profile);
   const presence = presenceLine(profile);
@@ -143,71 +149,111 @@ export default function AccountCentre({
         </div>
       </Panel>
 
-      <Panel>
-        <div className={styles.form}>
-          <ul className={styles.links}>
-            {citizen?.invitesEnabled ? (
-              <li>
-                <a className={frame.link} href="/account/invites">
-                  Invite someone to Zanaris
-                </a>
-              </li>
-            ) : null}
-            <li>
-              <a className={frame.link} href="/account/password">
-                Change your password
-              </a>
-            </li>
-            <li>
-              <a className={frame.link} href="/account/email">
-                Change your contact email
-              </a>
-            </li>
-            <li>
-              <a className={frame.link} href="/messages">
-                Message Centre
-              </a>
-              {unread !== undefined && unread > 0 ? (
-                <span className={frame.yellow}> ({unreadLabel(unread)})</span>
-              ) : null}
-            </li>
-            <li>
-              <a className={frame.link} href="/serverlist">
-                Choose a world and play
-              </a>
-            </li>
-            <li>
-              <a className={frame.link} href="/account/records">
-                Set a record
-              </a>
-            </li>
-            <li>
-              <a className={frame.link} href="/account/adventurer-log">
-                Your Adventurer Log
-              </a>
-            </li>
-            <li>
-              <a className={frame.link} href="/account/adventurer-log/outfits">
-                Outfits and your chathead
-              </a>
-            </li>
-            {/* The one link on the site that depends on what an account may
-                do, so it is decided from the profile row read on this request
-                and never from the cookie. Hiding it is only cosmetic: /staff
-                redirects, and every staff SQL function re-reads the level for
-                itself. */}
-            {isStaff(profile) ? (
-              <li>
-                <a className={frame.link} href="/staff">
-                  Staff inbox
-                </a>
-              </li>
-            ) : null}
-          </ul>
+      {/* Two panels side by side (stacked on a phone): the account's own
+          services, and "Your Adventurer" - the log, its settings and the
+          outfits its picture comes from. Each panel sits in a column div so
+          the two are not sibling panels, which would push the second down
+          by the stack gap. */}
+      <div className={styles.services}>
+        <div className={styles.column}>
+          <Panel>
+            <div className={styles.form}>
+              <div className={styles.heading}>
+                <b>Account services</b>
+              </div>
+              <ul className={styles.links}>
+                {citizen?.invitesEnabled ? (
+                  <li>
+                    <a className={frame.link} href="/account/invites">
+                      Invite someone to Zanaris
+                    </a>
+                  </li>
+                ) : null}
+                <li>
+                  <a className={frame.link} href="/account/password">
+                    Change your password
+                  </a>
+                </li>
+                <li>
+                  <a className={frame.link} href="/account/email">
+                    Change your contact email
+                  </a>
+                </li>
+                <li>
+                  <a className={frame.link} href="/messages">
+                    Message Centre
+                  </a>
+                  {unread !== undefined && unread > 0 ? (
+                    <span className={frame.yellow}> ({unreadLabel(unread)})</span>
+                  ) : null}
+                </li>
+                <li>
+                  <a className={frame.link} href="/serverlist">
+                    Choose a world and play
+                  </a>
+                </li>
+                <li>
+                  <a className={frame.link} href="/account/records">
+                    Set a record
+                  </a>
+                </li>
+                {/* The one link on the site that depends on what an account may
+                    do, so it is decided from the profile row read on this request
+                    and never from the cookie. Hiding it is only cosmetic: /staff
+                    redirects, and every staff SQL function re-reads the level for
+                    itself. */}
+                {isStaff(profile) ? (
+                  <li>
+                    <a className={frame.link} href="/staff">
+                      Staff inbox
+                    </a>
+                  </li>
+                ) : null}
+              </ul>
 
-          <LogoutButton />
+              <LogoutButton />
+            </div>
+          </Panel>
         </div>
-      </Panel>
+
+        <div className={styles.column}>
+          <Panel>
+            <div className={styles.form}>
+              <div className={styles.heading}>
+                <b>Your Adventurer</b>
+              </div>
+              <div className={styles.adventurer}>
+                <ChatheadFace
+                  look={look ?? null}
+                  size={72}
+                  label={`${toDisplayName(profile.username)}'s chathead`}
+                  className={styles.face}
+                />
+                <ul className={styles.links}>
+                  <li>
+                    <a
+                      className={frame.link}
+                      href={`/adventurer-log/${encodeURIComponent(profile.username)}`}
+                    >
+                      Your Adventurer Log
+                    </a>
+                  </li>
+                  <li>
+                    <a className={frame.link} href="/account/adventurer-log">
+                      Edit your log
+                    </a>
+                  </li>
+                  <li>
+                    <a className={frame.link} href="/account/adventurer-log/outfits">
+                      Outfits and your chathead
+                    </a>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </Panel>
+        </div>
+      </div>
     </>
   );
 }

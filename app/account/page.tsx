@@ -14,7 +14,9 @@ import {
 import { requireSession } from "@/lib/account/session-server";
 import { type Citizen, citizenStatement, parseCitizen } from "@/lib/invite/queries";
 import { parseUnread, unreadStatement } from "@/lib/messages/queries";
+import type { Look } from "@/lib/chathead/look";
 import { query } from "@/lib/db";
+import { chatheadLooks } from "@/lib/outfits/looks";
 
 export const metadata: Metadata = {
   title: "Account Centre",
@@ -99,6 +101,15 @@ export default async function Account() {
     console.error("[account] citizen read failed", error);
   }
 
+  // The chathead in "Your Adventurer": the same picture the log shows, and a
+  // nicety like the rest - an empty frame when the read fails.
+  let look: Look | null = null;
+  try {
+    look = (await chatheadLooks([session.u])).get(session.u) ?? null;
+  } catch (error) {
+    console.error("[account] chathead read failed", error);
+  }
+
   return (
     <Frame>
       <AccountCentre
@@ -106,6 +117,7 @@ export default async function Account() {
         logins={logins}
         unread={unread}
         citizen={citizen}
+        look={look}
       />
     </Frame>
   );

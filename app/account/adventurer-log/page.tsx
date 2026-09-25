@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
+import AboutYou from "@/components/adventurer-log/AboutYou";
 import BlockList from "@/components/adventurer-log/BlockList";
 import CssEditor from "@/components/adventurer-log/CssEditor";
-import LogSettings from "@/components/adventurer-log/LogSettings";
+import OwnerNav from "@/components/adventurer-log/OwnerNav";
+import styles from "@/components/adventurer-log/Settings.module.css";
 import Frame from "@/components/site/Frame";
 import Panel from "@/components/site/Panel";
 import TitleBox from "@/components/site/TitleBox";
@@ -20,7 +22,11 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-/** `/account/adventurer-log` — the owner's settings for their own log. */
+/**
+ * `/account/adventurer-log` — the owner's settings for their own log, in
+ * three boxes: what it says about them (one Save), its stylesheet, and who
+ * may not reply on it.
+ */
 export default async function LogSettingsPage() {
   const session = await requireSession();
   const loaded = await loadAccount(session);
@@ -47,17 +53,19 @@ export default async function LogSettingsPage() {
 
   return (
     <Frame>
-      <TitleBox
-        title="Your Adventurer Log"
-        links={[
-          { href: `/adventurer-log/${encodeURIComponent(username)}`, text: "View your log" },
-          { href: "/account/adventurer-log/outfits", text: "Outfits" },
-          { href: "/account", text: "Account Centre" },
-        ]}
-      />
+      <OwnerNav title="Your Adventurer Log" username={username} current="edit" />
       <Panel align="left" width="100%">
-        <LogSettings headline={header.headline} about={header.about} hidden={header.hiddenCategories} />
+        <h2 className={styles.title}>About you</h2>
+        <AboutYou
+          initial={{ headline: header.headline, about: header.about, hidden: header.hiddenCategories }}
+        />
+      </Panel>
+      <Panel align="left" width="100%">
+        <h2 className={styles.title}>Your adventurer log&rsquo;s style</h2>
         <CssEditor initial={header.customCss} disabled={header.cssDisabled} />
+      </Panel>
+      <Panel align="left" width="100%">
+        <h2 className={styles.title}>Blocked players</h2>
         <BlockList initial={blocked} />
       </Panel>
     </Frame>

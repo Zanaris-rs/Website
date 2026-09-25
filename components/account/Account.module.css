@@ -134,6 +134,52 @@
   white-space: nowrap;
 }
 
+/* Account services and Your Adventurer, side by side from 600px and one
+   above the other below it. As wide together as one panel, and as far below
+   the panel above as panels are from each other. The column divs stretch to
+   the taller of the two, and the panel inside each fills its column, so the
+   two borders end level. */
+.services {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--stack-gap);
+  width: min(var(--panel-max), 100%);
+  margin: var(--stack-gap) auto 0;
+}
+
+@media (min-width: 600px) {
+  .services {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+}
+
+.column > * {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.column > * > * {
+  flex: 1;
+}
+
+/* The chathead above the log's links, centred like the panel headings. */
+.adventurer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.face {
+  border: 1px solid var(--panel-border);
+}
+
 /* The list of things you can do with the account. */
 .links {
   list-style: none;
