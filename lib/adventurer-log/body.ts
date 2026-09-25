@@ -91,3 +91,13 @@ export function parseBody(text: string): BodyToken[] {
   pushText(text.slice(at));
   return tokens;
 }
+
+/** A post's words for a one-line summary: pictures by name, cut at `max`. */
+export function excerpt(body: string, max = 90): string {
+  const text = parseBody(body)
+    .map((token) => (token.t === "text" ? token.v : token.name))
+    .join("")
+    .replace(/\s+/g, " ")
+    .trim();
+  return text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text;
+}

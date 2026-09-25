@@ -62,9 +62,12 @@ import {
   aboutSaveStatement,
   blockStatement,
   blocksStatement,
+  directoryStatement,
   logSaveStatement,
   logStatement,
+  parseDirectory,
   parseLog,
+  recentRepliesStatement,
   replyDeleteStatement,
   replyPostStatement,
   repliesStatement,
@@ -305,6 +308,10 @@ async function main(): Promise<void> {
     "accounts.adventure_report(text, text, int, text, text)",
     "accounts.staff_adventure_reports(text, boolean)",
     "accounts.staff_adventure_resolve(text, text, int, text, text)",
+    // 14_adventure_directory: the /adventurer-log directory, and the owner's
+    // recent replies for managing them.
+    "accounts.adventure_log_directory(timestamptz, text, int)",
+    "accounts.adventure_log_recent_replies(text, int)",
   ];
   const withheld = [
     "accounts.throttled(text, text)",
@@ -975,6 +982,7 @@ async function checkAdventurerLog(): Promise<void> {
     ["adventure_timeline", timelineStatement("__db_check__", null, null)],
     ["adventure_replies", repliesStatement("__db_check__", null, [1])],
     ["adventure_blocks", blocksStatement("__db_check__")],
+    ["adventure_log_recent_replies", recentRepliesStatement("__db_check__")],
   ] as const) {
     const rows = await query(statement.text, statement.values);
     if (rows.length === 0) {
@@ -1039,6 +1047,26 @@ async function checkAdventurerLog(): Promise<void> {
     console.log("accounts.staff_adventure_reports / resolve('__db_check__'): empty, forbidden (expected)");
   } else {
     console.error(`FAIL: the staff adventure functions answered a non-staff name (${staffRows.length} rows, ${JSON.stringify(resolved?.result)}).`);
+    process.exitCode = 1;
+  }
+
+  // The directory reads every log, so it cannot be pointed at a name nobody
+  // has; it is checked for shape instead - one page, parsed as the site does,
+  // no bigger than the page and its one extra row.
+  const directory = directoryStatement(null, 5);
+  try {
+    const rows = await query<Record<string, unknown>>(directory.text, directory.values);
+    const page = parseDirectory(rows, 5);
+    if (rows.length <= 6) {
+      console.log(`accounts.adventure_log_directory(first page of 5): ${page.rows.length} rows, parsed (expected)`);
+    } else {
+      console.error(`FAIL: adventure_log_directory returned ${rows.length} rows for a page of 5.`);
+      process.exitCode = 1;
+    }
+  } catch (error) {
+    console.error(
+      `FAIL: adventure_log_directory did not parse. ${error instanceof Error ? error.message : String(error)}`,
+    );
     process.exitCode = 1;
   }
 }

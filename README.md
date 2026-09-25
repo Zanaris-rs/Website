@@ -1619,6 +1619,13 @@ their chathead, headline, skills and about on one side, and on the other a
 timeline of their adventures - levels, milestones, quests, rare drops, clue
 scrolls, as the game records them - mixed with the updates they post.
 
+- **`/adventurer-log`** is the directory: every log with something to show,
+  ordered by the latest thing it shows the public - an adventure once its
+  twenty minutes are up, in a kind the owner shows, or an update
+  (`accounts.adventure_log_directory`, migration 14, keyset-paged on
+  `(at, username)`). It is never ordered by logins: the directory says
+  nothing sooner, or more, than the logs do. A name box (a plain GET form)
+  goes to anyone's log.
 - Everyone else sees an adventure **twenty minutes** after it happened, so a
   log cannot be used to follow someone around the game; the owner sees theirs
   at once. That rule, and every other one - who may write, blocks, the rates -
@@ -1656,7 +1663,10 @@ scrolls, as the game records them - mixed with the updates they post.
     (`POST /api/adventurer-log/about`) as one statement, so they succeed or
     fail together.
   - **Your adventurer log's style:** the owner's CSS (below).
-  - **Blocked players:** unblock, or block someone by name.
+  - **Blocked players:** unblock, or block someone by name, and the latest
+    replies on the log (`accounts.adventure_log_recent_replies`, migration
+    14) with Delete and Block beside each - a blocked author's replies stay
+    listed, dimmed, so the owner can see what a block hides.
 
   It, `/account/adventurer-log/outfits` and the log itself link to each other
   from their title boxes (`OwnerNav`). The Account Centre reaches them from

@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
 import AboutYou from "@/components/adventurer-log/AboutYou";
-import BlockList from "@/components/adventurer-log/BlockList";
+import BlockList, { type ManagedReply } from "@/components/adventurer-log/BlockList";
 import CssEditor from "@/components/adventurer-log/CssEditor";
 import LogView from "@/components/adventurer-log/LogView";
 import OwnerNav from "@/components/adventurer-log/OwnerNav";
@@ -13,10 +13,19 @@ import Panel from "@/components/site/Panel";
 import TitleBox from "@/components/site/TitleBox";
 import { loadAccount } from "@/lib/account/profile-server";
 import { requireSession } from "@/lib/account/session-server";
+import { excerpt, parseBody } from "@/lib/adventurer-log/body";
 import { sanitizeCss } from "@/lib/adventurer-log/css";
 import { CSS_MAX } from "@/lib/adventurer-log/format";
 import { loadLogPage, type LogPageData } from "@/lib/adventurer-log/page-data";
-import { blocksStatement, type LogHeader, logStatement, parseBlocks, parseLog } from "@/lib/adventurer-log/queries";
+import {
+  blocksStatement,
+  type LogHeader,
+  logStatement,
+  parseBlocks,
+  parseLog,
+  parseRecentReplies,
+  recentRepliesStatement,
+} from "@/lib/adventurer-log/queries";
 import { toDisplayName } from "@/lib/base37";
 import { query } from "@/lib/db";
 
@@ -79,6 +88,25 @@ export default async function LogSettingsPage() {
     ) : null;
   const sanitised = header.cssDisabled ? { css: "", dropped: [] } : sanitizeCss(header.customCss, username, CSS_MAX);
 
+  // The latest replies on the log, for managing them from here. A nicety:
+  // if this one read fails, the rest of the page still works.
+  let replies: ManagedReply[] | null = null;
+  try {
+    const recent = recentRepliesStatement(username);
+    replies = parseRecentReplies(await query<Record<string, unknown>>(recent.text, recent.values)).map(
+      (reply) => ({
+        id: reply.replyId,
+        author: reply.author,
+        authorName: toDisplayName(reply.author),
+        at: reply.createdAt,
+        tokens: parseBody(reply.body),
+        onUpdate: excerpt(reply.updateBody, 60),
+      }),
+    );
+  } catch (error) {
+    console.error("[adventurer-log] recent replies read failed", error);
+  }
+
   return (
     <Frame>
       <OwnerNav title="Your Adventurer Log" username={username} current="edit" />
@@ -99,7 +127,7 @@ export default async function LogSettingsPage() {
       </Panel>
       <Panel align="left" width="100%">
         <h2 className={styles.title}>Blocked players</h2>
-        <BlockList initial={blocked} />
+        <BlockList owner={username} initial={blocked} replies={replies} />
       </Panel>
     </Frame>
   );

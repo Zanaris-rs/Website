@@ -248,6 +248,11 @@ export default function AccountCentre({
                       Outfits and your chathead
                     </a>
                   </li>
+                  <li>
+                    <a className={frame.link} href="/adventurer-log">
+                      Other players&rsquo; logs
+                    </a>
+                  </li>
                 </ul>
               </div>
             </div>

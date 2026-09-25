@@ -2,7 +2,7 @@ import type { Statement } from "@/lib/account/register";
 import type { Look } from "@/lib/chathead/look";
 
 /**
- * Every call into migration 13's Adventurer Log functions, and the parsing of
+ * Every call into migrations 13 and 14's Adventurer Log functions, and the parsing of
  * what they answer. The same discipline as the other `queries.ts` files:
  * statements are `{ text, values }` with nothing interpolated, and an answer
  * nobody documented throws instead of being guessed at. The viewer and the
@@ -200,6 +200,110 @@ export function parseReplies(rows: readonly unknown[]): ReplyRow[] {
       body: asText(row.body, "adventure_replies body"),
       createdAt: asIso(row.created_at, "adventure_replies created_at"),
       canDelete: row.can_delete === true,
+    };
+  });
+}
+
+// --- the directory: recently active logs (migration 14) ---------------------------
+
+export const DIRECTORY_PAGE = 30;
+
+/** Where a directory page starts: strictly after this log, newest first. */
+export type DirectoryCursor = { at: string; username: string };
+
+/**
+ * A log in the directory, by its latest *public* activity: an adventure at
+ * least 20 minutes old in a kind the owner shows, or an update. Never a
+ * login: the directory says what the log says, no sooner.
+ */
+export type DirectoryRow = {
+  username: string;
+  headline: string;
+  lastAt: string;
+  lastKind: "event" | "update";
+  /** The adventure's category; null for an update. */
+  lastCategory: number | null;
+  lastBody: string;
+};
+
+export function directoryStatement(
+  before: DirectoryCursor | null,
+  limit: number = DIRECTORY_PAGE,
+): Statement {
+  return {
+    text: "select * from accounts.adventure_log_directory($1, $2, $3)",
+    values: [before?.at ?? null, before?.username ?? null, limit],
+  };
+}
+
+/** One page, and whether there is another (the function's one extra row). */
+export function parseDirectory(
+  rows: readonly unknown[],
+  limit: number = DIRECTORY_PAGE,
+): { rows: DirectoryRow[]; more: boolean } {
+  const parsed = rows.map((raw): DirectoryRow => {
+    const row = asRecord(raw, "adventure_log_directory");
+    const lastKind = oneOf(["event", "update"] as const, row.last_kind, "adventure_log_directory last_kind");
+    return {
+      username: asText(row.username, "adventure_log_directory username"),
+      headline: asText(row.headline, "adventure_log_directory headline"),
+      lastAt: asIso(row.last_at, "adventure_log_directory last_at"),
+      lastKind,
+      lastCategory:
+        lastKind === "event" ? asInt(row.last_category, "adventure_log_directory last_category") : null,
+      lastBody: asText(row.last_body, "adventure_log_directory last_body"),
+    };
+  });
+  return { rows: parsed.slice(0, limit), more: parsed.length > limit };
+}
+
+export function directoryCursorOf(row: DirectoryRow): DirectoryCursor {
+  return { at: row.lastAt, username: row.username };
+}
+
+/** A cursor from `?at=&after=`, or null for the first page / a bad one. */
+export function parseDirectoryCursor(params: URLSearchParams): DirectoryCursor | null {
+  const at = params.get("at");
+  const after = params.get("after");
+  if (!at || Number.isNaN(Date.parse(at))) return null;
+  if (!after || !/^[a-z0-9_]{1,12}$/.test(after)) return null;
+  return { at: new Date(at).toISOString(), username: after };
+}
+
+// --- the owner's recent replies, for log management (migration 14) -----------------
+
+export const RECENT_REPLIES = 30;
+
+export type RecentReply = {
+  replyId: number;
+  updateId: number;
+  author: string;
+  body: string;
+  createdAt: string;
+  /** The update it answers, for context. */
+  updateBody: string;
+  /** Whether the owner has blocked the author (whose replies no longer show). */
+  authorBlocked: boolean;
+};
+
+export function recentRepliesStatement(username: string, limit: number = RECENT_REPLIES): Statement {
+  return {
+    text: "select * from accounts.adventure_log_recent_replies($1, $2)",
+    values: [username, limit],
+  };
+}
+
+export function parseRecentReplies(rows: readonly unknown[]): RecentReply[] {
+  return rows.map((raw) => {
+    const row = asRecord(raw, "adventure_log_recent_replies");
+    return {
+      replyId: asInt(row.reply_id, "adventure_log_recent_replies reply_id"),
+      updateId: asInt(row.update_id, "adventure_log_recent_replies update_id"),
+      author: asText(row.author, "adventure_log_recent_replies author"),
+      body: asText(row.body, "adventure_log_recent_replies body"),
+      createdAt: asIso(row.created_at, "adventure_log_recent_replies created_at"),
+      updateBody: asText(row.update_body, "adventure_log_recent_replies update_body"),
+      authorBlocked: row.author_blocked === true,
     };
   });
 }
