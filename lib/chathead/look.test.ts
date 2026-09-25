@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { HeadTables } from "./head";
 import heads from "./heads.json";
-import { KIT, type Look, lookKey, OBJ, toAppearance } from "./look";
+import { headOnly, KIT, type Look, lookKey, OBJ, toAppearance } from "./look";
 
 const tables = heads as HeadTables;
 
@@ -100,5 +100,27 @@ describe("lookKey", () => {
       lookKey(wearing(MALE, 0, PARTY_HAT)),
     ]);
     expect(keys.size).toBe(4);
+  });
+});
+
+describe("headOnly", () => {
+  // Rune platebody, legs and kiteshield: nothing a chathead draws.
+  const armoured = wearing(wearing(wearing(MALE, 4, 1127), 7, 1079), 5, 1201);
+
+  it("takes off everything the chathead does not show", () => {
+    expect(headOnly(armoured, tables).worn).toEqual(new Array(14).fill(-1));
+  });
+
+  it("keeps a hat with a head, and a helm that hides the hair and jaw", () => {
+    expect(headOnly(wearing(armoured, 0, PARTY_HAT), tables).worn[0]).toBe(PARTY_HAT);
+    expect(headOnly(wearing(armoured, 0, FULL_HELM), tables).worn[0]).toBe(FULL_HELM);
+  });
+
+  it("leaves the body, colours and gender as they were", () => {
+    const look = { ...armoured, gender: 1, colours: [1, 2, 3, 4, 5] };
+    const cut = headOnly(look, tables);
+    expect(cut.gender).toBe(1);
+    expect(cut.kits).toEqual(look.kits);
+    expect(cut.colours).toEqual(look.colours);
   });
 });

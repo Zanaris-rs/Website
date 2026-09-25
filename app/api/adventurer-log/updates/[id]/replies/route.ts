@@ -8,13 +8,13 @@ import type { ReplyView } from "@/lib/adventurer-log/view";
 import { query } from "@/lib/db";
 import { displayName } from "@/lib/hiscores/format";
 import { parseId } from "@/lib/messages/queries";
-import { defaultLooksStatement, parseDefaultLooks } from "@/lib/outfits/queries";
+import { chatheadLooks } from "@/lib/outfits/looks";
 
 /**
  * `POST /api/adventurer-log/updates/<id>/replies` `{ body }` — reply under an
  * update. Refused (`blocked`, 403) when the log's owner has blocked you.
- * Answers `{ reply, look }`: the reply as the timeline draws it, and your
- * default look for its chathead.
+ * Answers `{ reply, look }`: the reply as the timeline draws it, and the
+ * look for its chathead (your default outfit, else your look in the game).
  */
 
 export const runtime = "nodejs";
@@ -47,9 +47,7 @@ export async function POST(
       return fail(posted.result, logStatusFor(posted.result));
     }
 
-    const looks = defaultLooksStatement([who.username]);
-    const look =
-      parseDefaultLooks(await query<Record<string, unknown>>(looks.text, looks.values)).get(who.username) ?? null;
+    const look = (await chatheadLooks([who.username])).get(who.username) ?? null;
 
     const reply: ReplyView = {
       id: posted.id,

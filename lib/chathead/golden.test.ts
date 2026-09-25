@@ -10,7 +10,7 @@ import { BACKGROUND, renderChathead } from "./draw";
 import golden from "./golden.json";
 import type { HeadTables } from "./head";
 import tablesJson from "./heads.json";
-import type { Look } from "./look";
+import { headOnly, type Look } from "./look";
 import { decodeModels, loadModels } from "./models";
 
 /**
@@ -58,6 +58,34 @@ describe("golden chatheads", () => {
       const pixels = renderChathead(client, tables, entry.look as Look);
       const blank = !pixels || pixels.every((rgb) => rgb === BACKGROUND);
       expect(blank ? null : hash(pixels!)).toBe(entry.hash);
+    },
+  );
+});
+
+/**
+ * A log with no default outfit shows the player's look from the game, cut
+ * down by `headOnly` so the page does not publish their gear. Cut or not,
+ * every golden look in a full set of armour draws the same chathead.
+ */
+describe("headOnly", () => {
+  // Cape, amulet, weapon, body, shield, legs, gloves, boots, ammo.
+  const GEAR: Record<number, number> = {
+    1: 1007, 2: 1712, 3: 1333, 4: 1127, 5: 1201, 7: 1079, 9: 1059, 10: 1061, 13: 882,
+  };
+
+  it.each(golden.looks.map((entry) => [entry.name, entry] as const))(
+    "%s",
+    (_name, entry) => {
+      const look = entry.look as Look;
+      const dressed: Look = {
+        ...look,
+        worn: look.worn.map((obj, slot) => GEAR[slot] ?? obj),
+      };
+      const draw = (l: Look) => {
+        const pixels = renderChathead(client, tables, l);
+        return !pixels || pixels.every((rgb) => rgb === BACKGROUND) ? null : hash(pixels);
+      };
+      expect(draw(headOnly(dressed, tables))).toBe(draw(dressed));
     },
   );
 });

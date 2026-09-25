@@ -3,7 +3,7 @@ import "server-only";
 import type { Look } from "@/lib/chathead/look";
 import { query } from "@/lib/db";
 import { displayName } from "@/lib/hiscores/format";
-import { defaultLooksStatement, parseDefaultLooks } from "@/lib/outfits/queries";
+import { chatheadLooks } from "@/lib/outfits/looks";
 
 import { type BodyToken, parseBody } from "./body";
 import { categorySlug } from "./categories";
@@ -58,7 +58,7 @@ export type EntryView =
 export type TimelinePage = {
   entries: EntryView[];
   next: Cursor | null;
-  /** Default looks by username, for the reply authors on this page. */
+  /** Chathead looks by username, for the reply authors on this page. */
   looks: Record<string, Look>;
 };
 
@@ -84,15 +84,7 @@ export async function loadTimeline(
         })();
 
   const authors = [...new Set(replies.map((reply) => reply.author))];
-  const looks: Record<string, Look> = {};
-  if (authors.length > 0) {
-    const wanted = defaultLooksStatement(authors);
-    for (const [username, look] of parseDefaultLooks(
-      await query<Record<string, unknown>>(wanted.text, wanted.values),
-    )) {
-      looks[username] = look;
-    }
-  }
+  const looks: Record<string, Look> = Object.fromEntries(await chatheadLooks(authors));
 
   const byUpdate = new Map<number, ReplyView[]>();
   for (const reply of replies) {

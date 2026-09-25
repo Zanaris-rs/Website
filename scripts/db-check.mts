@@ -50,6 +50,7 @@ import {
 } from "../lib/public/queries.ts";
 import {
   defaultLooksStatement,
+  gameLooksStatement,
   outfitDeleteStatement,
   outfitImportStatement,
   outfitSaveStatement,
@@ -916,9 +917,12 @@ async function checkOutfits(): Promise<void> {
 
   const list = outfitsStatement("__db_check__");
   const looks = defaultLooksStatement(["__db_check__"]);
+  // The chathead fallback: outfit_import_look once per name, in one statement.
+  const gameLooks = gameLooksStatement(["__db_check__"]);
   for (const [name, statement] of [
     ["outfits", list],
     ["outfit_default_looks", looks],
+    ["outfit_import_look (game looks)", gameLooks],
   ] as const) {
     const rows = await query(statement.text, statement.values);
     if (rows.length === 0) {

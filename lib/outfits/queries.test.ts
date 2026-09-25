@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   defaultLooksStatement,
+  gameLooksStatement,
   outfitDeleteStatement,
   outfitImportStatement,
   outfitSaveStatement,
@@ -9,6 +10,7 @@ import {
   outfitStatusFor,
   outfitsStatement,
   parseDefaultLooks,
+  parseGameLooks,
   parseOutfitImport,
   parseOutfitWrite,
   parseOutfits,
@@ -41,6 +43,7 @@ describe("statements", () => {
       outfitSetDefaultStatement(HOSTILE, 3),
       outfitImportStatement(HOSTILE),
       defaultLooksStatement([HOSTILE]),
+      gameLooksStatement([HOSTILE]),
     ]) {
       expect(statement.text).not.toContain("drop");
       expect(JSON.stringify(statement.values)).toContain("drop table");
@@ -66,6 +69,15 @@ describe("statements", () => {
   it("ask about at most a hundred names", () => {
     const names = Array.from({ length: 150 }, (_, i) => `n${i}`);
     expect((defaultLooksStatement(names).values[0] as string[]).length).toBe(100);
+    expect((gameLooksStatement(names).values[0] as string[]).length).toBe(100);
+  });
+
+  it("read game looks through the import function, one call per name", () => {
+    const statement = gameLooksStatement(["a", "b"]);
+    expect(statement.text).toContain("unnest($1::text[])");
+    expect(statement.text).toContain("accounts.outfit_import_look(u.username)");
+    expect(statement.text).toContain("l.result = 'ok'");
+    expect(statement.values).toEqual([["a", "b"]]);
   });
 });
 
@@ -123,6 +135,14 @@ describe("parseDefaultLooks", () => {
     const looks = parseDefaultLooks([row({ username: "zezima" })]);
     expect(looks.get("zezima")).toEqual(LOOK);
     expect(looks.size).toBe(1);
+  });
+});
+
+describe("parseGameLooks", () => {
+  it("maps each name to its look, and throws on a row it cannot read", () => {
+    expect(parseGameLooks([row({ username: "zezima" })]).get("zezima")).toEqual(LOOK);
+    expect(() => parseGameLooks([row({ username: "zezima", worn: [1] })])).toThrow(/worn/);
+    expect(() => parseGameLooks([row({})])).toThrow(/not a row/);
   });
 });
 
