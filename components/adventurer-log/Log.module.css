@@ -106,10 +106,20 @@
 
 .root :global(.al-stats td) {
   padding: 1px 4px;
+  vertical-align: middle;
 }
 
 .root :global(.al-stats td:last-child) {
   text-align: right;
+}
+
+/* The name's second line - xp and rank, or "under 15" - below it rather than
+   running on: a block breaks onto its own line after the inline <a> before it
+   without having to touch the name's own markup. */
+.root :global(.al-skill-xp) {
+  display: block;
+  color: var(--text-muted);
+  font-size: 11px;
 }
 
 .root :global(.al-empty) {

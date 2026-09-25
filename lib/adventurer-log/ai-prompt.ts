@@ -51,8 +51,14 @@ const OUTLINE = `<div class="al-root">                 <!-- the log; your CSS re
       <section class="al-stats al-box">
         <h2>Skills</h2>
         <div class="al-box-body">
-          <table><tr class="al-skill al-skill--1"><td><img></td><td>Attack</td><td>99</td></tr> ...</table>
-          <!-- or, before they are on the hiscores: <p class="al-empty">Not on the hiscores yet.</p> -->
+          <p class="al-skill-total"><a>Total level 513 &middot; 1,234,567 xp &middot; #45</a></p>
+          <p class="al-combat">Combat 45</p>                          <!-- or "Combat 23-27" when it cannot be exact -->
+          <table>
+            <tr class="al-skill al-skill--1"><td><img></td><td><a>Attack</a><span class="al-skill-xp">224,466 xp &middot; #12</span></td><td class="al-skill-level">99</td></tr>
+            <tr class="al-skill al-skill--2 al-skill--unranked"><td><img></td><td><a>Defence</a><span class="al-skill-xp">under 15</span></td><td class="al-skill-level">&lt;15</td></tr> ...
+          </table>
+          <p class="al-skills-note">A note shown once a skill is under 15</p>
+          <!-- or, before any skill is on the hiscores: <p class="al-empty">Not on the hiscores yet.</p> -->
         </div>
       </section>
       <section class="al-records al-box">                    <!-- only when the owner holds a place on a Records board -->
