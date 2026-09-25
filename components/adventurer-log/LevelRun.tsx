@@ -35,27 +35,35 @@ export default function LevelRun({
       <span className="al-event-icon" aria-hidden>
         {top ? <SkillIcon stat={top.stat} size={25} /> : null}
       </span>
-      <span className="al-levels-summary">Gained {run.gained} levels</span>
-      <ul className="al-levels-skills">
-        {run.skills.map((skill) => (
-          <li className="al-levels-skill" key={skill.stat}>
-            {skill.name} {skill.from} → {skill.to}
-          </li>
-        ))}
-      </ul>
+      {/*
+       * The same three direct children as an ordinary event row (icon, text,
+       * time), so `.al-event`'s three-column grid lays this out the same way
+       * an owner's CSS expects: everything but the icon and the time lives in
+       * this one text-column wrapper.
+       */}
+      <div className="al-event-text al-levels-body">
+        <span className="al-levels-summary">Gained {run.gained} levels</span>
+        <ul className="al-levels-skills">
+          {run.skills.map((skill) => (
+            <li className="al-levels-skill" key={skill.stat}>
+              {skill.name} {skill.from} → {skill.to}
+            </li>
+          ))}
+        </ul>
+        <button type="button" className="al-levels-toggle" onClick={() => setExpanded((shown) => !shown)}>
+          {expanded ? "Hide" : "Show each"}
+        </button>
+        {expanded ? (
+          <ul className="al-levels-each">
+            {run.events.map((event) => (
+              <Entry key={event.key} entry={event} ownerName={ownerName} ownerLook={ownerLook} looks={looks} />
+            ))}
+          </ul>
+        ) : null}
+      </div>
       <time className="al-time" dateTime={run.at}>
         {formatWhen(run.at)}
       </time>
-      <button type="button" className="al-levels-toggle" onClick={() => setExpanded((shown) => !shown)}>
-        {expanded ? "Hide" : "Show each"}
-      </button>
-      {expanded ? (
-        <ul className="al-levels-each">
-          {run.events.map((event) => (
-            <Entry key={event.key} entry={event} ownerName={ownerName} ownerLook={ownerLook} looks={looks} />
-          ))}
-        </ul>
-      ) : null}
     </li>
   );
 }

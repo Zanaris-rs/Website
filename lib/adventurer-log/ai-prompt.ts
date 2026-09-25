@@ -88,16 +88,18 @@ const OUTLINE = `<div class="al-root">                 <!-- the log; your CSS re
             </li>
             <li class="al-event al-event--level al-levels">          <!-- a run of level-ups, next to each other and within an hour -->
               <span class="al-event-icon"><img></span>
-              <span class="al-levels-summary">Gained 7 levels</span>
-              <ul class="al-levels-skills">
-                <li class="al-levels-skill">Woodcutting 53 → 58</li>
-                <li class="al-levels-skill">Firemaking 30 → 32</li>
-              </ul>
+              <div class="al-event-text al-levels-body">           <!-- one text-column child, like any other event row -->
+                <span class="al-levels-summary">Gained 7 levels</span>
+                <ul class="al-levels-skills">
+                  <li class="al-levels-skill">Woodcutting 53 → 58</li>
+                  <li class="al-levels-skill">Firemaking 30 → 32</li>
+                </ul>
+                <button class="al-levels-toggle">Show each</button>
+                <ul class="al-levels-each">                              <!-- after "Show each" -->
+                  <li class="al-event al-event--level">...</li> ...
+                </ul>
+              </div>
               <time class="al-time">24 Sep 2026, 14:05</time>
-              <button class="al-levels-toggle">Show each</button>
-              <ul class="al-levels-each">                              <!-- after "Show each" -->
-                <li class="al-event al-event--level">...</li> ...
-              </ul>
             </li>
             <li class="al-update">
               <div class="al-update-head">
