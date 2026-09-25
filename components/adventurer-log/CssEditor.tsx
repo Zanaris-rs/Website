@@ -35,6 +35,7 @@ const CLASSES: readonly [string, string][] = [
   [".al-header, .al-title, .al-chathead, .al-headline", "who you are"],
   [".al-stats, .al-skill", "the skills table (.al-skill--<category> for one)"],
   [".al-about", "about you"],
+  [".al-wardrobe, .al-outfits, .al-outfit, .al-outfit--default, .al-outfit-name", "your outfits (--default is your picture)"],
   [".al-timeline, .al-entries", "the timeline"],
   [".al-event, .al-event--level, --milestone, --quest, --drop, --clue, --random, --tutorial, --other", "an adventure, and by kind"],
   [".al-update, .al-update-body, .al-reply, .al-reply-body", "updates and replies"],
