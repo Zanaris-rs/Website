@@ -69,23 +69,34 @@ export default async function AdventurerLog({ params }: Params) {
   const styled = data.header.customCss.trim() !== "" && !data.header.cssDisabled;
   const css = styled ? sanitizeCss(data.header.customCss, data.header.username).css : "";
 
-  const bar = data.header.isOwner ? (
-    <>
-      <span>This is your Adventurer Log.</span>
-      <a href="/account/adventurer-log">Edit your log</a>
-      <a href="/account/adventurer-log/outfits">Outfits</a>
-    </>
-  ) : viewer ? (
-    <ReportButton target={{ kind: "log", name: data.header.username }} label="Report this log" />
-  ) : null;
+  // The owner's links are in the title box and the log's header instead, so
+  // the strip is only ever the report button, for a signed-in reader.
+  const bar =
+    viewer && !data.header.isOwner ? (
+      <ReportButton target={{ kind: "log", name: data.header.username }} label="Report this log" />
+    ) : null;
 
   const reader = viewer
     ? { username: viewer, isOwner: data.header.isOwner, canPost: data.header.viewerCanPost }
     : null;
 
+  // The owner's way to their settings sits in the site's own title box, on
+  // its own line, the way OwnerNav puts the same links on the settings pages,
+  // where no stylesheet of theirs can hide it. The log's header repeats the
+  // edit link next to Hiscores, where the eye already goes.
+  const links = [
+    { href: "/adventurer-log", text: "All Adventurer Logs" },
+    ...(data.header.isOwner
+      ? [
+          { href: "/account/adventurer-log", text: "Edit your log", br: true },
+          { href: "/account/adventurer-log/outfits", text: "Outfits" },
+        ]
+      : []),
+  ];
+
   return (
     <Frame>
-      <TitleBox title="Adventurer Log" links={[{ href: "/adventurer-log", text: "All Adventurer Logs" }]} />
+      <TitleBox title="Adventurer Log" links={links} />
       <LogView
         header={data.header}
         name={data.name}
