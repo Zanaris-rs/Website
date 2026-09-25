@@ -59,6 +59,7 @@ import {
   parseOutfitImport,
 } from "../lib/outfits/queries.ts";
 import {
+  aboutSaveStatement,
   blockStatement,
   blocksStatement,
   logSaveStatement,
@@ -1002,6 +1003,17 @@ async function checkAdventurerLog(): Promise<void> {
       console.error(`FAIL: ${name} answered ${JSON.stringify(row?.result)}; expected not_found.`);
       process.exitCode = 1;
     }
+  }
+
+  // "About you" saves both in one statement; the second only runs when the
+  // first said 'ok', so a name nobody has answers not_found and no mask.
+  const about = aboutSaveStatement("__db_check__", "", "", 0);
+  const [aboutRow] = await query<Record<string, unknown>>(about.text, about.values);
+  if (aboutRow?.text_result === "not_found" && aboutRow?.mask_result === null) {
+    console.log("adventure_log_save + adventure_log_set_hidden ('__db_check__', one statement): not_found (expected)");
+  } else {
+    console.error(`FAIL: the about save answered ${JSON.stringify(aboutRow)}; expected not_found and no mask.`);
+    process.exitCode = 1;
   }
 
   for (const [name, statement] of [

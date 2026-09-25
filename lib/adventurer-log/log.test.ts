@@ -5,9 +5,11 @@ import { ADVENTURE_CATEGORIES, categorySlug, isHidden, maskOf } from "./categori
 import { eventIcon, itemByName } from "./events";
 import { checkText, formatMonth, formatWhen, HEADLINE_MAX } from "./format";
 import {
+  aboutSaveStatement,
   cursorOf,
   logStatement,
   logStatusFor,
+  parseAboutSave,
   parseCursor,
   parseLog,
   parsePost,
@@ -108,6 +110,7 @@ describe("queries", () => {
       logStatement(HOSTILE, HOSTILE),
       timelineStatement(HOSTILE, null, null),
       reportStatement(HOSTILE, "log", null, HOSTILE, HOSTILE),
+      aboutSaveStatement(HOSTILE, HOSTILE, HOSTILE, 0),
     ]) {
       expect(statement.text).not.toContain("drop");
     }
@@ -170,6 +173,19 @@ describe("queries", () => {
     expect(parsePost([{ result: "ok", update_id: 9 }], "update_id", "post")).toEqual({ result: "ok", id: 9 });
     expect(parsePost([{ result: "muted", update_id: null }], "update_id", "post")).toEqual({ result: "muted", id: null });
     expect(() => parseWrite("whatever", "w")).toThrow(/whatever/);
+  });
+
+  it("save About you in one statement, the filters only after the text", () => {
+    const statement = aboutSaveStatement("hero", "h", "a", 16);
+    expect(statement.values).toEqual(["hero", "h", "a", 16]);
+    expect(statement.text.match(/accounts\.adventure_log_save\(/g)).toHaveLength(1);
+    expect(statement.text).toContain("case when saved.result = 'ok' then accounts.adventure_log_set_hidden($1, $4) end");
+
+    expect(parseAboutSave({ text_result: "ok", mask_result: "ok" })).toBe("ok");
+    expect(parseAboutSave({ text_result: "muted", mask_result: null })).toBe("muted");
+    expect(parseAboutSave({ text_result: "ok", mask_result: "bad_mask" })).toBe("bad_mask");
+    expect(() => parseAboutSave({ text_result: "ok", mask_result: null })).toThrow(/set_hidden/);
+    expect(() => parseAboutSave(undefined)).toThrow(/not a row/);
   });
 
   it("give each answer a status", () => {

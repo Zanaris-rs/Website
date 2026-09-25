@@ -84,7 +84,6 @@ export default function CssEditor({ initial, disabled }: { initial: string; disa
 
   return (
     <form onSubmit={save}>
-      <h2 style={{ margin: "0 0 6px", fontSize: 14 }}>Your log&rsquo;s style</h2>
       {disabled ? (
         <p role="status">Staff have turned off your log&rsquo;s stylesheet, so it cannot be changed.</p>
       ) : null}
