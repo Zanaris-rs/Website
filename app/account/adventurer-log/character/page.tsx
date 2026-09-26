@@ -10,6 +10,7 @@ import { loadAccount } from "@/lib/account/profile-server";
 import { requireSession } from "@/lib/account/session-server";
 import { logLook } from "@/lib/adventurer-log/page-data";
 import { type Persona, parsePersona, personaStatement } from "@/lib/adventurer-log/persona";
+import { editablePersona } from "@/lib/adventurer-log/persona-input";
 import { type LogHeader, logStatement, parseLog } from "@/lib/adventurer-log/queries";
 import type { Look } from "@/lib/chathead/look";
 import { displayName } from "@/lib/hiscores/format";
@@ -58,7 +59,8 @@ export default async function CharacterPage() {
       <OwnerNav title="Your character" username={username} current="character" />
       <Panel align="left" width="100%">
         <CharacterEditor
-          initial={{ ...persona, headline: header.headline }}
+          // A pick the site no longer lists starts as none, or every Save is refused.
+          initial={editablePersona({ ...persona, headline: header.headline })}
           name={displayName(header.username)}
           username={header.username}
           joinedAt={header.joinedAt}

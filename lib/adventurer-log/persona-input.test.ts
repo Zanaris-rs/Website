@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { EMPTY_PERSONA } from "./persona";
-import { checkPersonaInput, personaSaveStatement } from "./persona-input";
+import { checkPersonaInput, editablePersona, type PersonaInput, personaSaveStatement } from "./persona-input";
 
 const good = {
   ...EMPTY_PERSONA, headline: "  Selling lobbies  ", colour: 9, effect: 1, title: "the Unready",
@@ -40,6 +40,28 @@ describe("checkPersonaInput", () => {
   });
   it("refuses no body", () => {
     expect(checkPersonaInput(null).ok).toBe(false);
+  });
+});
+
+describe("editablePersona (the stored persona, as the editor starts from it)", () => {
+  const stored: PersonaInput = {
+    ...EMPTY_PERSONA, headline: "Selling lobbies", colour: 9, effect: 1, title: "the Unready", goals: ["99 Thieving"],
+    god: "guthix", homeTown: "varrock", playstyle: "skiller", scene: "varrock", signatureEmote: "wave",
+    dialogue: [{ mood: "happy", emote: "wave", lines: ["Hi!"] }],
+  };
+  it("keeps picks that are on the site's lists", () => {
+    expect(editablePersona(stored)).toEqual(stored);
+  });
+  it("drops a home town, playstyle or scene the site no longer lists, so the first Save is not refused", () => {
+    const stale = { ...stored, homeTown: "zanaris", playstyle: "ironman", scene: "zanaris" };
+    expect(checkPersonaInput(stale).ok).toBe(false);
+    const cleaned = editablePersona(stale);
+    expect(cleaned).toEqual({ ...stored, homeTown: null, playstyle: null, scene: null });
+    expect(checkPersonaInput(cleaned).ok).toBe(true);
+  });
+  it("keeps no picks as none", () => {
+    const none = { ...stored, homeTown: null, playstyle: null, scene: null };
+    expect(editablePersona(none)).toEqual(none);
   });
 });
 
