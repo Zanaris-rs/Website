@@ -151,9 +151,22 @@
   text-align: left;
 }
 
+/* Each row (`al-sheet-row`) is one dt and its dd, and lines them up on the
+   sheet's two columns: without this the rows themselves were the grid's
+   items, two to a line, with each label above its value. */
+.root :global(.al-sheet-row) {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+}
+
 .root :global(.al-sheet dt) {
   font-weight: bold;
   color: #c8ccd2;
+}
+
+.root :global(.al-sheet dd) {
+  margin: 0;
 }
 
 .root :global(.al-goals) {
