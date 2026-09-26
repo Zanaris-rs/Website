@@ -10,8 +10,8 @@
  * draws the frame. What a browser can't have — the cache, the map, the
  * config decoding — stays here; the site gets a PNG and a camera.
  *
- * Five things differ from the game, each the throwaway spike's fix made
- * permanent:
+ * Six things differ from the game, the first five the throwaway spike's
+ * fixes made permanent:
  *
  * - `client-shim.ts` stands in for `client/Client.ts`, whose one number
  *   (`loopCycle`) is all a scene reads from it;
@@ -20,9 +20,12 @@
  * - `visBacking` gets tables for pitches below the game's 128, which the
  *   eye-level camera uses (see `openStudio`);
  * - `Math.random` is pinned (see `pinned`);
- * - a sky is painted behind (see `sky`), where the game leaves black.
+ * - a sky is painted behind (see `sky`), where the game leaves black;
+ * - the world is drawn a column wider than the frame, and cut (see `DRAWN`),
+ *   as the rasteriser leaves a picture's last column as it found it.
  *
- * And each spot proves the site can draw a figure into it: see `shoot`.
+ * And each spot proves the site can draw a figure into it, with the site's
+ * own function (`lib/scenes/draw.ts`): see `shoot`.
  */
 
 import "../chathead/browser-stub.ts";
@@ -30,6 +33,7 @@ import "./client-shim.ts";
 // far.ts, imported below, registers its plugin as it is evaluated: before
 // any Client-TS module, all of which are imported in openStudio.
 
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
@@ -37,6 +41,7 @@ import type { AnimTables } from "../../lib/chathead/anims.ts";
 import { type BodyTables, buildBody, type Pose } from "../../lib/chathead/body.ts";
 import { type Client, type ClientModel, prepare } from "../../lib/chathead/client.ts";
 import type { Look } from "../../lib/chathead/look.ts";
+import { drawAtEye } from "../../lib/scenes/draw.ts";
 import type { SceneSpot } from "../../lib/scenes/spots.ts";
 import FileCache from "../game-icons/cache.ts";
 import { GAME_FAR, TILES } from "./far.ts";
@@ -46,24 +51,19 @@ import type { SpotInput } from "./spots.ts";
 export const WIDTH = 240;
 export const HEIGHT = 300;
 
+/**
+ * How wide the world is drawn: a column more than the frame, which is cut
+ * off. The rasteriser never fills a picture's last column (Pix3D ends each
+ * span at `Pix2D.sizeX`, the width less one), which the game leaves black
+ * at its viewport's edge and the sky would show as a stripe down the
+ * frame's side. The projection is the frame's: `(241 / 2) | 0` is 120,
+ * `setClipping`'s and `resetVisCalc`'s centre for 240 too.
+ */
+const DRAWN = WIDTH + 1;
+
 // --- the slice of Client-TS this uses -------------------------------------
 
 type Jag = { read(name: string): Uint8Array | null };
-
-/** A model as the world draws it (`World.ts:1476`). */
-export type WorldModel = ClientModel & {
-  worldRender(
-    yaw: number,
-    sinEyePitch: number,
-    cosEyePitch: number,
-    sinEyeYaw: number,
-    cosEyeYaw: number,
-    relativeX: number,
-    relativeY: number,
-    relativeZ: number,
-    typecode: number,
-  ): void;
-};
 
 type Scene = {
   fillBaseLevel(level: number): void;
@@ -72,7 +72,7 @@ type Scene = {
     x: number,
     y: number,
     z: number,
-    model: WorldModel,
+    model: ClientModel,
     typecode: number,
     yaw: number,
     padding: number,
@@ -136,6 +136,17 @@ async function pinned<T>(fn: () => T | Promise<T>): Promise<T> {
   }
 }
 
+/**
+ * A picture's hash, as the site's golden tests take it: the first 16 hex
+ * digits of the SHA-256 of its pixels' bytes.
+ */
+function hash(pixels: Int32Array): string {
+  return createHash("sha256")
+    .update(new Uint8Array(pixels.buffer, pixels.byteOffset, pixels.byteLength))
+    .digest("hex")
+    .slice(0, 16);
+}
+
 // --- the studio ----------------------------------------------------------------
 
 /** The game's new-player look (`Player.body`), wearing nothing. */
@@ -157,10 +168,37 @@ const BULKY: Look = {
   worn: [1163, 1007, -1, 1319, 1127, -1, -1, 1079, -1, -1, -1, -1, -1, -1],
 };
 
-/** The looks every spot is proved with, named for the build's errors. */
-const LOOKS: { name: string; look: Look }[] = [
+/**
+ * The game's new-player look as a woman (`Player.body` for gender 1): a
+ * different outline again — at canifis it reached what the man's did not.
+ */
+const WOMAN: Look = {
+  gender: 1,
+  kits: [45, -1, 56, 61, 67, 70, 79],
+  colours: [0, 0, 0, 0, 0],
+  worn: new Array<number>(14).fill(-1),
+};
+
+/**
+ * The default look in an iron chainbody (4), whose see-through faces the
+ * game blends with what is behind them. Proves that the site draws a figure
+ * onto the backdrop, not alone and laid over it: that differs here, and
+ * only here.
+ */
+const CHAINBODY: Look = {
+  ...REFERENCE,
+  worn: [-1, -1, -1, -1, 1101, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+};
+
+/**
+ * The looks every spot is proved with, named for the build's errors and
+ * written into `lib/scenes/composite-golden.json` by these names.
+ */
+export const LOOKS: { name: string; look: Look }[] = [
   { name: "the default look", look: REFERENCE },
   { name: "the bulky look", look: BULKY },
+  { name: "the woman's look", look: WOMAN },
+  { name: "the chainbody look", look: CHAINBODY },
 ];
 
 /** The build area: 13 zones of 8 tiles (`BuildArea.SIZE`). */
@@ -190,11 +228,18 @@ export type Shot = {
   figureBox: Box;
   /** How many look-and-pose composites were compared. */
   proofs: number;
+  /**
+   * Every composite's hash, for `composite-golden.json`: the look, and the
+   * emote and frame (null for standing).
+   */
+  hashes: { look: string; emote: string | null; frame: number | null; hash: string }[];
   /** Every one of them that differed. None is exact. */
   failures: Failure[];
 };
 
 export type Studio = {
+  /** The builds of the figure's tables and the emotes' the proofs drew with. */
+  versions: { bodies: string; anims: string };
   shoot(input: SpotInput): Promise<Shot>;
   /** Lay frames out side by side with a label on each, for looking at. */
   sheet(frames: { pixels: Int32Array; label: string }[], columns: number): { pixels: Int32Array; width: number; height: number };
@@ -287,9 +332,11 @@ export async function openStudio(clientDir: string, engineDir: string, outDir: s
   const bodies = JSON.parse(
     readFileSync(path.join(outDir, "lib/chathead/bodies.json"), "utf8"),
   ) as BodyTables;
-  for (const id of BULKY.worn) {
-    if (id !== -1 && !bodies.objs[id]) {
-      throw new Error(`the bulky look wears object ${id}, which bodies.json lacks: change BULKY in render.ts`);
+  for (const { name, look } of LOOKS) {
+    for (const id of look.worn) {
+      if (id !== -1 && !bodies.objs[id]) {
+        throw new Error(`${name} wears object ${id}, which bodies.json lacks: change LOOKS in render.ts`);
+      }
     }
   }
 
@@ -299,7 +346,7 @@ export async function openStudio(clientDir: string, engineDir: string, outDir: s
   const anims = JSON.parse(
     readFileSync(path.join(outDir, "lib/chathead/anims.json"), "utf8"),
   ) as AnimTables;
-  const poses: { name: string; pose?: Pose }[] = [{ name: "standing" }];
+  const poses: { name: string; emote: string | null; pose?: Pose }[] = [{ name: "standing", emote: null }];
   const posed = new Set<string>();
   for (const [emote, seq] of Object.entries(anims.emotes)) {
     for (const frame of seq.frames) {
@@ -309,7 +356,11 @@ export async function openStudio(clientDir: string, engineDir: string, outDir: s
       if (!AnimFrame.list[frame]) {
         throw new Error(`${emote} frame ${frame} is not in the cache's anims: re-run npm run chathead:update`);
       }
-      poses.push({ name: `${emote} frame ${frame}`, pose: { frame, hideLeft: seq.hideLeft, hideRight: seq.hideRight } });
+      poses.push({
+        name: `${emote} frame ${frame}`,
+        emote,
+        pose: { frame, hideLeft: seq.hideLeft, hideRight: seq.hideRight },
+      });
     }
   }
   const title = jag("title");
@@ -317,14 +368,14 @@ export async function openStudio(clientDir: string, engineDir: string, outDir: s
 
   // --- the view ---------------------------------------------------------------
 
-  Pix3D.setClipping(WIDTH, HEIGHT);
+  Pix3D.setClipping(DRAWN, HEIGHT);
   // The game's pitch distances (Client.ts:1227-1235).
   const distance = new Int32Array(9);
   for (let x = 0; x < 9; x++) {
     const angle = x * 32 + 128 + 15;
     distance[x] = ((angle * 3 + 600) * Pix3D.sinTable[angle]) >> 16;
   }
-  World.resetVisCalc(distance, 500, 800, WIDTH, HEIGHT);
+  World.resetVisCalc(distance, 500, 800, DRAWN, HEIGHT);
 
   // `resetVisCalc` works out which tiles can be seen only for the game's
   // pitches, 128 to 383, and `renderAll` looks the table up at
@@ -349,12 +400,19 @@ export async function openStudio(clientDir: string, engineDir: string, outDir: s
    * and past the draw distance.
    */
   function sky(): Int32Array {
-    const pixels = new Int32Array(WIDTH * HEIGHT);
+    const pixels = new Int32Array(DRAWN * HEIGHT);
     for (let y = 0; y < HEIGHT; y++) {
       const t = y / HEIGHT;
       const rgb = (((96 + 120 * t) | 0) << 16) | (((150 + 80 * t) | 0) << 8) | ((220 + 30 * t) | 0);
-      pixels.fill(rgb, y * WIDTH, (y + 1) * WIDTH);
+      pixels.fill(rgb, y * DRAWN, (y + 1) * DRAWN);
     }
+    return pixels;
+  }
+
+  /** A `DRAWN`-wide picture cut to the frame. */
+  function frame(drawn: Int32Array): Int32Array {
+    const pixels = new Int32Array(WIDTH * HEIGHT);
+    for (let y = 0; y < HEIGHT; y++) pixels.set(drawn.subarray(y * DRAWN, y * DRAWN + WIDTH), y * WIDTH);
     return pixels;
   }
 
@@ -461,10 +519,10 @@ export async function openStudio(clientDir: string, engineDir: string, outDir: s
   }
 
   /** A figure, freshly built: `buildBody` hands out the one scratch model. */
-  function figure(look: Look, pose?: Pose): WorldModel {
+  function figure(look: Look, pose?: Pose): ClientModel {
     const body = buildBody(source, bodies, look, pose);
     if (!body) throw new Error("a reference look built no body: re-run npm run chathead:update");
-    return body as WorldModel;
+    return body;
   }
 
   // --- a shot ----------------------------------------------------------------
@@ -480,10 +538,13 @@ export async function openStudio(clientDir: string, engineDir: string, outDir: s
    * `World` paints back to front, and a composite puts the figure last.
    *
    * So a figure is drawn both ways — in the same pass, with `addDynamic`,
-   * and over the finished backdrop — and the pixels compared, for every
-   * pose the card can show it in (standing, and every frame of every emote)
-   * and for two looks: the default, and a bulky one that reaches further.
-   * `build.ts` refuses a spot where any differ, naming the look and pose.
+   * and onto the finished backdrop by the site's own `drawAtEye` — and the
+   * pixels compared, for every pose the card can show it in (standing, and
+   * every frame of every emote) and for each of `LOOKS`: the default, a
+   * bulky one that reaches further, a woman's outline, and a chainbody's
+   * see-through faces. `build.ts` refuses a spot where any differ, naming
+   * the look and pose, and writes the composites' hashes for the site's
+   * golden test.
    */
   async function shoot(input: SpotInput): Promise<Shot> {
     if (!((input.pitch >= 0 && input.pitch <= 96) || (input.pitch >= 128 && input.pitch <= 383))) {
@@ -512,43 +573,60 @@ export async function openStudio(clientDir: string, engineDir: string, outDir: s
         throw new Error(`${input.key}: the camera is outside the build area; shorten dist`);
       }
 
+      // The figure's depth, as worldRender works it out: the site draws it with
+      // the game's own far clip, which far.ts does not reach.
       const sinPitch = Pix3D.sinTable[input.pitch];
       const cosPitch = Pix3D.cosTable[input.pitch];
       const sinYaw = Pix3D.sinTable[input.yaw];
       const cosYaw = Pix3D.cosTable[input.yaw];
-      // The figure's depth, as worldRender works it out: the site draws it with
-      // the game's own far clip, which far.ts does not reach.
       const zPrime = ((fz - eye.z) * cosYaw - (fx - eye.x) * sinYaw) >> 16;
       const depth = ((fy - eye.y) * sinPitch + zPrime * cosPitch) >> 16;
       if (depth >= GAME_FAR) {
         throw new Error(`${input.key}: the figure is ${depth} deep, past the game's far clip of ${GAME_FAR}; shorten dist`);
       }
 
-      const render = (body: WorldModel | null): Int32Array => {
-        const pixels = sky();
-        Pix2D.setPixels(pixels, WIDTH, HEIGHT);
-        Pix3D.setClipping(WIDTH, HEIGHT);
+      const render = (body: ClientModel | null): Int32Array => {
+        const drawn = sky();
+        Pix2D.setPixels(drawn, DRAWN, HEIGHT);
+        Pix3D.setClipping(DRAWN, HEIGHT);
         if (body) region.world.addDynamic(input.level, fx, fy, fz, body, 0, facing, 60, false);
         region.world.renderAll(eye.x, eye.y, eye.z, 3, input.yaw, input.pitch);
         region.world.removeSprites();
-        return pixels;
+        return frame(drawn);
+      };
+
+      const spot: SceneSpot = {
+        key: input.key,
+        name: input.name,
+        width: WIDTH,
+        height: HEIGHT,
+        // World coordinates, so the tile is readable; worldRender only
+        // ever uses figure minus eye.
+        eye: {
+          x: eye.x + region.baseX * 128,
+          y: eye.y,
+          z: eye.z + region.baseZ * 128,
+          pitch: input.pitch,
+          yaw: input.yaw,
+        },
+        figure: { x: input.x * 128 + 64, y: fy, z: input.z * 128 + 64, yaw: facing },
       };
 
       const backdrop = render(null);
       let reference: { samePass: Int32Array; composite: Int32Array } | null = null;
       const failures: Failure[] = [];
+      const hashes: Shot["hashes"] = [];
       for (const { name: look, look: worn } of LOOKS) {
-        for (const { name: pose, pose: frame } of poses) {
+        for (const { name: pose, emote, pose: frame } of poses) {
           const samePass = render(figure(worn, frame));
-          // What the site will do: the backdrop, then the figure over it.
-          const composite = backdrop.slice();
-          Pix2D.setPixels(composite, WIDTH, HEIGHT);
-          Pix3D.setRenderClipping();
-          figure(worn, frame).worldRender(facing, sinPitch, cosPitch, sinYaw, cosYaw, fx - eye.x, fy - eye.y, fz - eye.z, 0);
+          // What the site does (lib/scenes/draw.ts): the figure drawn onto
+          // the backdrop, from the spot's eye.
+          const composite = drawAtEye(source, figure(worn, frame), spot, backdrop);
 
           let differing = 0;
           for (let i = 0; i < composite.length; i++) if (composite[i] !== samePass[i]) differing++;
           if (differing > 0) failures.push({ look, pose, differing, samePass });
+          hashes.push({ look, emote, frame: frame?.frame ?? null, hash: hash(composite) });
           // The first proof is the default look standing: the contact sheet's.
           reference ??= { samePass, composite };
         }
@@ -570,22 +648,6 @@ export async function openStudio(clientDir: string, engineDir: string, outDir: s
         throw new Error(`${input.key}: the figure is not in the frame; aim the camera at it`);
       }
 
-      const spot: SceneSpot = {
-        key: input.key,
-        name: input.name,
-        width: WIDTH,
-        height: HEIGHT,
-        // World coordinates, so the tile is readable; worldRender only
-        // ever uses figure minus eye.
-        eye: {
-          x: eye.x + region.baseX * 128,
-          y: eye.y,
-          z: eye.z + region.baseZ * 128,
-          pitch: input.pitch,
-          yaw: input.yaw,
-        },
-        figure: { x: input.x * 128 + 64, y: fy, z: input.z * 128 + 64, yaw: facing },
-      };
       return {
         spot,
         backdrop,
@@ -593,6 +655,7 @@ export async function openStudio(clientDir: string, engineDir: string, outDir: s
         figureBox: box,
         proofs: LOOKS.length * poses.length,
         failures,
+        hashes,
       };
     });
   }
@@ -619,5 +682,5 @@ export async function openStudio(clientDir: string, engineDir: string, outDir: s
     return { pixels, width, height };
   }
 
-  return { shoot, sheet };
+  return { versions: { bodies: bodies.version, anims: anims.version }, shoot, sheet };
 }

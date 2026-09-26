@@ -28,6 +28,11 @@ export type Clip = { frames: Int32Array[]; delays: number[]; loop: number | null
  * frame, steps back `loops` frames (`:3820`); every emote's `loops` is -1
  * (`scripts/chathead/anims.ts` checks), which steps past the end and stops
  * it, and the player stands again.
+ *
+ * Each frame is drawn at the figure's camera into a `frame`-sized picture,
+ * unless `draw` draws it elsewhere: standing in a scene, at the spot's eye
+ * (`lib/scenes/draw.ts`). `draw` is handed the posed body, which is the
+ * client's one scratch model, and returns the picture.
  */
 export function emoteClip(
   client: Client,
@@ -36,6 +41,8 @@ export function emoteClip(
   look: Look,
   emote: Emote,
   frame: Frame,
+  draw: (body: ClientModel) => Int32Array = (body) =>
+    drawModel(client, body, frame, FIGURE_CAMERA),
 ): Clip | null {
   const seq = anims.emotes[emote];
   const drawn = new Map<number, Int32Array>();
@@ -46,7 +53,7 @@ export function emoteClip(
       const pose = { frame: id, hideLeft: seq.hideLeft, hideRight: seq.hideRight };
       const body = buildBody(client, bodyTables, look, pose);
       if (!body) return null;
-      pixels = drawModel(client, body, frame, FIGURE_CAMERA);
+      pixels = draw(body);
       drawn.set(id, pixels);
     }
     frames.push(pixels);

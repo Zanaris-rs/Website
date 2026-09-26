@@ -11,15 +11,20 @@
  *
  *   public/game/scenes/<key>.png     the backdrop: the spot with no one in it
  *   lib/scenes/spots.json            each spot's eye and figure, and the version
+ *   lib/scenes/composite-golden.json the proved composites' hashes, which
+ *                                    `lib/scenes/composite.test.ts` holds the
+ *                                    site's renderer to
  *
  * and `scripts/scenes/contact-sheet.png`, every spot with the reference
  * figure drawn in, to judge the framing by eye. That one is not committed.
  *
  * A spot fails the build if drawing a figure over its backdrop is not pixel
- * for pixel the same as drawing it in the same pass, for either reference
- * look, standing or in any frame of any emote: something stands between
+ * for pixel the same as drawing it in the same pass, for any reference look
+ * (`LOOKS`), standing or in any frame of any emote: something stands between
  * that tile and the camera. The error names the spot, the look, the emote
- * and the frame; move the tile or the camera. Nothing is written but the
+ * and the frame; move the tile or the camera. The figure is drawn over the
+ * backdrop by the site's own function (`lib/scenes/draw.ts`), so what is
+ * proved is what a page draws. Nothing is written but the
  * contact sheet, which then shows the first failing pose, when any fails.
  */
 
@@ -31,7 +36,7 @@ import path from "node:path";
 
 import type { SceneSpot } from "../../lib/scenes/spots.ts";
 import { encodePng } from "../game-icons/png.ts";
-import { HEIGHT, openStudio, WIDTH } from "./render.ts";
+import { HEIGHT, LOOKS, openStudio, WIDTH } from "./render.ts";
 import { SPOTS } from "./spots.ts";
 
 function required(name: string): string {
@@ -135,9 +140,29 @@ const version = hash.update(JSON.stringify(spots)).digest("hex").slice(0, 12);
 
 writeFileSync(path.join(OUT_DIR, "lib/scenes/spots.json"), JSON.stringify({ version, spots }, null, 2) + "\n");
 
+/**
+ * The composites the site's renderer must draw, pixel for pixel: every look
+ * in every pose at the first spot, and every look standing at the others.
+ * One entry per line, as the chathead goldens are written.
+ */
+const draws = shots.flatMap((shot, index) =>
+  shot.hashes
+    .filter((entry) => index === 0 || entry.emote === null)
+    .map((entry) => ({ spot: shot.spot.key, ...entry })),
+);
+const looks = Object.fromEntries(LOOKS.map(({ name, look }) => [name, look]));
+writeFileSync(
+  path.join(OUT_DIR, "lib/scenes/composite-golden.json"),
+  `{"version":${JSON.stringify(version)},"bodies":${JSON.stringify(studio.versions.bodies)},` +
+    `"anims":${JSON.stringify(studio.versions.anims)},\n"looks":${JSON.stringify(looks)},\n"draws":[\n` +
+    draws.map((draw) => JSON.stringify(draw)).join(",\n") +
+    "\n]}\n",
+);
+
 const bytes = shots.reduce((total, shot) => total + shot.png.length, 0);
 console.log(
   `scenes   ${shots.length} spots (${spots.map((spot) => spot.key).join(", ")}), every composite exact, ` +
     `${(bytes / 1024).toFixed(0)} KB -> public/game/scenes/*.png?v=${version}, lib/scenes/spots.json`,
 );
+console.log(`golden   ${draws.length} composites -> lib/scenes/composite-golden.json`);
 process.exit(0);

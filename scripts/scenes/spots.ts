@@ -40,6 +40,6 @@ export const SPOTS: SpotInput[] = [
   { key: "seers_village", name: "Seers' Village", x: 2738, z: 3479, level: 0, pitch: 64, yaw: 512, dist: 1000, lift: 230 },
   { key: "ardougne", name: "Ardougne market", x: 2662, z: 3305, level: 0, pitch: 64, yaw: 0, dist: 1000, lift: 230 },
   { key: "yanille", name: "the Wizards' Guild", x: 2606, z: 3098, level: 0, pitch: 32, yaw: 832, dist: 1000, lift: 230 },
-  { key: "canifis", name: "Canifis", x: 3492, z: 3490, level: 0, pitch: 64, yaw: 1024, dist: 1000, lift: 230 },
+  { key: "canifis", name: "Canifis", x: 3491, z: 3491, level: 0, pitch: 64, yaw: 1024, dist: 1000, lift: 230 },
   { key: "taverley", name: "the druids' circle", x: 2925, z: 3478, level: 0, pitch: 64, yaw: 0, dist: 1000, lift: 230 },
 ];
