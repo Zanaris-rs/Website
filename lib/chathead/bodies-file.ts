@@ -1,3 +1,4 @@
+import { initAnimFrames } from "./anims-file.ts";
 import { type Client, prepare } from "./client.ts";
 import { decodeModels, encodeModels, loadModels, type ModelFile } from "./models.ts";
 
@@ -92,7 +93,9 @@ export function decodeBodies(data: Uint8Array): BodiesFile {
  * colour table, which holds their palettes, and room to expand them; then
  * the models and the stance frames.
  *
- * The renderer may already be drawing chatheads; none of this changes one.
+ * The renderer may already be drawing chatheads, or hold the emotes' and
+ * moods' frames (`anims.bin`); none of this changes either. The frame table
+ * is made once for both files (`initAnimFrames`).
  */
 export function loadBodies(client: Client, file: BodiesFile): void {
   client.Pix3D.unpackTextures({
@@ -102,6 +105,6 @@ export function loadBodies(client: Client, file: BodiesFile): void {
   client.Pix3D.initPool(20);
 
   loadModels(client, file.models);
-  client.AnimFrame.init(file.frames);
+  initAnimFrames(client, file.frames);
   for (const anim of file.anims) client.AnimFrame.unpack(anim);
 }

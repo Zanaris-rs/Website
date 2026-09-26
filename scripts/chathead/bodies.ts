@@ -60,7 +60,8 @@ type ObjTypeClass = {
 
 type SeqTypeClass = { list: { frames: Int16Array | null }[] };
 
-type ClientPlayerClass = new () => {
+/** A `ClientPlayer`, as far as a figure's reference pictures use one. */
+export type StandingPlayer = {
   ready: boolean;
   gender: number;
   appearance: Uint16Array;
@@ -69,8 +70,14 @@ type ClientPlayerClass = new () => {
   readyanim: number;
   secondaryAnim: number;
   secondaryAnimFrame: number;
+  /** An emote's reference plays it as the primary seq (`anims.ts`). */
+  primaryAnim: number;
+  primaryAnimFrame: number;
+  primaryAnimDelay: number;
   getTempModel2(): ClientModel | null;
 };
+
+type ClientPlayerClass = new () => StandingPlayer;
 
 type SourceModel = ClientModel & {
   numFaces: number;
@@ -346,11 +353,11 @@ export function exportBodies(input: BodyInputs) {
 
   let players = 0;
   /**
-   * The client's own figure for a look: `ClientPlayer.getTempModel2`, for a
-   * player standing still — their stance playing as the secondary
-   * animation, at its first frame — drawn at the figure's camera.
+   * The client's own player in a look, standing still: the slots as the
+   * server sends them, and their stance playing as the secondary animation,
+   * at its first frame.
    */
-  function reference(entry: Look, frame: Frame): Int32Array {
+  function standing(entry: Look): StandingPlayer {
     const player = new ClientPlayer();
     player.ready = true;
     player.gender = entry.gender;
@@ -363,8 +370,15 @@ export function exportBodies(input: BodyInputs) {
     player.readyanim = seq;
     player.secondaryAnim = seq;
     player.secondaryAnimFrame = 0;
+    return player;
+  }
 
-    const body = player.getTempModel2();
+  /**
+   * The client's own figure for a look: `ClientPlayer.getTempModel2`, for a
+   * player standing still, drawn at the figure's camera.
+   */
+  function reference(entry: Look, frame: Frame): Int32Array {
+    const body = standing(entry).getTempModel2();
     if (!body) throw new Error("the client built no body");
     return drawModel(source, body, frame, FIGURE_CAMERA);
   }
@@ -481,5 +495,8 @@ export function exportBodies(input: BodyInputs) {
      * browser can init AnimFrame's table once for both bodies.bin and
      * anims.bin. */
     frameTotal,
+    /** The client's own player standing in a look, for `anims.ts` to play
+     * an emote on for its reference pictures. */
+    standing,
   };
 }

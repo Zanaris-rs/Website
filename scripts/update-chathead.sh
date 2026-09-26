@@ -12,6 +12,9 @@
 #   lib/chathead/bodies.json          kits, worn objects, what hides what, stances
 #   lib/chathead/figure.json          the figure's frame, and the version
 #   lib/chathead/figure-golden.json   reference figures for their golden test
+#   public/game/chathead/anims.bin    the emotes' and the chathead moods' frames
+#   lib/chathead/anims.json           their seqs: frames, second frames, delays, loops
+#   lib/chathead/anim-golden.json     reference emote and mood frames for their golden test
 #
 # All of them are committed (and the outfit editor's tab, below). Re-run
 # after a content bump, once the engine has been repacked, and commit the
@@ -43,9 +46,9 @@
 # weapon gives (`ready_baseanim`) are never sent to the client.
 #
 # The reference pictures are drawn by the client's own `ClientPlayer.
-# getHeadModel` and `getTempModel2`, not by the site's code, so the golden
-# tests check the site's assembly, the exported tables and the bundled
-# renderer together.
+# getHeadModel` and `getTempModel2`, and a talking head's by `IfType.
+# getTempModel`, not by the site's code, so the golden tests check the
+# site's assembly, the exported tables and the bundled renderer together.
 
 set -euo pipefail
 
