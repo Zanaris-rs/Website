@@ -7,10 +7,21 @@ import type { Emote } from "@/lib/chathead/vocab";
 import { prefersReducedMotion } from "@/lib/game-chat/clock";
 
 type Stage = {
+  /**
+   * The page now shown, already clamped to `pages`: never out of range even
+   * if `pages` shrinks while this state is kept (as with W5's live editor
+   * preview, which re-renders with fewer pages under the same state).
+   * Readers use this directly and never reclamp it themselves.
+   */
   page: number;
   pageCount: number;
   next(): void;
-  /** The emote the figure acts out now: this page's, or the signature one. */
+  /**
+   * The emote the figure acts out now: the current page's own emote, or -
+   * only when there is no current page at all - the signature one. A page
+   * that explicitly has no emote (`emote: null`) leaves the figure still;
+   * it does not fall back to the signature emote.
+   */
   emote: Emote | null;
   /** Bumped to make the figure play `emote` once. */
   replay: number;
@@ -33,13 +44,23 @@ export default function PersonaStage({
   children,
 }: {
   pages: readonly DialoguePage[];
+  /**
+   * The fallback emote for when there is no current page - the caller
+   * passes `null` whenever the owner has written real pages of their own,
+   * even if one of them has no emote: that page's stillness must not be
+   * covered up by falling back to the signature emote.
+   */
   signatureEmote: Emote | null;
   children: ReactNode;
 }) {
-  const [page, setPage] = useState(0);
+  const [pageState, setPageState] = useState(0);
   const [replay, setReplay] = useState(0);
-  const pageEmote = pages.length > 0 ? pages[Math.min(page, pages.length - 1)].emote : null;
-  const emote = pages.some((p) => p.emote !== null) ? pageEmote : signatureEmote;
+  // Clamped once, here, rather than by each reader: `pages` can shrink under
+  // an unchanged `pageState` (W5's live editor preview), and an out-of-range
+  // page would print wrong wherever it was read raw (e.g. "5 / 3").
+  const page = pages.length === 0 ? 0 : Math.min(pageState, pages.length - 1);
+  const currentPage = pages.length > 0 ? pages[page] : undefined;
+  const emote = currentPage?.emote ?? signatureEmote;
 
   useEffect(() => {
     // Deferred rather than called straight from the effect body: `Figure`
@@ -54,9 +75,9 @@ export default function PersonaStage({
 
   const next = useCallback(() => {
     if (pages.length === 0) return;
-    setPage((current) => (current + 1) % pages.length);
+    setPageState((page + 1) % pages.length);
     setReplay((count) => count + 1);
-  }, [pages.length]);
+  }, [pages.length, page]);
   const replayEmote = useCallback(() => setReplay((count) => count + 1), []);
 
   const value = useMemo(

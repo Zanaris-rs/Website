@@ -1,10 +1,20 @@
 "use client";
 
 import Chathead from "@/components/game/Chathead";
+import { tables } from "@/lib/chathead/load";
 import type { DialoguePage } from "@/lib/adventurer-log/persona";
 import type { Look } from "@/lib/chathead/look";
 
 import { usePersonaStage } from "./PersonaStage";
+
+/**
+ * The chatbox's own head is a fixed 96 frame-pixels wide - `Chathead`'s
+ * `scale` prop draws it at that size directly, as `ChatheadFace` scales a
+ * chathead to its own target width, rather than asking CSS to resize a
+ * canvas after the fact (which `sanitizeCss` would refuse to let an owner's
+ * stylesheet do anyway: it strips every `!important`).
+ */
+const HEAD_SCALE = 96 / tables.frame.width;
 
 /**
  * The adventurer talking, as an NPC talks in 2004: their chathead in the
@@ -23,11 +33,14 @@ export default function DialogueBox({
 }) {
   const stage = usePersonaStage();
   if (pages.length === 0) return null;
-  const page = pages[Math.min(stage.page, pages.length - 1)];
+  // `stage.page` is already clamped to `pages` by `PersonaStage`; reading it
+  // straight keeps this in agreement with the emote it is driving, even if
+  // `pages` shrinks under an unchanged stage (W5's live editor preview).
+  const page = pages[stage.page];
   return (
     <section className="al-dialogue al-box" aria-label={`${name} says`}>
       <div className="al-dialogue-head al-chathead">
-        <Chathead look={look} label={`${name}'s chathead`} mood={page.mood} lines={page.lines.length} />
+        <Chathead look={look} label={`${name}'s chathead`} mood={page.mood} lines={page.lines.length} scale={HEAD_SCALE} />
       </div>
       <div className="al-dialogue-body">
         <p className="al-dialogue-name">{name}</p>

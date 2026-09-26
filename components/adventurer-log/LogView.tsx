@@ -71,6 +71,10 @@ export default function LogView({
   // being said - the stage drives the figure's emote, the box draws the
   // words, and the fallback page (headline, no pages) has to reach both.
   const pages = dialoguePages(persona, header.headline);
+  // The signature emote is only a fallback for having no real pages of the
+  // owner's own: with real pages, `null` here keeps a page's own "no emote"
+  // choice from being papered over by it (PersonaStage's `emote` fallback).
+  const signatureEmote = persona.dialogue.length === 0 ? persona.signatureEmote : null;
   return (
     <>
       {bar ? <div className={styles.bar}>{bar}</div> : null}
@@ -79,7 +83,7 @@ export default function LogView({
             hoists only a <style> with href and precedence. Its text is the
             sanitiser's output, which has no "<" in it. */}
         {css ? <style>{css}</style> : null}
-        <PersonaStage pages={pages} signatureEmote={persona.signatureEmote}>
+        <PersonaStage pages={pages} signatureEmote={signatureEmote}>
           <div className="al-page">
             <aside className="al-side">
               <Card

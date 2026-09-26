@@ -172,14 +172,6 @@
   border: 2px solid #5b4b32;
 }
 
-/* Overrides `Chathead`'s own inline size (it draws at the frame's native
-   133x200): the dialogue's head is the chatbox's own smaller portrait, so
-   the rule needs `!important` to win against that inline style. */
-.root :global(.al-dialogue-head canvas) {
-  width: 96px !important;
-  height: auto !important;
-}
-
 .root :global(.al-dialogue-body) {
   padding: 6px 10px;
 }
