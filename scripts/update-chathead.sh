@@ -53,6 +53,7 @@ cd "$(dirname "$0")/.."
 
 source scripts/lib/client-ts.sh
 ENGINE_DIR="${ENGINE_DIR:-../Server/engine}"
+CONTENT_DIR="${CONTENT_DIR:-$ENGINE_DIR/../content}"
 
 if ! command -v bun > /dev/null; then
   echo "error: bun is required to bundle and run the client's renderer (https://bun.sh)" >&2
@@ -96,7 +97,7 @@ bun build "$ENTRY_DIR/renderer.ts" --minify --format esm --target browser \
   --outfile public/game/chathead/renderer.js > /dev/null
 echo "renderer $(wc -c < public/game/chathead/renderer.js | tr -d ' ') bytes -> public/game/chathead/renderer.js"
 
-CLIENT_DIR="$CACHE_DIR" ENGINE_DIR="$ENGINE_DIR" OUT_DIR="." bun scripts/chathead/build.ts
+CLIENT_DIR="$CACHE_DIR" ENGINE_DIR="$ENGINE_DIR" CONTENT_DIR="$CONTENT_DIR" OUT_DIR="." bun scripts/chathead/build.ts
 
 echo
 echo "sanity:"

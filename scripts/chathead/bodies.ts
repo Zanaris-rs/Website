@@ -477,5 +477,9 @@ export function exportBodies(input: BodyInputs) {
     frame,
     golden: goldenFile.length,
     drawn: goldenFile.filter((entry) => entry.hash !== null).length,
+    /** The cache's frame total (R5): exportAnims must match this, so the
+     * browser can init AnimFrame's table once for both bodies.bin and
+     * anims.bin. */
+    frameTotal,
   };
 }

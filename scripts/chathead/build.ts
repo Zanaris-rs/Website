@@ -28,6 +28,7 @@ import type { HeadTables } from "../../lib/chathead/head.ts";
 import { type Look, toAppearance } from "../../lib/chathead/look.ts";
 import { encodeModels } from "../../lib/chathead/models.ts";
 import FileCache from "../game-icons/cache.ts";
+import { exportAnims, type Seq } from "./anims.ts";
 import { type BodyInputs, exportBodies } from "./bodies.ts";
 import { exportOutfitEditor, type SpriteClient } from "./outfits.ts";
 import { readWearPos } from "./server-obj.ts";
@@ -109,7 +110,10 @@ const Pix32 = await client<SpriteClient["Pix32"]>("graphics/Pix32.ts");
 const AnimFrame = await client<Client["AnimFrame"]>("dash3d/AnimFrame.ts");
 const IdkType = await client<IdkTypeClass & BodyInputs["IdkType"]>("config/IdkType.ts");
 const ObjType = await client<ObjTypeClass & BodyInputs["ObjType"]>("config/ObjType.ts");
-const SeqType = await client<BodyInputs["SeqType"] & { init(config: Jag): void }>(
+// `Seq` (from anims.ts) is a superset of BodyInputs["SeqType"]'s list item
+// (both need `frames`; anims.ts also needs replaceheldleft/right and
+// getDelay), so the one instance satisfies exportBodies and exportAnims.
+const SeqType = await client<{ list: Seq[]; init(config: Jag): void }>(
   "config/SeqType.ts",
 );
 const ClientPlayer = await client<ClientPlayerClass & BodyInputs["ClientPlayer"]>(
@@ -441,6 +445,18 @@ const wearables = exportOutfitEditor({
   wearpos,
   recol1d: ClientPlayer.recol1d,
   outDir: OUT_DIR,
+});
+
+// Last: exportAnims re-initialises AnimFrame's table (input.AnimFrame.init),
+// which would clear the stance frames exportBodies unpacked for its golden
+// pictures if run any earlier. It prints its own summary line.
+exportAnims({
+  contentDir: process.env.CONTENT_DIR ?? path.join(ENGINE_DIR, "../content"),
+  outDir: OUT_DIR,
+  cache,
+  SeqType,
+  AnimFrame,
+  bodiesFrames: bodies.frameTotal,
 });
 
 const drawn = goldenFile.filter((entry) => entry.hash !== null).length;
