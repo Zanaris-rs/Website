@@ -254,3 +254,88 @@
   gap: 8px;
   margin-top: 6px;
 }
+
+/* --- where you stand: the scenes, as thumbnails at half size --- */
+
+.scenes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.editor .scene {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 3px;
+  padding: 2px 2px 4px;
+  background: #000;
+  border: 2px solid var(--panel-border);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.editor .scene[aria-pressed="true"] {
+  border-color: var(--link-green);
+}
+
+.editor .scene:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.thumb {
+  display: block;
+  width: 120px;
+  height: 150px;
+  image-rendering: pixelated;
+}
+
+.noScene {
+  background: #1a1a1a;
+}
+
+.sceneName {
+  font-size: 11px;
+  line-height: 1.2;
+  text-align: center;
+}
+
+/* On a phone, three to a row, each as wide as its column allows: at half
+   size only two fit, and the sixteen scenes run to nine rows. */
+@media (max-width: 599px) {
+  .scenes {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
+  }
+
+  .editor .scene {
+    padding: 0 0 3px;
+  }
+
+  .thumb {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 4 / 5;
+  }
+}
+
+/* "Stand here", under the home town, in line with the select. */
+.standHere {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  align-items: center;
+  margin: -2px 0 6px 118px;
+}
+
+.standHere .hint {
+  margin: 0;
+}
+
+@media (max-width: 599px) {
+  .standHere {
+    margin-left: 0;
+  }
+}

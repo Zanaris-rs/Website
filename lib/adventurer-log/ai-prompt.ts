@@ -48,7 +48,11 @@ const OUTLINE = `<div class="al-root">                 <!-- the log; your CSS re
         <button class="al-figure" aria-label="Zezima: play the emote again">   <!-- a saved outfit, standing; a click replays its emote -->
           <canvas></canvas>
         </button>
-        <!-- or, with no outfit: <p class="al-chat-strip"><span class="al-chat … al-overhead al-headline"></span></p>,
+        <!-- or, standing in a scene the owner picked, the same two inside its frame, and the place under it:
+             <div class="al-scene"><span class="al-chat … al-overhead al-headline"></span><button class="al-figure"><canvas></canvas></button></div>
+             <p class="al-scene-name">Varrock square</p>
+             .al-scene is 240×300 with the backdrop drawn in the canvas; you can frame it, not recolour it -->
+        <!-- or, with no outfit:<p class="al-chat-strip"><span class="al-chat … al-overhead al-headline"></span></p>,
              or with no words either: <div class="al-chathead"><canvas></canvas></div> -->
         <p class="al-examine">Examine text</p>
         <dl class="al-sheet">

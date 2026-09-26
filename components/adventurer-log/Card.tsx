@@ -4,6 +4,7 @@ import { cardMode, sheetRows } from "@/lib/adventurer-log/card";
 import { formatMonth } from "@/lib/adventurer-log/format";
 import type { Persona } from "@/lib/adventurer-log/persona";
 import type { Look } from "@/lib/chathead/look";
+import { sceneOf } from "@/lib/scenes/spots";
 
 import CardFigure from "./CardFigure";
 
@@ -11,6 +12,9 @@ import CardFigure from "./CardFigure";
  * The top of the left column: who this adventurer is. It keeps the classes
  * today's header had (al-header, al-title, al-chathead, al-headline,
  * al-joined, al-links), so skins written for it still land.
+ *
+ * A figure stands in the owner's scene when they picked one that has a
+ * backdrop (`lib/scenes/spots.ts`); an unknown key draws the plain figure.
  */
 export default function Card({
   name,
@@ -35,13 +39,21 @@ export default function Card({
 }) {
   const mode = cardMode({ hasOutfit: outfitLook !== null, headline, pages: persona.dialogue });
   const rows = sheetRows(persona);
+  const scene = sceneOf(persona.scene);
   return (
     <section className="al-header al-card al-box">
       <h1 className="al-title">{name}</h1>
       {persona.title ? <p className="al-persona-title">{persona.title}</p> : null}
 
       {mode === "figure" && outfitLook ? (
-        <CardFigure name={name} look={outfitLook} headline={headline} colour={persona.colour} effect={persona.effect} />
+        <CardFigure
+          name={name}
+          look={outfitLook}
+          headline={headline}
+          colour={persona.colour}
+          effect={persona.effect}
+          scene={scene}
+        />
       ) : mode === "strip" ? (
         headline ? (
           <p className="al-chat-strip">

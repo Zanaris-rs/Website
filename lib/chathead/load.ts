@@ -1,3 +1,5 @@
+import { decodeBackdrop, drawAtEye, drawAtSpot, sceneFrame } from "../scenes/draw.ts";
+import { type SceneSpot, sceneSrc } from "../scenes/spots.ts";
 import { type Clip, emoteClip, lineCount, moodClip } from "./animate.ts";
 import { decodeAnims, loadAnims } from "./anims-file.ts";
 import type { AnimTables } from "./anims.ts";
@@ -23,7 +25,9 @@ import type { Emote, Mood } from "./vocab.ts";
  *
  * Chatheads and figures share the one renderer: a page with both loads
  * `models.bin` and `bodies.bin` into it, each when first needed, and
- * `anims.bin` too once one of them moves.
+ * `anims.bin` too once one of them moves. A figure standing in a scene
+ * draws with the same renderer, onto its spot's backdrop PNG
+ * (`public/game/scenes`, `lib/scenes/draw.ts`), fetched when first shown.
  */
 
 export const tables = tablesJson as HeadTables;
@@ -178,7 +182,16 @@ export type ImageClip = {
   y: number;
 };
 
-function toImageClip(clip: Clip, frame: Frame): ImageClip {
+/**
+ * `behind` is what an untouched frame holds: nothing (`BACKGROUND`) for a
+ * figure drawn alone, the backdrop for one drawn into a scene. A scene's
+ * frames are cut the same way, to the box the figure changes; that box
+ * holds backdrop pixels around the figure, so each cut frame is opaque and
+ * is painted over the backdrop.
+ */
+function toImageClip(clip: Clip, frame: Frame, behind?: Int32Array): ImageClip {
+  const untouched = (pixels: Int32Array, i: number) =>
+    pixels[i] === (behind ? behind[i] : BACKGROUND);
   const distinct = [...new Set(clip.frames)];
   let left = frame.width;
   let top = frame.height;
@@ -187,7 +200,7 @@ function toImageClip(clip: Clip, frame: Frame): ImageClip {
   for (const pixels of distinct) {
     for (let y = 0; y < frame.height; y++) {
       for (let x = 0; x < frame.width; x++) {
-        if (pixels[x + y * frame.width] === BACKGROUND) continue;
+        if (untouched(pixels, x + y * frame.width)) continue;
         left = Math.min(left, x);
         right = Math.max(right, x);
         top = Math.min(top, y);
@@ -218,13 +231,20 @@ function toImageClip(clip: Clip, frame: Frame): ImageClip {
   };
 }
 
-/** One clip per key, drawn once and reused; null for nothing to draw. */
+/**
+ * How many emote clips, and how many mood clips, are kept (`recent`, below).
+ * A log page plays one look's signature emote or up to five pages' emotes
+ * and moods; the editor, where the owner can try every one, stays bounded.
+ */
+const CLIPS_KEPT = 24;
+
+/** One clip per key, drawn once and reused while it is recent; null for nothing to draw. */
 function clipsOnce<A extends unknown[]>(
   frame: Frame,
   key: (...args: A) => string,
   draw: (...args: A) => Clip | null,
 ): (...args: A) => ImageClip | null {
-  const drawn = new Map<string, ImageClip | null>();
+  const drawn = recent<ImageClip | null>(CLIPS_KEPT);
   return (...args) => {
     const k = key(...args);
     let clip = drawn.get(k);
@@ -259,6 +279,137 @@ export const loadFigureClips = once(async (): Promise<FigureClips> => {
     ),
   };
 });
+
+// --- a figure in a scene ----------------------------------------------------
+
+/**
+ * A few of the most recently used entries, the least recently used
+ * forgotten past `limit`. The still figure and chathead caches keep one
+ * entry per look on a page, which is one or two. The moving ones multiply:
+ * an emote clip per look and emote, a mood clip per look, mood and line
+ * count, a scene's per spot as well - and the character editor lets its
+ * owner try every one - so those are held to what one page shows at once.
+ */
+function recent<V>(limit: number) {
+  const entries = new Map<string, V>();
+  return {
+    get(key: string): V | undefined {
+      const value = entries.get(key);
+      if (value !== undefined) {
+        entries.delete(key);
+        entries.set(key, value);
+      }
+      return value;
+    },
+    set(key: string, value: V): void {
+      entries.delete(key);
+      entries.set(key, value);
+      for (const oldest of entries.keys()) {
+        if (entries.size <= limit) break;
+        entries.delete(oldest);
+      }
+    },
+    delete(key: string): void {
+      entries.delete(key);
+    },
+  };
+}
+
+/** A spot's backdrop: the pixels a figure is drawn onto, and the picture to paint. */
+type Backdrop = { pixels: Int32Array; image: ImageData };
+
+/** The last few spots' backdrops, 288 KB each twice over (pixels and picture). */
+const backdrops = recent<Promise<Backdrop>>(3);
+
+/** A spot's backdrop, fetched and decoded once while it is in use. A failed load is retried. */
+function loadBackdrop(spot: SceneSpot): Promise<Backdrop> {
+  let loading = backdrops.get(spot.key);
+  if (!loading) {
+    const started = fetchBytes(sceneSrc(spot))
+      .then((png) => decodeBackdrop(png, spot))
+      .then((pixels) => ({ pixels, image: new ImageData(toRgba(pixels), spot.width, spot.height) }));
+    started.catch(() => {
+      if (backdrops.get(spot.key) === started) backdrops.delete(spot.key);
+    });
+    backdrops.set(spot.key, started);
+    loading = started;
+  }
+  return loading;
+}
+
+/**
+ * The last few figures drawn into scenes: a look standing, and a look
+ * acting out an emote, at a spot. A log page shows one look at one spot:
+ * standing and up to five page emotes. Null is kept too, for a look with
+ * no body.
+ */
+const sceneDraws = recent<ImageClip | null>(12);
+
+function sceneDraw(key: string, frame: Frame, backdrop: Int32Array, draw: () => Clip | null) {
+  let clip = sceneDraws.get(key);
+  if (clip === undefined) {
+    const drawn = draw();
+    clip = drawn ? toImageClip(drawn, frame, backdrop) : null;
+    sceneDraws.set(key, clip);
+  }
+  return clip;
+}
+
+export type Scene = {
+  /** The backdrop, to paint first; every figure frame is painted over it. */
+  backdrop: ImageData;
+  /**
+   * A look standing in the scene, as a one-frame clip cut to the box the
+   * figure changes; null if the look has no body.
+   */
+  stand(look: Look): ImageClip | null;
+};
+
+/**
+ * A spot's backdrop and the figure renderer, loading `renderer.js`,
+ * `bodies.bin` and the spot's PNG on first use. A failed load is retried.
+ */
+export async function loadScene(spot: SceneSpot): Promise<Scene> {
+  const [{ client, bodyTables }, backdrop] = await Promise.all([loadBodyTables(), loadBackdrop(spot)]);
+  const frame = sceneFrame(spot);
+  return {
+    backdrop: backdrop.image,
+    stand: (look) =>
+      sceneDraw(`${spot.key}/${lookKey(look)}`, frame, backdrop.pixels, () => {
+        const pixels = drawAtSpot(client, bodyTables, look, spot, backdrop.pixels);
+        return pixels ? { frames: [pixels], delays: [1], loop: null } : null;
+      }),
+  };
+}
+
+export type SceneClips = {
+  /** The backdrop, as `Scene` has it. */
+  backdrop: ImageData;
+  /** A look acting out an emote in the scene; null if the look has no body. */
+  emote(look: Look, emote: Emote): ImageClip | null;
+};
+
+/**
+ * `loadScene` with the emotes, loading `anims.bin` as well on first use. A
+ * failed load is retried.
+ */
+export async function loadSceneClips(spot: SceneSpot): Promise<SceneClips> {
+  const [{ client, bodyTables }, anims, backdrop] = await Promise.all([
+    loadBodyTables(),
+    loadAnimTables(),
+    loadBackdrop(spot),
+  ]);
+  const frame = sceneFrame(spot);
+  return {
+    backdrop: backdrop.image,
+    emote: (look, emote) =>
+      sceneDraw(`${spot.key}/${lookKey(look)}/${emote}`, frame, backdrop.pixels, () =>
+        emoteClip(client, bodyTables, anims, look, emote, frame, (body) =>
+          drawAtEye(client, body, spot, backdrop.pixels),
+        ),
+      ),
+  };
+}
 
 export type ChatheadClips = {
   /**

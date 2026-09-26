@@ -41,3 +41,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .cache/
+
+# the scene build's contact sheet: for looking at, not for shipping
+scripts/scenes/contact-sheet.png

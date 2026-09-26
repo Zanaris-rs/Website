@@ -15,6 +15,7 @@
     "fonts:update": "bash scripts/update-game-fonts.sh",
     "icons:update": "bash scripts/update-game-icons.sh",
     "items:update": "bash scripts/update-item-names.sh",
+    "scenes:update": "bash scripts/update-scenes.sh",
     "textures:update": "bash scripts/update-game-textures.sh",
     "worldmap:update": "bash scripts/update-worldmap.sh"
   },

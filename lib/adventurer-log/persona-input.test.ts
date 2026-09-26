@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { SCENES } from "@/lib/scenes/spots";
+
 import { EMPTY_PERSONA } from "./persona";
 import { checkPersonaInput, editablePersona, type PersonaInput, personaSaveStatement } from "./persona-input";
 
@@ -29,6 +31,8 @@ describe("checkPersonaInput", () => {
     ["homeTown", { homeTown: "zanaris" }],
     ["playstyle", { playstyle: "ironman" }],
     ["scene", { scene: "Varrock" }],
+    ["scene that is no place", { scene: "zanaris" }],
+    ["scene that is not a key", { scene: 3 }],
     ["signatureEmote", { signatureEmote: "jig" }],
     ["too many pages", { dialogue: Array(6).fill({ mood: "happy", emote: null, lines: ["x"] }) }],
     ["too many lines", { dialogue: [{ mood: "happy", emote: null, lines: ["1", "2", "3", "4", "5"] }] }],
@@ -37,6 +41,12 @@ describe("checkPersonaInput", () => {
     ["a bad mood", { dialogue: [{ mood: "goblinchat", emote: null, lines: ["x"] }] }],
   ])("refuses a bad %s", (_what, change) => {
     expect(checkPersonaInput({ ...good, ...change }).ok).toBe(false);
+  });
+  it("accepts every scene there is a backdrop for, and no scene", () => {
+    for (const spot of SCENES.spots) {
+      expect(checkPersonaInput({ ...good, scene: spot.key }).ok).toBe(true);
+    }
+    expect(checkPersonaInput({ ...good, scene: null }).ok).toBe(true);
   });
   it("refuses no body", () => {
     expect(checkPersonaInput(null).ok).toBe(false);
