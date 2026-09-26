@@ -8,6 +8,7 @@ import StonePanel from "@/components/site/StonePanel";
 import Tile from "@/components/site/Tile";
 import Wordmark from "@/components/site/Wordmark";
 import { readSession } from "@/lib/account/session-server";
+import { DIRECTORY_HREF } from "@/lib/adventurer-log/href";
 import { latest } from "@/lib/news";
 import { formatShortDate, listHref, postHref } from "@/lib/news/parse";
 import { KIT_RELEASES_URL, LOSTHQ_URL, SITE_NAME } from "@/lib/site";
@@ -142,7 +143,7 @@ export default async function Title() {
                 player writes their own. The picture is the game's book,
                 drawn like the two in Game Rules & Resources. */}
             <MenuTile
-              href="/adventurer-log"
+              href={DIRECTORY_HREF}
               image={titleTileSrc("book") ?? undefined}
               caption="Adventurer Logs"
               blurb="Every player&rsquo;s levels, quests and drops, in their own words."

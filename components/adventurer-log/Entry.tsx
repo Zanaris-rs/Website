@@ -5,6 +5,7 @@ import ItemIcon from "@/components/game/ItemIcon";
 import SkillIcon from "@/components/game/SkillIcon";
 import { formatWhen } from "@/lib/adventurer-log/format";
 import type { EventEntry } from "@/lib/adventurer-log/groups";
+import { logHref } from "@/lib/adventurer-log/href";
 import type { EntryView, ReplyView, UpdateEntry } from "@/lib/adventurer-log/view";
 import type { Look } from "@/lib/chathead/look";
 
@@ -119,7 +120,7 @@ export default function Entry({
               />
               <div className="al-reply-main">
                 <div className="al-reply-meta">
-                  <a className="al-name" href={`/adventurer-log/${encodeURIComponent(reply.author)}`}>
+                  <a className="al-name" href={logHref(reply.author)}>
                     {reply.authorName}
                   </a>{" "}
                   <time className="al-time" dateTime={reply.at}>

@@ -14,11 +14,11 @@ const nextConfig: NextConfig = {
   // files if the build's trace spots their paths. Turbopack does today; this
   // says so outright, so the preview does not depend on it.
   //
-  // The key matches the image route (`/adventurer-log/[username]/opengraph-
+  // The key matches the image route (`/adventurer/[username]/opengraph-
   // image`). The page's own trace picks the files up too, because the page
   // imports the image module for its `og:image` size and alt.
   outputFileTracingIncludes: {
-    "/adventurer-log/*/opengraph-image*": [
+    "/adventurer/*/opengraph-image*": [
       "./public/game/chathead/renderer.js",
       "./public/game/chathead/models.bin",
     ],
@@ -44,6 +44,20 @@ const nextConfig: NextConfig = {
         // the same skill.
         source: "/records",
         destination: "/hiscores/records",
+        permanent: true,
+      },
+      {
+        // The Adventurer Log launched at `/adventurer-log/<name>` and moved to
+        // `/adventurer/<name>` (with the directory at `/adventurers`) a day
+        // later, for a shorter address to share. The old links keep working;
+        // `lib/adventurer-log/href.ts` is where the new ones come from.
+        source: "/adventurer-log",
+        destination: "/adventurers",
+        permanent: true,
+      },
+      {
+        source: "/adventurer-log/:username",
+        destination: "/adventurer/:username",
         permanent: true,
       },
     ];
@@ -126,7 +140,7 @@ const nextConfig: NextConfig = {
       //
       // Every link into and out of a log is a plain <a> (the site's rule), so
       // this header is on every log a reader sees and on nothing else.
-      ...["/adventurer-log/:path*"].map((source) => ({
+      ...["/adventurer/:path*"].map((source) => ({
         source,
         headers: [
           {

@@ -10,7 +10,7 @@ import type { EventIcon } from "./events";
 import { DIRECTORY_PAGE, type DirectoryCursor, directoryCursorOf, directoryStatement, parseDirectory } from "./queries";
 
 /**
- * A page of `/adventurer-log`, the directory of recently active logs, ready
+ * A page of `/adventurers`, the directory of recently active logs, ready
  * to draw: each log's name, headline, chathead and the latest thing it shows
  * the public, newest first.
  */

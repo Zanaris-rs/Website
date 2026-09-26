@@ -12,6 +12,7 @@ import frame from "@/components/site/Frame.module.css";
 import Panel from "@/components/site/Panel";
 import TitleBox from "@/components/site/TitleBox";
 import { colourClass } from "@/components/site/colour";
+import { DIRECTORY_HREF, logHref } from "@/lib/adventurer-log/href";
 import type { Look } from "@/lib/chathead/look";
 import { formatCitizen } from "@/lib/invite/format";
 import type { Citizen } from "@/lib/invite/queries";
@@ -233,7 +234,7 @@ export default function AccountCentre({
                   <li>
                     <a
                       className={frame.link}
-                      href={`/adventurer-log/${encodeURIComponent(profile.username)}`}
+                      href={logHref(profile.username)}
                     >
                       Your Adventurer Log
                     </a>
@@ -249,7 +250,7 @@ export default function AccountCentre({
                     </a>
                   </li>
                   <li>
-                    <a className={frame.link} href="/adventurer-log">
+                    <a className={frame.link} href={DIRECTORY_HREF}>
                       Other players&rsquo; logs
                     </a>
                   </li>

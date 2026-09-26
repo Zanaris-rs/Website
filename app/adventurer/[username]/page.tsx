@@ -8,6 +8,7 @@ import Panel from "@/components/site/Panel";
 import TitleBox from "@/components/site/TitleBox";
 import { readSession } from "@/lib/account/session-server";
 import { sanitizeCss } from "@/lib/adventurer-log/css";
+import { DIRECTORY_HREF } from "@/lib/adventurer-log/href";
 import { nameFrom } from "@/lib/adventurer-log/name";
 import { loadLogPage, type LogPageData } from "@/lib/adventurer-log/page-data";
 import { toDisplayName } from "@/lib/base37";
@@ -42,7 +43,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 }
 
 /**
- * `/adventurer-log/<name>` — a player's public page. Anyone can read it;
+ * `/adventurer/<name>` — a player's public page. Anyone can read it;
  * what the viewer may do on it is decided by the database from the signed
  * session's name (the header's `is_owner`, `viewer_can_post`).
  * `?show=<filter>` narrows the timeline to one kind of entry (`filters.ts`).
@@ -95,7 +96,7 @@ export default async function AdventurerLog({ params, searchParams }: Params) {
   // where no stylesheet of theirs can hide it. The log's header repeats the
   // edit link next to Hiscores, where the eye already goes.
   const links = [
-    { href: "/adventurer-log", text: "All Adventurer Logs" },
+    { href: DIRECTORY_HREF, text: "All Adventurer Logs" },
     ...(data.header.isOwner
       ? [
           { href: "/account/adventurer-log", text: "Edit your log", br: true },

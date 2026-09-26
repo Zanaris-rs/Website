@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { formatWhen } from "@/lib/adventurer-log/format";
+import { logHref } from "@/lib/adventurer-log/href";
 import type { AdventureReport, StaffAction } from "@/lib/adventurer-log/staff";
 
 
@@ -100,7 +101,7 @@ export default function AdventureReports({ reports }: { reports: AdventureReport
             {report.logOwner ? (
               <>
                 {" "}
-                on <a href={`/adventurer-log/${encodeURIComponent(report.logOwner)}`}>{report.logOwner}</a>&rsquo;s log
+                on <a href={logHref(report.logOwner)}>{report.logOwner}</a>&rsquo;s log
               </>
             ) : null}
             {report.author && report.author !== report.logOwner ? <> by {report.author}</> : null} &middot; reported by{" "}

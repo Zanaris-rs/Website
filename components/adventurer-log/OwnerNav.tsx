@@ -1,4 +1,5 @@
 import TitleBox from "@/components/site/TitleBox";
+import { logHref } from "@/lib/adventurer-log/href";
 
 /**
  * The owner's side of an Adventurer Log is three pages - the log as everyone
@@ -21,7 +22,7 @@ export default function OwnerNav({
       title={title}
       width="min(460px, 100%)"
       links={[
-        { href: `/adventurer-log/${encodeURIComponent(username)}`, text: "View your log" },
+        { href: logHref(username), text: "View your log" },
         { href: "/account/adventurer-log", text: "Edit your log", current: current === "edit" },
         { href: "/account/adventurer-log/outfits", text: "Outfits", current: current === "outfits" },
         { href: "/account", text: "Account Centre" },

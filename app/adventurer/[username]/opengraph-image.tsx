@@ -13,7 +13,7 @@ import { playerQuery, type PlayerRow } from "@/lib/hiscores/queries";
 
 /**
  * A log's link preview: the card a chat app or a social site shows when
- * someone pastes `/adventurer-log/<name>`. Next puts its URL in the page's
+ * someone pastes `/adventurer/<name>`. Next puts its URL in the page's
  * `og:image` and `twitter:image` itself; `generateMetadata` in `page.tsx`
  * says the card is a large one.
  *
