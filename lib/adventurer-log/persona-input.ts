@@ -94,9 +94,10 @@ export function checkPersonaInput(raw: Record<string, unknown> | null): Check {
 
 /**
  * The stored persona as the editor starts from it. A home town, playstyle or
- * scene the site no longer lists (a place dropped since it was saved) would
- * have every Save refused with "Pick ... from the list", for a pick the owner
- * cannot see in the editor - and cannot always clear. It starts as none.
+ * scene the site no longer lists (a place dropped since it was saved, or a
+ * scene whose backdrop is) would have every Save refused with "Pick ... from
+ * the list", for a pick the owner cannot see in the editor - and, without an
+ * outfit, cannot clear. It starts as none.
  */
 export function editablePersona(stored: PersonaInput): PersonaInput {
   const listed = (key: string | null, known: (key: string) => boolean) => (key !== null && known(key) ? key : null);
@@ -104,7 +105,7 @@ export function editablePersona(stored: PersonaInput): PersonaInput {
     ...stored,
     homeTown: listed(stored.homeTown, isPlace),
     playstyle: listed(stored.playstyle, (key) => (PLAYSTYLES as readonly string[]).includes(key)),
-    scene: listed(stored.scene, isPlace),
+    scene: listed(stored.scene, (key) => sceneOf(key) !== null),
   };
 }
 
