@@ -93,6 +93,87 @@
   font-size: 12px;
 }
 
+/* --- the character card: figure, overhead chat, examine, sheet --- */
+
+.root :global(.al-figure) {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  position: relative;
+}
+
+.root :global(.al-figure:focus-visible) {
+  outline: 2px solid var(--link);
+  outline-offset: 2px;
+}
+
+.root :global(.al-overhead) {
+  display: block;
+  margin: 0;
+  font-style: normal;
+  text-align: center;
+}
+
+.root :global(.al-chat-strip) {
+  margin: 0 8px 6px;
+  padding: 4px;
+  background: #000;
+  text-align: center;
+}
+
+.root :global(.al-persona-title) {
+  margin: 0 8px;
+  color: #9a9a9a;
+  font-size: 12px;
+  text-align: center;
+}
+
+.root :global(.al-examine) {
+  margin: 4px 8px;
+  color: #c8c8c8;
+  font-style: italic;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.root :global(.al-sheet) {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 8px;
+  margin: 4px 8px 8px;
+  font-size: 12px;
+  text-align: left;
+}
+
+/* Each row (`al-sheet-row`) is one dt and its dd, and lines them up on the
+   sheet's two columns: without this the rows themselves were the grid's
+   items, two to a line, with each label above its value. */
+.root :global(.al-sheet-row) {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+}
+
+.root :global(.al-sheet dt) {
+  font-weight: bold;
+  color: #c8ccd2;
+}
+
+.root :global(.al-sheet dd) {
+  margin: 0;
+}
+
+.root :global(.al-goals) {
+  margin: 0;
+  padding-left: 14px;
+}
+
 .root :global(.al-about p) {
   margin: 0;
   white-space: pre-wrap;

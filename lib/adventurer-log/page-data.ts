@@ -10,6 +10,7 @@ import { gameLooks } from "@/lib/outfits/looks";
 import { outfitsStatement, parseOutfits } from "@/lib/outfits/queries";
 
 import { type Filter, FILTERS, filterOf, showsPosts, visibleFilters } from "./filters";
+import { EMPTY_PERSONA, parsePersona, personaStatement, type Persona } from "./persona";
 import { type LogHeader, logStatement, parseLog } from "./queries";
 import { type LogRecord, parseRecords, recordsStatement } from "./records";
 import { loadPinned, loadTimeline, type PinnedView, type TimelinePage } from "./view";
@@ -45,6 +46,8 @@ export type LogPageData =
       skills: PlayerSkill[];
       outfits: WardrobeOutfit[];
       records: LogRecord[];
+      persona: Persona;
+      outfitLook: Look | null;
     };
 
 /**
@@ -99,6 +102,14 @@ export async function loadLogPage(
     console.error("[adventurer-log] records read failed", error);
   }
 
+  let persona = EMPTY_PERSONA;
+  try {
+    const wantedPersona = personaStatement(header.username);
+    persona = parsePersona(await query<Record<string, unknown>>(wantedPersona.text, wantedPersona.values));
+  } catch (error) {
+    console.error("[adventurer-log] persona read failed", error);
+  }
+
   return {
     result: "ok",
     header: { ...header, look },
@@ -109,5 +120,7 @@ export async function loadLogPage(
     skills,
     outfits,
     records,
+    persona,
+    outfitLook: header.look,
   };
 }
