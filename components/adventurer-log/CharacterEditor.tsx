@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useRef, useState } from "react";
+import { type FormEvent, useId, useRef, useState } from "react";
 
 import {
   BAD_FIELDS,
@@ -79,6 +79,8 @@ export default function CharacterEditor({
   const [status, setStatus] = useState<Status>(null);
   const [invalid, setInvalid] = useState<readonly Field[]>([]);
   const [busy, setBusy] = useState(false);
+  const headlineId = useId();
+  const headlineCountId = useId();
 
   const dirty = JSON.stringify(draft) !== JSON.stringify(saved);
   const marked = (field: Field) => invalid.includes(field) || undefined;
@@ -167,21 +169,25 @@ export default function CharacterEditor({
       <div className={styles.form}>
         <fieldset className={styles.section}>
           <legend>Overhead chat</legend>
-          <label className={styles.row}>
+          {/* The count sits outside the label, as a description: in the label it
+              would be part of the field's name, and change with every key. */}
+          <div className={styles.row}>
             <span className={styles.label}>
-              Headline{" "}
-              <span className={styles.count}>
+              <label htmlFor={headlineId}>Headline</label>{" "}
+              <span id={headlineCountId} className={styles.count}>
                 {draft.headline.length}/{HEADLINE_MAX}
               </span>
             </span>
             <input
+              id={headlineId}
               type="text"
               value={draft.headline}
               maxLength={HEADLINE_MAX}
+              aria-describedby={headlineCountId}
               aria-invalid={marked("headline")}
               onChange={(event) => change(typeHeadline(draft, event.target.value))}
             />
-          </label>
+          </div>
           <ColourPicker
             colour={draft.colour}
             effect={draft.effect}

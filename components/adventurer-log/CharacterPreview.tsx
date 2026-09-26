@@ -61,7 +61,7 @@ export default function CharacterPreview({
             />
           </aside>
           <div className="al-main">
-            <DialogueBox name={name} look={headLook} pages={pages} />
+            <DialogueBox name={name} look={headLook} pages={pages} live={false} />
           </div>
         </div>
       </div>

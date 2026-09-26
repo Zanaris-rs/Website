@@ -90,6 +90,7 @@ export default function PageCard({
       <label className={styles.lines}>
         <span className={styles.label}>What you say</span>
         <textarea
+          aria-label={`Page ${number}: what you say`}
           rows={PERSONA_LIMITS.lines}
           wrap="off"
           value={page.lines.join("\n")}
