@@ -44,8 +44,8 @@ const OUTLINE = `<div class="al-root">                 <!-- the log; your CSS re
       <section class="al-header al-card al-box">
         <h1 class="al-title">Zezima</h1>
         <p class="al-persona-title">the Unready</p>                  <!-- only when set -->
-        <button class="al-figure">                                     <!-- a saved outfit, standing; a click replays its emote -->
-          <span class="al-chat al-chat--c9 al-chat--e1 al-overhead al-headline">Headline</span>
+        <span class="al-chat al-chat--c9 al-chat--e1 al-overhead al-headline">Headline</span>   <!-- outside the button, so its plain text is still the figure's own label -->
+        <button class="al-figure" aria-label="Zezima: play the emote again">   <!-- a saved outfit, standing; a click replays its emote -->
           <canvas></canvas>
         </button>
         <!-- or, with no outfit: <p class="al-chat-strip"><span class="al-chat … al-overhead al-headline"></span></p>,
