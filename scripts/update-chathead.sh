@@ -12,6 +12,9 @@
 #   lib/chathead/bodies.json          kits, worn objects, what hides what, stances
 #   lib/chathead/figure.json          the figure's frame, and the version
 #   lib/chathead/figure-golden.json   reference figures for their golden test
+#   public/game/chathead/anims.bin    the emotes' and the chathead moods' frames
+#   lib/chathead/anims.json           their seqs: frames, second frames, delays, loops
+#   lib/chathead/anim-golden.json     reference emote and mood frames for their golden test
 #
 # All of them are committed (and the outfit editor's tab, below). Re-run
 # after a content bump, once the engine has been repacked, and commit the
@@ -43,9 +46,9 @@
 # weapon gives (`ready_baseanim`) are never sent to the client.
 #
 # The reference pictures are drawn by the client's own `ClientPlayer.
-# getHeadModel` and `getTempModel2`, not by the site's code, so the golden
-# tests check the site's assembly, the exported tables and the bundled
-# renderer together.
+# getHeadModel` and `getTempModel2`, and a talking head's by `IfType.
+# getTempModel`, not by the site's code, so the golden tests check the
+# site's assembly, the exported tables and the bundled renderer together.
 
 set -euo pipefail
 
@@ -53,6 +56,7 @@ cd "$(dirname "$0")/.."
 
 source scripts/lib/client-ts.sh
 ENGINE_DIR="${ENGINE_DIR:-../Server/engine}"
+CONTENT_DIR="${CONTENT_DIR:-$ENGINE_DIR/../content}"
 
 if ! command -v bun > /dev/null; then
   echo "error: bun is required to bundle and run the client's renderer (https://bun.sh)" >&2
@@ -96,7 +100,7 @@ bun build "$ENTRY_DIR/renderer.ts" --minify --format esm --target browser \
   --outfile public/game/chathead/renderer.js > /dev/null
 echo "renderer $(wc -c < public/game/chathead/renderer.js | tr -d ' ') bytes -> public/game/chathead/renderer.js"
 
-CLIENT_DIR="$CACHE_DIR" ENGINE_DIR="$ENGINE_DIR" OUT_DIR="." bun scripts/chathead/build.ts
+CLIENT_DIR="$CACHE_DIR" ENGINE_DIR="$ENGINE_DIR" CONTENT_DIR="$CONTENT_DIR" OUT_DIR="." bun scripts/chathead/build.ts
 
 echo
 echo "sanity:"
