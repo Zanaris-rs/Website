@@ -99,17 +99,24 @@ function build(name: "b12" | "p12") {
     const glyphPath = new opentype.Path();
     const top = font.height - font.charOffsetY[c]; // pixels above the baseline
     below = Math.max(below, font.charOffsetY[c] + font.charMaskHeight[c] - font.height);
-    for (const r of rectangles(font, c)) {
-      const x0 = (font.charOffsetX[c] + r.x) * PIXEL;
-      const x1 = x0 + r.w * PIXEL;
-      const y0 = (top - r.y) * PIXEL; // top edge, y up
-      const y1 = y0 - r.h * PIXEL;
-      // clockwise, TrueType's outside
-      glyphPath.moveTo(x0, y0);
-      glyphPath.lineTo(x1, y0);
-      glyphPath.lineTo(x1, y1);
-      glyphPath.lineTo(x0, y1);
-      glyphPath.close();
+    // The client never draws glyph 32 (space): PixFont.drawString and
+    // centreStringWave (Client-TS's graphics/PixFont.ts lines 147 and 169)
+    // both guard with `if (c !== 32)` / `if (c != 32)` and only advance the
+    // cursor by charAdvance[32]. Emit no outline for it, or a space renders
+    // as this font's placeholder dot; its advance width is still emitted.
+    if (c !== 32) {
+      for (const r of rectangles(font, c)) {
+        const x0 = (font.charOffsetX[c] + r.x) * PIXEL;
+        const x1 = x0 + r.w * PIXEL;
+        const y0 = (top - r.y) * PIXEL; // top edge, y up
+        const y1 = y0 - r.h * PIXEL;
+        // clockwise, TrueType's outside
+        glyphPath.moveTo(x0, y0);
+        glyphPath.lineTo(x1, y0);
+        glyphPath.lineTo(x1, y1);
+        glyphPath.lineTo(x0, y1);
+        glyphPath.close();
+      }
     }
     glyphs.push(new opentype.Glyph({ name: `c${c}`, unicode: c, advanceWidth: advance * PIXEL, path: glyphPath }));
   }
