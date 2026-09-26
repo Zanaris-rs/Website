@@ -231,13 +231,20 @@ function toImageClip(clip: Clip, frame: Frame, behind?: Int32Array): ImageClip {
   };
 }
 
-/** One clip per key, drawn once and reused; null for nothing to draw. */
+/**
+ * How many emote clips, and how many mood clips, are kept (`recent`, below).
+ * A log page plays one look's signature emote or up to five pages' emotes
+ * and moods; the editor, where the owner can try every one, stays bounded.
+ */
+const CLIPS_KEPT = 24;
+
+/** One clip per key, drawn once and reused while it is recent; null for nothing to draw. */
 function clipsOnce<A extends unknown[]>(
   frame: Frame,
   key: (...args: A) => string,
   draw: (...args: A) => Clip | null,
 ): (...args: A) => ImageClip | null {
-  const drawn = new Map<string, ImageClip | null>();
+  const drawn = recent<ImageClip | null>(CLIPS_KEPT);
   return (...args) => {
     const k = key(...args);
     let clip = drawn.get(k);
@@ -277,10 +284,11 @@ export const loadFigureClips = once(async (): Promise<FigureClips> => {
 
 /**
  * A few of the most recently used entries, the least recently used
- * forgotten past `limit`. The figure and chathead caches keep one entry per
- * look on a page, which is one or two; a scene's multiply by the spot, and
- * the character editor lets its owner try all sixteen, so these are held to
- * what one page shows at once.
+ * forgotten past `limit`. The still figure and chathead caches keep one
+ * entry per look on a page, which is one or two. The moving ones multiply:
+ * an emote clip per look and emote, a mood clip per look, mood and line
+ * count, a scene's per spot as well - and the character editor lets its
+ * owner try every one - so those are held to what one page shows at once.
  */
 function recent<V>(limit: number) {
   const entries = new Map<string, V>();
