@@ -117,6 +117,25 @@ const nextConfig: NextConfig = {
         ],
       },
       {
+        // The game's own webfonts (scripts/game-fonts/build.ts). Unlike the
+        // chathead renderer and the icons, a plain CSS `@font-face` `src`
+        // cannot carry a `?v=` — nothing in game-fonts.css can read
+        // metrics.json's version — so the URL never changes when the fonts
+        // are regenerated. A year-long immutable cache would then serve a
+        // stale font forever; this revalidates hourly instead. There is no
+        // broader `/game/:path*` rule for this to collide with today, but if
+        // one is ever added, it must come before this entry: Next applies
+        // every matching rule for a path and a later one wins on repeated
+        // keys, so the narrower, shorter-cache rule for fonts has to be last.
+        source: "/game/fonts/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=3600, must-revalidate",
+          },
+        ],
+      },
+      {
         // The chathead renderer and what it draws from — `models.bin` for
         // chatheads, `bodies.bin` for figures (`scripts/update-chathead.sh`)
         // — on the same terms as the icons: `lib/chathead/load.ts` asks for
