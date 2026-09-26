@@ -38,7 +38,8 @@ export default function PersonaStage({
 }) {
   const [page, setPage] = useState(0);
   const [replay, setReplay] = useState(0);
-  const emote = pages.length > 0 ? pages[Math.min(page, pages.length - 1)].emote : signatureEmote;
+  const pageEmote = pages.length > 0 ? pages[Math.min(page, pages.length - 1)].emote : null;
+  const emote = pages.some((p) => p.emote !== null) ? pageEmote : signatureEmote;
 
   useEffect(() => {
     // Deferred rather than called straight from the effect body: `Figure`
