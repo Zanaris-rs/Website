@@ -79,9 +79,7 @@ export default function Card({
         {viewerIsOwner ? (
           <>
             {" - "}
-            {/* Ruling R6: points at the existing settings page until W5 ships
-                /account/adventurer-log/character. W5 repoints it. */}
-            <a href="/account/adventurer-log">Edit your character</a>
+            <a href="/account/adventurer-log/character">Edit your character</a>
           </>
         ) : null}
       </p>
