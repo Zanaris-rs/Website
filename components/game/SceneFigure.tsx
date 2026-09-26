@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 
-import { loadScene, loadSceneClips } from "@/lib/chathead/load";
+import { loadScene, loadSceneClips, type Scene } from "@/lib/chathead/load";
 import type { Look } from "@/lib/chathead/look";
 import type { Emote } from "@/lib/chathead/vocab";
 import { type SceneSpot, sceneSrc } from "@/lib/scenes/spots";
@@ -18,6 +18,12 @@ type Props = {
   replay?: number;
   label?: string;
   className?: string;
+  /**
+   * Heard once if the scene cannot be drawn - its backdrop failed: a 404,
+   * or a browser with no `DecompressionStream` (Safari before 16.4, Firefox
+   * before 113). The caller draws the plain `<Figure>` instead.
+   */
+  onFail?: () => void;
 };
 
 /**
@@ -37,6 +43,7 @@ type Props = {
  * behind it as a plain picture, so the scene is there before the renderer
  * is; once the figure is drawn, the canvas covers it with the same pixels.
  * A new spot is a new scene: nothing drawn for the last one carries over.
+ * If the scene fails, `onFail` says so, for the plain figure to stand in.
  */
 export default function SceneFigure(props: Props) {
   return <SceneCanvas key={props.spot.key} {...props} />;
@@ -56,9 +63,14 @@ function paint(
   if (image) context.putImageData(image, x, y);
 }
 
-function SceneCanvas({ spot, look, emote = null, replay, label = "Figure", className }: Props) {
+/** A failed scene is logged once a page, however many spots fail after it. */
+let failureLogged = false;
+
+function SceneCanvas({ spot, look, emote = null, replay, label = "Figure", className, onFail }: Props) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const backdrop = useRef<ImageData | null>(null);
+  /** The scene the standing figure is drawn in, or null if it failed. */
+  const loaded = useRef<Promise<Scene | null> | null>(null);
 
   useEmotePlayback({
     canvas,
@@ -67,7 +79,19 @@ function SceneCanvas({ spot, look, emote = null, replay, label = "Figure", class
     replay,
     source: spot,
     loadStanding: async () => {
-      const scene = await loadScene(spot);
+      // A failure is answered here, not thrown: the caller swaps in the
+      // plain figure, and one line in the console says why.
+      const loading = loadScene(spot).catch((error: unknown) => {
+        if (!failureLogged) {
+          failureLogged = true;
+          console.warn("[scene] the scene failed to load; drawing the plain figure:", error);
+        }
+        onFail?.();
+        return null;
+      });
+      loaded.current = loading;
+      const scene = await loading;
+      if (!scene) return () => null;
       return (actor) => {
         backdrop.current = scene.backdrop;
         const still = actor ? scene.stand(actor) : null;
@@ -75,7 +99,13 @@ function SceneCanvas({ spot, look, emote = null, replay, label = "Figure", class
       };
     },
     loadEmotes: async () => {
-      const clips = await loadSceneClips(spot);
+      const loading = loadSceneClips(spot);
+      // A scene that failed is the standing figure's to report: no emotes.
+      if (loaded.current && !(await loaded.current)) {
+        loading.catch(() => {});
+        return () => null;
+      }
+      const clips = await loading;
       return (actor, act) => {
         const clip = clips.emote(actor, act);
         if (clip) backdrop.current ??= clips.backdrop;

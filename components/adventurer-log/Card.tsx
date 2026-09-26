@@ -46,17 +46,14 @@ export default function Card({
       {persona.title ? <p className="al-persona-title">{persona.title}</p> : null}
 
       {mode === "figure" && outfitLook ? (
-        <>
-          <CardFigure
-            name={name}
-            look={outfitLook}
-            headline={headline}
-            colour={persona.colour}
-            effect={persona.effect}
-            scene={scene}
-          />
-          {scene ? <p className="al-scene-name">{scene.name}</p> : null}
-        </>
+        <CardFigure
+          name={name}
+          look={outfitLook}
+          headline={headline}
+          colour={persona.colour}
+          effect={persona.effect}
+          scene={scene}
+        />
       ) : mode === "strip" ? (
         headline ? (
           <p className="al-chat-strip">

@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 import ChatText from "@/components/game/ChatText";
 import Figure from "@/components/game/Figure";
 import SceneFigure from "@/components/game/SceneFigure";
@@ -19,8 +21,10 @@ import { usePersonaStage } from "./PersonaStage";
  *
  * With a scene, the two sit in its frame (`al-scene`), in the same order:
  * the headline over the figure's head, as the game draws overhead chat, and
- * the figure standing in the spot. The look is passed straight through, as
- * the figures' drawings are kept per look.
+ * the figure standing in the spot, with the spot's name under the frame. The
+ * look is passed straight through, as the figures' drawings are kept per
+ * look. A scene that fails to load (`SceneFigure`'s `onFail`) gives way to
+ * the plain figure, as if no scene were picked.
  */
 export default function CardFigure({
   name,
@@ -39,6 +43,8 @@ export default function CardFigure({
   scene: SceneSpot | null;
 }) {
   const stage = usePersonaStage();
+  const [failed, setFailed] = useState<string | null>(null);
+  const shown = scene && failed !== scene.key ? scene : null;
   const overhead = headline ? (
     <ChatText className="al-overhead al-headline" text={headline} colour={colour} effect={effect} />
   ) : null;
@@ -49,13 +55,14 @@ export default function CardFigure({
       onClick={stage.replayEmote}
       aria-label={stage.emote ? `${name}: play the emote again` : `${name}'s figure`}
     >
-      {scene ? (
+      {shown ? (
         <SceneFigure
-          spot={scene}
+          spot={shown}
           look={look}
-          label={`${name} at ${scene.name}`}
+          label={`${name} at ${shown.name}`}
           emote={stage.emote}
           replay={stage.replay}
+          onFail={() => setFailed(shown.key)}
         />
       ) : (
         <Figure look={look} label={`${name}'s figure`} emote={stage.emote} replay={stage.replay} />
@@ -63,11 +70,14 @@ export default function CardFigure({
     </button>
   );
 
-  return scene ? (
-    <div className="al-scene">
-      {overhead}
-      {figure}
-    </div>
+  return shown ? (
+    <>
+      <div className="al-scene">
+        {overhead}
+        {figure}
+      </div>
+      <p className="al-scene-name">{shown.name}</p>
+    </>
   ) : (
     <>
       {overhead}
