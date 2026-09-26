@@ -223,6 +223,19 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      {
+        // The Character tab draws the log's own card and dialogue box, with
+        // the owner's words in them, so it takes the log's policy - and,
+        // for the same reason as the entry above, repeats the account pages'
+        // frame-ancestors, which this entry would otherwise replace.
+        source: "/account/adventurer-log/character",
+        headers: [
+          {
+            key: "Content-Security-Policy",
+            value: "frame-ancestors 'none'; img-src 'self'; font-src 'self'; style-src 'self' 'unsafe-inline'",
+          },
+        ],
+      },
     ];
   },
 };

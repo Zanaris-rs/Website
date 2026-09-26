@@ -16,6 +16,8 @@ type Stage = {
   page: number;
   pageCount: number;
   next(): void;
+  /** Back a page, to the last from the first; the editor preview's arrow. */
+  prev(): void;
   /**
    * The emote the figure acts out now: the current page's own emote, or -
    * only when there is no current page at all - the signature one. A page
@@ -29,7 +31,7 @@ type Stage = {
 };
 
 const StageContext = createContext<Stage>({
-  page: 0, pageCount: 0, next() {}, emote: null, replay: 0, replayEmote() {},
+  page: 0, pageCount: 0, next() {}, prev() {}, emote: null, replay: 0, replayEmote() {},
 });
 
 /**
@@ -78,11 +80,16 @@ export default function PersonaStage({
     setPageState((page + 1) % pages.length);
     setReplay((count) => count + 1);
   }, [pages.length, page]);
+  const prev = useCallback(() => {
+    if (pages.length === 0) return;
+    setPageState((page + pages.length - 1) % pages.length);
+    setReplay((count) => count + 1);
+  }, [pages.length, page]);
   const replayEmote = useCallback(() => setReplay((count) => count + 1), []);
 
   const value = useMemo(
-    () => ({ page, pageCount: pages.length, next, emote, replay, replayEmote }),
-    [page, pages.length, next, emote, replay, replayEmote],
+    () => ({ page, pageCount: pages.length, next, prev, emote, replay, replayEmote }),
+    [page, pages.length, next, prev, emote, replay, replayEmote],
   );
   return <StageContext.Provider value={value}>{children}</StageContext.Provider>;
 }

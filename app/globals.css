@@ -65,6 +65,12 @@ body {
 }
 
 body {
+  /* `clip` rather than the `hidden` above: `hidden` makes the body a scroll
+     container of its own (one that never scrolls - the window does), and a
+     `position: sticky` inside it - the Character tab's preview - would stick
+     to that instead of the window, which is to say never. A browser without
+     `clip` keeps `hidden`. */
+  overflow-x: clip;
   min-height: 100dvh;
   background: #000;
   color: var(--text);

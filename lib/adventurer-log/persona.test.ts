@@ -27,6 +27,14 @@ describe("parsePersona", () => {
       dialogue: [{ mood: "happy", emote: "wave", lines: ["Hi!"] }, { mood: "sad", emote: null, lines: ["Bye."] }],
     });
   });
+  it("reads a key the site's lists no longer have, as long as it is shaped like a key", () => {
+    // Migration 16 checks a key's shape, not the site's lists: a place or
+    // playstyle dropped later is still in the row, and the log must still load.
+    expect(() => parsePersona([{ ...row, home_town: "zanaris" }])).not.toThrow();
+    expect(parsePersona([{ ...row, home_town: "zanaris", playstyle: "ironman", scene: "zanaris" }])).toMatchObject({
+      homeTown: "zanaris", playstyle: "ironman", scene: "zanaris",
+    });
+  });
   it("throws on what migration 16 never answers", () => {
     expect(() => parsePersona([{ ...row, headline_colour: 12 }])).toThrow();
     expect(() => parsePersona([{ ...row, god: "bandos" }])).toThrow();
