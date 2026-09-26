@@ -21,15 +21,22 @@ const HEAD_SCALE = 96 / tables.frame.width;
  * page's mood, their name in dark red, the page's lines in black, and "Click
  * here to continue" in blue - which moves the conversation on, back to the
  * first page after the last, and has the figure act out the next page.
+ *
+ * Its lines are a polite live region, so a new page is read out. The
+ * editor's preview turns that off (`live={false}`): there the lines change
+ * with every key typed, and would all be read out.
  */
 export default function DialogueBox({
   name,
   look,
   pages,
+  live = true,
 }: {
   name: string;
   look: Look | null;
   pages: readonly DialoguePage[];
+  /** Announce each new page to screen readers. */
+  live?: boolean;
 }) {
   const stage = usePersonaStage();
   if (pages.length === 0) return null;
@@ -44,7 +51,7 @@ export default function DialogueBox({
       </div>
       <div className="al-dialogue-body">
         <p className="al-dialogue-name">{name}</p>
-        <div className="al-dialogue-text" aria-live="polite">
+        <div className="al-dialogue-text" aria-live={live ? "polite" : undefined}>
           {page.lines.map((line, i) => (
             <p key={i}>{line}</p>
           ))}

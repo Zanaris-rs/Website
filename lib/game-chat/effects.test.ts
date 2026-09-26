@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { CHAT_COLOUR_NAMES, colourAt, cssColour, scrollOffset, waveOffset } from "./effects";
+import { CHAT_COLOUR_NAMES, colourAt, cssColour, scrollOffset, waveOffset, waveRuns } from "./effects";
 
 describe("colourAt (Client.ts, the overhead chat)", () => {
   it("draws the six fixed colours as the client's CHAT_COLOURS", () => {
@@ -37,6 +37,41 @@ describe("waveOffset (PixFont.centreStringWave)", () => {
     expect(waveOffset(3, 0)).toBe(4);
     expect(waveOffset(0, 5)).toBe(4);
     expect(waveOffset(0, 16)).toBe(Math.trunc(Math.sin(16 / 5) * 5));
+  });
+});
+
+describe("waveRuns (a wave line, split so it wraps between words)", () => {
+  it("is nothing for no text", () => {
+    expect(waveRuns("")).toEqual([]);
+  });
+  it("keeps a word's characters, each at its index in the line", () => {
+    expect(waveRuns("hi")).toEqual([{ kind: "word", chars: [{ ch: "h", i: 0 }, { ch: "i", i: 1 }] }]);
+  });
+  it("leaves spaces as plain text between words, and counts them, as the client does", () => {
+    expect(waveRuns("a bc")).toEqual([
+      { kind: "word", chars: [{ ch: "a", i: 0 }] },
+      { kind: "space", text: " " },
+      { kind: "word", chars: [{ ch: "b", i: 2 }, { ch: "c", i: 3 }] },
+    ]);
+  });
+  it("keeps runs of spaces whole, leading and trailing ones too", () => {
+    expect(waveRuns("  ab  c ")).toEqual([
+      { kind: "space", text: "  " },
+      { kind: "word", chars: [{ ch: "a", i: 2 }, { ch: "b", i: 3 }] },
+      { kind: "space", text: "  " },
+      { kind: "word", chars: [{ ch: "c", i: 6 }] },
+      { kind: "space", text: " " },
+    ]);
+  });
+  it("gives every character of an 80-character line the index waveOffset gets in the client", () => {
+    const line = "Selling lobbies ".repeat(5);
+    const all = [...line];
+    const runs = waveRuns(line);
+    const joined = runs.map((run) => (run.kind === "space" ? run.text : run.chars.map((c) => c.ch).join(""))).join("");
+    expect(joined).toBe(line);
+    const indexed = runs.flatMap((run) => (run.kind === "word" ? run.chars : []));
+    expect(indexed.map((c) => c.i)).toEqual(all.flatMap((ch, i) => (ch === " " ? [] : [i])));
+    for (const { ch, i } of indexed) expect(all[i]).toBe(ch);
   });
 });
 

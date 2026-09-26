@@ -13,11 +13,12 @@ import { fail, readJson, runWrite, writer } from "@/lib/adventurer-log/route";
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
-  const input = checkPersonaInput(await readJson(request));
-  if (!input.ok) return fail(input.error, 400);
-
+  // Who is asking, and from where, before anything about what they sent.
   const who = await writer(request, "persona");
   if ("response" in who) return who.response;
+
+  const input = checkPersonaInput(await readJson(request));
+  if (!input.ok) return fail(input.error, 400);
 
   return runWrite(personaSaveStatement(who.username, input.value), "adventure_persona_save");
 }
