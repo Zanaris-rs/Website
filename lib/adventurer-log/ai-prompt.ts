@@ -35,16 +35,26 @@ export const CONTENT_SYMBOLS = "★ ♦ ⚔ • ~ »";
 const FENCE = "```";
 
 /**
- * The log's markup, cut down: what `LogView`, `Wardrobe`, `Timeline`, `Entry`
- * and `Body` draw, with one of each repeated thing.
+ * The log's markup, cut down: what `LogView`, `Card`, `Wardrobe`, `Timeline`,
+ * `Entry` and `Body` draw, with one of each repeated thing.
  */
 const OUTLINE = `<div class="al-root">                 <!-- the log; your CSS reaches nothing outside it -->
   <div class="al-page">                <!-- html, body and :root in your CSS mean this -->
     <aside class="al-side">
-      <section class="al-header al-box">
+      <section class="al-header al-card al-box">
         <h1 class="al-title">Zezima</h1>
-        <div class="al-chathead"><canvas></canvas></div>
-        <p class="al-headline">"Headline"</p>
+        <p class="al-persona-title">the Unready</p>                  <!-- only when set -->
+        <button class="al-figure">                                     <!-- a saved outfit, standing; a click replays its emote -->
+          <span class="al-chat al-chat--c9 al-chat--e1 al-overhead al-headline">Headline</span>
+          <canvas></canvas>
+        </button>
+        <!-- or, with no outfit: <p class="al-chat-strip"><span class="al-chat … al-overhead al-headline"></span></p>,
+             or with no words either: <div class="al-chathead"><canvas></canvas></div> -->
+        <p class="al-examine">Examine text</p>
+        <dl class="al-sheet">
+          <div class="al-sheet-row al-sheet--home"><dt>Home</dt><dd>Varrock</dd></div> ...
+          <div class="al-sheet-row al-sheet--goals"><dt>Goals</dt><dd><ul class="al-goals"><li>99 Thieving</li></ul></dd></div>
+        </dl>
         <p class="al-joined">Adventuring since Sep 2026</p>
         <p class="al-links"><a>Hiscores</a></p>
       </section>
@@ -188,6 +198,8 @@ ${OUTLINE}
 ${FENCE}
 
 - One column on a phone. From 900px wide there are two: \`.al-side\` is 280px on the left and \`.al-main\` takes the rest (a CSS grid on \`.al-page\`).
+- \`.al-chat--c<0-11>\` is the headline's colour and \`.al-chat--e<0-2>\` its effect. The colour is set by the page every frame, so a \`color\` rule won't stick.
+- \`.al-sheet--<home|hangout|god|clan|style|goals>\` is one row of the character sheet.
 - \`.al-skill--<id>\` is one skill's row: ${skills}.
 - \`.al-event--<kind>\` is one kind of adventure: ${kinds}.
 - \`.al-record--<seconds>\` is one record length, shown only when I hold a place on it: ${durations}.
