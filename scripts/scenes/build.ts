@@ -15,10 +15,12 @@
  * and `scripts/scenes/contact-sheet.png`, every spot with the reference
  * figure drawn in, to judge the framing by eye. That one is not committed.
  *
- * A spot fails the build, naming it, if drawing a figure over its backdrop
- * is not pixel for pixel the same as drawing it in the same pass: something
- * stands between that tile and the camera. Move the tile or the camera.
- * Nothing is written but the contact sheet when any spot fails.
+ * A spot fails the build if drawing a figure over its backdrop is not pixel
+ * for pixel the same as drawing it in the same pass, for either reference
+ * look, standing or in any frame of any emote: something stands between
+ * that tile and the camera. The error names the spot, the look, the emote
+ * and the frame; move the tile or the camera. Nothing is written but the
+ * contact sheet, which then shows the first failing pose, when any fails.
  */
 
 import "../chathead/browser-stub.ts";
@@ -53,6 +55,7 @@ for (const input of SPOTS) {
 
 const studio = await openStudio(CLIENT_DIR, ENGINE_DIR, OUT_DIR);
 
+const started = performance.now();
 const shots = [];
 for (const input of SPOTS) {
   const shot = await studio.shoot(input);
@@ -70,28 +73,43 @@ for (const input of SPOTS) {
     `scene ${input.key} ${WIDTH}x${HEIGHT} eye ${eye.x},${eye.y},${eye.z} pitch ${eye.pitch} yaw ${eye.yaw}, ` +
       `figure at ${figure.x >> 7},${figure.z >> 7} in x ${box.left}-${box.right} y ${box.top}-${box.bottom}, ` +
       `${(png.length / 1024).toFixed(1)} KB, ` +
-      (shot.differing === 0 ? "composite exact" : `composite DIFFERS in ${shot.differing} pixels`),
+      (shot.failures.length === 0
+        ? `composite exact in all ${shot.proofs} looks and poses`
+        : `composite DIFFERS in ${shot.failures.length} of ${shot.proofs} looks and poses`),
   );
   shots.push({ ...shot, png });
 }
 
+const proofs = shots.reduce((total, shot) => total + shot.proofs, 0);
+const seconds = ((performance.now() - started) / 1000).toFixed(1);
+console.log(`proofs   ${proofs} composites compared with their same-pass renders in ${seconds} s`);
+
 const sheet = studio.sheet(
-  shots.map((shot) => ({
-    pixels: shot.samePass,
-    label: shot.differing === 0 ? shot.spot.key : `${shot.spot.key}: ${shot.differing} px differ`,
-  })),
+  shots.map((shot) => {
+    const failure = shot.failures[0];
+    return failure
+      ? { pixels: failure.samePass, label: `${shot.spot.key}: ${failure.pose}, ${failure.differing} px` }
+      : { pixels: shot.samePass, label: shot.spot.key };
+  }),
   Math.min(shots.length, 6),
 );
 const sheetFile = path.join(OUT_DIR, "scripts/scenes/contact-sheet.png");
 writeFileSync(sheetFile, encodePng(sheet.pixels, sheet.width, sheet.height));
 console.log(`sheet    ${sheet.width}x${sheet.height} -> scripts/scenes/contact-sheet.png (not committed)`);
 
-const inexact = shots.filter((shot) => shot.differing > 0).map((shot) => shot.spot.key);
+const inexact = shots.filter((shot) => shot.failures.length > 0);
 if (inexact.length > 0) {
+  const listed = inexact.map((shot) => {
+    const first = shot.failures
+      .slice(0, 4)
+      .map((failure) => `${failure.look}, ${failure.pose} (${failure.differing} px)`);
+    const more = shot.failures.length - first.length;
+    return `${shot.spot.key}: ${first.join("; ")}${more > 0 ? `; and ${more} more` : ""}`;
+  });
   throw new Error(
-    `${inexact.join(", ")}: a figure drawn over the backdrop is not the figure drawn in the scene; ` +
-      `something stands between its tile and the camera. Move the tile or the camera in spots.ts ` +
-      `(the contact sheet shows the same-pass figure).`,
+    `a figure drawn over the backdrop is not the figure drawn in the scene at\n  ${listed.join("\n  ")}\n` +
+      `Something stands between its tile and the camera. Move the tile or the camera in spots.ts ` +
+      `(the contact sheet shows the game's picture of the first failing pose).`,
   );
 }
 

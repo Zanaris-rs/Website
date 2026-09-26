@@ -31,7 +31,7 @@ export const SPOTS: SpotInput[] = [
   { key: "falador", name: "Falador park", x: 2995, z: 3376, level: 0, pitch: 32, yaw: 1024, dist: 1000, lift: 230 },
   { key: "wilderness", name: "the Wilderness border", x: 3092, z: 3528, level: 0, pitch: 64, yaw: 0, dist: 1000, lift: 230 },
   { key: "draynor", name: "Draynor market", x: 3082, z: 3248, level: 0, pitch: 64, yaw: 512, dist: 1000, lift: 230 },
-  { key: "catherby", name: "Catherby beach", x: 2830, z: 3436, level: 0, pitch: 64, yaw: 512, dist: 1000, lift: 230 },
+  { key: "catherby", name: "Catherby beach", x: 2830, z: 3435, level: 0, pitch: 64, yaw: 512, dist: 1000, lift: 230 },
   { key: "al_kharid", name: "Al Kharid palace", x: 3293, z: 3176, level: 0, pitch: 64, yaw: 1024, dist: 1000, lift: 230 },
   { key: "edgeville", name: "Edgeville", x: 3089, z: 3488, level: 0, pitch: 64, yaw: 0, dist: 1000, lift: 230 },
   { key: "port_sarim", name: "Port Sarim docks", x: 3029, z: 3218, level: 0, pitch: 64, yaw: 1536, dist: 1000, lift: 230 },

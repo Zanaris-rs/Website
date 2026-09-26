@@ -33,7 +33,8 @@ import "./client-shim.ts";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
-import { type BodyTables, buildBody } from "../../lib/chathead/body.ts";
+import type { AnimTables } from "../../lib/chathead/anims.ts";
+import { type BodyTables, buildBody, type Pose } from "../../lib/chathead/body.ts";
 import { type Client, type ClientModel, prepare } from "../../lib/chathead/client.ts";
 import type { Look } from "../../lib/chathead/look.ts";
 import type { SceneSpot } from "../../lib/scenes/spots.ts";
@@ -145,23 +146,52 @@ const REFERENCE: Look = {
   worn: new Array<number>(14).fill(-1),
 };
 
+/**
+ * The same player geared up well past that outline: a rune full helm (0),
+ * a red cape (1), a rune two-handed sword (3), a rune platebody (4) and
+ * platelegs (7), by `wearpos`. A player's own outfit can be wider or taller
+ * than the default, so each spot is proved with this one too.
+ */
+const BULKY: Look = {
+  ...REFERENCE,
+  worn: [1163, 1007, -1, 1319, 1127, -1, -1, 1079, -1, -1, -1, -1, -1, -1],
+};
+
+/** The looks every spot is proved with, named for the build's errors. */
+const LOOKS: { name: string; look: Look }[] = [
+  { name: "the default look", look: REFERENCE },
+  { name: "the bulky look", look: BULKY },
+];
+
 /** The build area: 13 zones of 8 tiles (`BuildArea.SIZE`). */
 const SIZE = 104;
 
 /** Where the figure lands in the frame, from the pixels it changed. */
 export type Box = { left: number; top: number; right: number; bottom: number };
 
+/** A look in a pose whose composite is not the game's picture. */
+export type Failure = {
+  look: string;
+  /** "standing", or the emote and the frame: "dance frame 2305". */
+  pose: string;
+  /** Pixels where the composite and the same pass differ. */
+  differing: number;
+  /** The game's picture of it, for the contact sheet. */
+  samePass: Int32Array;
+};
+
 export type Shot = {
   spot: SceneSpot;
   /** The scene with no one in it: the PNG. */
   backdrop: Int32Array;
-  /** The reference figure drawn with `worldRender` over the backdrop. */
-  composite: Int32Array;
-  /** The reference figure drawn by `renderAll`, in the same pass. */
+  /** The default look standing, drawn by `renderAll` in the same pass. */
   samePass: Int32Array;
-  /** Pixels where `composite` and `samePass` differ. 0 is exact. */
-  differing: number;
+  /** Where the default look standing lands. */
   figureBox: Box;
+  /** How many look-and-pose composites were compared. */
+  proofs: number;
+  /** Every one of them that differed. None is exact. */
+  failures: Failure[];
 };
 
 export type Studio = {
@@ -190,7 +220,7 @@ export async function openStudio(clientDir: string, engineDir: string, outDir: s
         "dash3d/Pix3D.ts",
       ),
       Pix2D: await client<Client["Pix2D"]>("graphics/Pix2D.ts"),
-      AnimFrame: await client<Client["AnimFrame"]>("dash3d/AnimFrame.ts"),
+      AnimFrame: await client<Client["AnimFrame"] & { list: (object | undefined)[] }>("dash3d/AnimFrame.ts"),
       LocType: await client<ConfigClass>("config/LocType.ts"),
       FloType: await client<ConfigClass>("config/FloType.ts"),
       SeqType: await client<ConfigClass>("config/SeqType.ts"),
@@ -257,6 +287,31 @@ export async function openStudio(clientDir: string, engineDir: string, outDir: s
   const bodies = JSON.parse(
     readFileSync(path.join(outDir, "lib/chathead/bodies.json"), "utf8"),
   ) as BodyTables;
+  for (const id of BULKY.worn) {
+    if (id !== -1 && !bodies.objs[id]) {
+      throw new Error(`the bulky look wears object ${id}, which bodies.json lacks: change BULKY in render.ts`);
+    }
+  }
+
+  // Every pose the card can draw a figure in: standing, and every frame of
+  // every emote (lib/chathead/anims.json, what the site plays), each with
+  // the hands its seq empties. Frames an emote repeats are proved once.
+  const anims = JSON.parse(
+    readFileSync(path.join(outDir, "lib/chathead/anims.json"), "utf8"),
+  ) as AnimTables;
+  const poses: { name: string; pose?: Pose }[] = [{ name: "standing" }];
+  const posed = new Set<string>();
+  for (const [emote, seq] of Object.entries(anims.emotes)) {
+    for (const frame of seq.frames) {
+      const id = `${frame}:${seq.hideLeft}:${seq.hideRight}`;
+      if (posed.has(id)) continue;
+      posed.add(id);
+      if (!AnimFrame.list[frame]) {
+        throw new Error(`${emote} frame ${frame} is not in the cache's anims: re-run npm run chathead:update`);
+      }
+      poses.push({ name: `${emote} frame ${frame}`, pose: { frame, hideLeft: seq.hideLeft, hideRight: seq.hideRight } });
+    }
+  }
   const title = jag("title");
   const font = PixFont.depack(title, "p12_full", false);
 
@@ -317,17 +372,35 @@ export async function openStudio(clientDir: string, engineDir: string, outDir: s
     const world = new World(groundh, SIZE, 4, SIZE);
     const collision = [0, 1, 2, 3].map(() => new CollisionMap());
 
-    // The mapsquares covering the 13x13 zones (Client.ts:6842-6872).
+    // The figure has to stand on the map. Off it, every square around is
+    // missing too, and the build would draw an empty sky around a floating
+    // figure — which composites exactly, so nothing else would catch it.
+    const ownX = input.x >> 6;
+    const ownZ = input.z >> 6;
+    if (!maps.has((ownX << 8) | ownZ)) {
+      throw new Error(
+        `${input.key}: ${input.x},${input.z} is not on the map (no mapsquare ${ownX}_${ownZ} in map_index); ` +
+          `check the tile in spots.ts`,
+      );
+    }
+
+    // The mapsquares covering the 13x13 zones (Client.ts:6842-6872). One
+    // map_index leaves out is not there (the sea past the edge of the map,
+    // which fadeAdjacent fades into); one it lists must have both its files,
+    // or the pack is half-built.
     const squares: { x: number; z: number; land: Uint8Array | null; loc: Uint8Array | null }[] = [];
     for (let mx = ((zoneX - 6) / 8) | 0; mx <= (((zoneX + 6) / 8) | 0); mx++) {
       for (let mz = ((zoneZ - 6) / 8) | 0; mz <= (((zoneZ + 6) / 8) | 0); mz++) {
         const files = maps.get((mx << 8) + mz);
-        squares.push({
-          x: mx * 64 - baseX,
-          z: mz * 64 - baseZ,
-          land: files ? cache.readGzip(4, files.land) : null,
-          loc: files ? cache.readGzip(4, files.loc) : null,
-        });
+        const land = files ? cache.readGzip(4, files.land) : null;
+        const loc = files ? cache.readGzip(4, files.loc) : null;
+        if (files && (!land || !loc)) {
+          const missing = !land ? `land (file ${files.land})` : `locs (file ${files.loc})`;
+          throw new Error(
+            `${input.key}: map_index lists mapsquare ${mx}_${mz} but its ${missing} is not in the cache: repack the engine`,
+          );
+        }
+        squares.push({ x: mx * 64 - baseX, z: mz * 64 - baseZ, land, loc });
       }
     }
 
@@ -387,10 +460,10 @@ export async function openStudio(clientDir: string, engineDir: string, outDir: s
     return { x: targetX - x, y: targetY - y, z: targetZ - z };
   }
 
-  /** The reference figure, freshly built: `buildBody` hands out the one scratch model. */
-  function figure(): WorldModel {
-    const body = buildBody(source, bodies, REFERENCE);
-    if (!body) throw new Error("the reference look built no body: re-run npm run chathead:update");
+  /** A figure, freshly built: `buildBody` hands out the one scratch model. */
+  function figure(look: Look, pose?: Pose): WorldModel {
+    const body = buildBody(source, bodies, look, pose);
+    if (!body) throw new Error("a reference look built no body: re-run npm run chathead:update");
     return body as WorldModel;
   }
 
@@ -406,9 +479,11 @@ export async function openStudio(clientDir: string, engineDir: string, outDir: s
    * fence, a table, the ground rising in front — covers any of its pixels:
    * `World` paints back to front, and a composite puts the figure last.
    *
-   * So the reference figure is drawn both ways — in the same pass, with
-   * `addDynamic`, and over the finished backdrop — and the pixels compared.
-   * `build.ts` refuses a spot where any differ.
+   * So a figure is drawn both ways — in the same pass, with `addDynamic`,
+   * and over the finished backdrop — and the pixels compared, for every
+   * pose the card can show it in (standing, and every frame of every emote)
+   * and for two looks: the default, and a bulky one that reaches further.
+   * `build.ts` refuses a spot where any differ, naming the look and pose.
    */
   async function shoot(input: SpotInput): Promise<Shot> {
     if (!((input.pitch >= 0 && input.pitch <= 96) || (input.pitch >= 128 && input.pitch <= 383))) {
@@ -424,9 +499,6 @@ export async function openStudio(clientDir: string, engineDir: string, outDir: s
       const region = buildRegion(input);
       const tileX = input.x - region.baseX;
       const tileZ = input.z - region.baseZ;
-      if (tileX < 0 || tileZ < 0 || tileX >= SIZE || tileZ >= SIZE) {
-        throw new Error(`${input.key}: ${input.x},${input.z} is outside its own build area`);
-      }
 
       // The figure stands in the middle of its tile, on the ground, facing the camera.
       const fx = tileX * 128 + 64;
@@ -452,30 +524,40 @@ export async function openStudio(clientDir: string, engineDir: string, outDir: s
         throw new Error(`${input.key}: the figure is ${depth} deep, past the game's far clip of ${GAME_FAR}; shorten dist`);
       }
 
-      const render = (withFigure: boolean): Int32Array => {
+      const render = (body: WorldModel | null): Int32Array => {
         const pixels = sky();
         Pix2D.setPixels(pixels, WIDTH, HEIGHT);
         Pix3D.setClipping(WIDTH, HEIGHT);
-        if (withFigure) region.world.addDynamic(input.level, fx, fy, fz, figure(), 0, facing, 60, false);
+        if (body) region.world.addDynamic(input.level, fx, fy, fz, body, 0, facing, 60, false);
         region.world.renderAll(eye.x, eye.y, eye.z, 3, input.yaw, input.pitch);
         region.world.removeSprites();
         return pixels;
       };
 
-      const backdrop = render(false);
-      const samePass = render(true);
+      const backdrop = render(null);
+      let reference: { samePass: Int32Array; composite: Int32Array } | null = null;
+      const failures: Failure[] = [];
+      for (const { name: look, look: worn } of LOOKS) {
+        for (const { name: pose, pose: frame } of poses) {
+          const samePass = render(figure(worn, frame));
+          // What the site will do: the backdrop, then the figure over it.
+          const composite = backdrop.slice();
+          Pix2D.setPixels(composite, WIDTH, HEIGHT);
+          Pix3D.setRenderClipping();
+          figure(worn, frame).worldRender(facing, sinPitch, cosPitch, sinYaw, cosYaw, fx - eye.x, fy - eye.y, fz - eye.z, 0);
 
-      // What the site will do: the backdrop, then the figure over it.
-      const composite = backdrop.slice();
-      Pix2D.setPixels(composite, WIDTH, HEIGHT);
-      Pix3D.setRenderClipping();
-      figure().worldRender(facing, sinPitch, cosPitch, sinYaw, cosYaw, fx - eye.x, fy - eye.y, fz - eye.z, 0);
+          let differing = 0;
+          for (let i = 0; i < composite.length; i++) if (composite[i] !== samePass[i]) differing++;
+          if (differing > 0) failures.push({ look, pose, differing, samePass });
+          // The first proof is the default look standing: the contact sheet's.
+          reference ??= { samePass, composite };
+        }
+      }
+      if (!reference) throw new Error("no looks or poses to prove a spot with");
 
-      let differing = 0;
       const box: Box = { left: WIDTH, top: HEIGHT, right: -1, bottom: -1 };
-      for (let i = 0; i < composite.length; i++) {
-        if (composite[i] !== samePass[i]) differing++;
-        if (composite[i] !== backdrop[i]) {
+      for (let i = 0; i < backdrop.length; i++) {
+        if (reference.composite[i] !== backdrop[i]) {
           const x = i % WIDTH;
           const y = (i / WIDTH) | 0;
           box.left = Math.min(box.left, x);
@@ -504,7 +586,14 @@ export async function openStudio(clientDir: string, engineDir: string, outDir: s
         },
         figure: { x: input.x * 128 + 64, y: fy, z: input.z * 128 + 64, yaw: facing },
       };
-      return { spot, backdrop, composite, samePass, differing, figureBox: box };
+      return {
+        spot,
+        backdrop,
+        samePass: reference.samePass,
+        figureBox: box,
+        proofs: LOOKS.length * poses.length,
+        failures,
+      };
     });
   }
 
