@@ -2,9 +2,9 @@
 
 import "./game-fonts.css";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
 
-import { onCycle, prefersReducedMotion } from "@/lib/game-chat/clock";
+import { onCycle, prefersReducedMotion, subscribeReducedMotion } from "@/lib/game-chat/clock";
 import { colourAt, cssColour, scrollOffset, waveOffset } from "@/lib/game-chat/effects";
 import { FONT_METRICS, stringWidth } from "@/lib/game-chat/metrics";
 
@@ -16,12 +16,18 @@ const HIDDEN = {
   clip: "rect(0 0 0 0)", whiteSpace: "nowrap",
 } as const;
 
+/** Off on the server and in the first render, so hydration matches. */
+const serverReducedMotion = () => false;
+
 /**
  * A line of overhead chat as the game draws it: the b12 font, a black shadow
  * one pixel down, one of the client's twelve colours and its wave or scroll.
  * Screen readers get the text once, plainly; the drawn copy is hidden from
  * them. With reduced motion nothing moves: a flash or glow shows its first
- * colour, a wave or scroll sits still.
+ * colour, and a wave or scroll is drawn as plain, still text.
+ *
+ * A scroll starts with its text at its window's left edge, so it reads
+ * before the clock moves it (without script, too).
  */
 export default function ChatText({
   text,
@@ -35,11 +41,18 @@ export default function ChatText({
   className?: string;
 }) {
   const root = useRef<HTMLSpanElement>(null);
+  const reduced = useSyncExternalStore(subscribeReducedMotion, prefersReducedMotion, serverReducedMotion);
   const moving = colour >= 6 || effect !== 0;
+  const drawnEffect = reduced ? 0 : effect;
 
   useEffect(() => {
     const element = root.current;
-    if (!element || !moving || prefersReducedMotion()) return;
+    if (!element || !moving) return;
+    if (reduced) {
+      // The setting can change while the clock is running.
+      element.style.color = cssColour(colourAt(colour, 0));
+      return;
+    }
     const chars = [...element.querySelectorAll<HTMLSpanElement>("[data-i]")];
     const slider = element.querySelector<HTMLSpanElement>("[data-scroll]");
     const width = stringWidth(text, "b12");
@@ -53,19 +66,19 @@ export default function ChatText({
         slider.style.transform = `translateX(${100 - scrollOffset(width, cycle)}px)`;
       }
     });
-  }, [text, colour, effect, moving]);
+  }, [text, colour, effect, moving, reduced]);
 
   const classes = `al-chat al-chat--c${colour} al-chat--e${effect}${className ? ` ${className}` : ""}`;
   const drawn =
-    effect === 1 ? (
+    drawnEffect === 1 ? (
       [...text].map((ch, i) => (
         <span key={i} data-i={i} style={{ display: "inline-block", whiteSpace: "pre" }}>
           {ch}
         </span>
       ))
-    ) : effect === 2 ? (
+    ) : drawnEffect === 2 ? (
       <span style={{ display: "inline-block", width: 100, overflow: "hidden", verticalAlign: "bottom" }}>
-        <span data-scroll style={{ display: "inline-block", whiteSpace: "pre", transform: "translateX(100px)" }}>
+        <span data-scroll style={{ display: "inline-block", whiteSpace: "pre", transform: "translateX(0px)" }}>
           {text}
         </span>
       </span>
