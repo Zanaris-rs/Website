@@ -1,5 +1,6 @@
 import type { Statement } from "@/lib/account/register";
 import { type Emote, isEmote, isMood } from "@/lib/chathead/vocab";
+import { sceneOf } from "@/lib/scenes/spots";
 
 import { checkText, HEADLINE_MAX } from "./format";
 import { type DialoguePage, type God, GODS, type Persona, PERSONA_LIMITS, PLAYSTYLES } from "./persona";
@@ -52,7 +53,8 @@ export function checkPersonaInput(raw: Record<string, unknown> | null): Check {
   const playstyle = raw.playstyle ?? null;
   if (playstyle !== null && !(PLAYSTYLES as readonly unknown[]).includes(playstyle)) return bad("Pick a playstyle from the list.");
   const scene = raw.scene ?? null;
-  if (scene !== null && !isPlace(scene)) return bad("Pick a scene from the list.");
+  // A place the build framed a scene at (lib/scenes/spots.json), not just any place.
+  if (scene !== null && (typeof scene !== "string" || !sceneOf(scene))) return bad("Pick a scene from the list.");
   const signatureEmote = raw.signatureEmote ?? null;
   if (signatureEmote !== null && !isEmote(signatureEmote)) return bad("Pick an emote from the list.");
 

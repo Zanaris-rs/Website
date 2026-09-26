@@ -149,6 +149,20 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      {
+        // The scenes' backdrops (`scripts/update-scenes.sh`), on the same
+        // terms: `sceneSrc` (lib/scenes/spots.ts) puts the build's version in
+        // every URL, so a year is safe and a regeneration reaches readers at
+        // once. Like the chathead rule, it matches no path the fonts' rule
+        // above does, so their order does not matter.
+        source: "/game/scenes/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
       // The Adventurer Log draws an owner's own stylesheet
       // (lib/adventurer-log/css.ts). The sanitiser already refuses anything
       // that loads from elsewhere; this is the backstop if it ever misses:

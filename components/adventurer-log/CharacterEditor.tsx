@@ -2,6 +2,7 @@
 
 import { type FormEvent, useRef, useState } from "react";
 
+import Tile from "@/components/site/Tile";
 import {
   BAD_FIELDS,
   goalsWith,
@@ -24,6 +25,7 @@ import { checkPersonaInput, type PersonaInput } from "@/lib/adventurer-log/perso
 import { PLACES } from "@/lib/adventurer-log/places";
 import type { Look } from "@/lib/chathead/look";
 import { type Emote, EMOTE_NAMES, EMOTES } from "@/lib/chathead/vocab";
+import { SCENES, sceneOf, sceneSrc } from "@/lib/scenes/spots";
 
 import styles from "./CharacterEditor.module.css";
 import CharacterPreview from "./CharacterPreview";
@@ -83,6 +85,9 @@ export default function CharacterEditor({
   const dirty = JSON.stringify(draft) !== JSON.stringify(saved);
   const marked = (field: Field) => invalid.includes(field) || undefined;
   const pageCount = draft.dialogue.length;
+  // A figure needs a saved outfit, and a scene needs a figure.
+  const canStand = outfitLook !== null;
+  const homeScene = sceneOf(draft.homeTown);
 
   function change(next: PersonaInput) {
     setDraft(next);
@@ -213,6 +218,22 @@ export default function CharacterEditor({
               ))}
             </select>
           </label>
+          {homeScene && canStand ? (
+            <div className={styles.standHere}>
+              <button
+                type="button"
+                disabled={draft.scene === homeScene.key}
+                onClick={() => set("scene", homeScene.key)}
+              >
+                Stand here
+              </button>
+              <span className={styles.hint}>
+                {draft.scene === homeScene.key
+                  ? `Your figure stands at ${homeScene.name}.`
+                  : `Put your figure at ${homeScene.name}.`}
+              </span>
+            </div>
+          ) : null}
           {words("hangout")}
           <label className={styles.row}>
             <span className={styles.label}>God</span>
@@ -267,6 +288,35 @@ export default function CharacterEditor({
 
         <fieldset className={styles.section}>
           <legend>Where you stand</legend>
+          <div className={styles.scenes} role="group" aria-label="Scene">
+            <button
+              type="button"
+              className={styles.scene}
+              aria-pressed={draft.scene === null}
+              disabled={!canStand}
+              onClick={() => set("scene", null)}
+            >
+              <span className={`${styles.thumb} ${styles.noScene}`} aria-hidden="true" />
+              <span className={styles.sceneName}>No scene</span>
+            </button>
+            {SCENES.spots.map((spot) => (
+              <button
+                key={spot.key}
+                type="button"
+                className={styles.scene}
+                aria-pressed={draft.scene === spot.key}
+                disabled={!canStand}
+                onClick={() => set("scene", spot.key)}
+              >
+                <Tile src={sceneSrc(spot)} width={spot.width / 2} height={spot.height / 2} className={styles.thumb} />
+                <span className={styles.sceneName}>{spot.name}</span>
+              </button>
+            ))}
+          </div>
+          <p className={styles.hint}>
+            {canStand ? "Your figure wears your default outfit." : "Save an outfit to stand in a scene."}{" "}
+            <a href="/account/adventurer-log/outfits">{canStand ? "Change it in Outfits" : "Go to Outfits"}</a>.
+          </p>
           {pageCount === 0 ? (
             <>
               <label className={styles.row}>
@@ -292,10 +342,6 @@ export default function CharacterEditor({
               instead.
             </p>
           )}
-          <p className={styles.hint}>
-            {outfitLook ? "Your figure wears your default outfit." : "Save an outfit to have a figure."}{" "}
-            <a href="/account/adventurer-log/outfits">{outfitLook ? "Change it in Outfits" : "Go to Outfits"}</a>.
-          </p>
         </fieldset>
 
         <fieldset className={styles.section}>
