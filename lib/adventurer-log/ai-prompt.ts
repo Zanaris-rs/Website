@@ -81,6 +81,17 @@ const OUTLINE = `<div class="al-root">                 <!-- the log; your CSS re
       </section>
     </aside>
     <div class="al-main">
+      <section class="al-dialogue al-box" aria-label="Zezima says">     <!-- only with pages or a headline; the fallback page uses the headline, neutral mood, no continue button -->
+        <div class="al-dialogue-head al-chathead"><canvas></canvas></div>
+        <div class="al-dialogue-body">
+          <p class="al-dialogue-name">Zezima</p>
+          <div class="al-dialogue-text" aria-live="polite">
+            <p>A line of dialogue.</p> ...
+          </div>
+          <button class="al-continue">Click here to continue</button>     <!-- only with more than one page -->
+          <p class="al-dialogue-page">2 / 3</p>                            <!-- only with more than one page -->
+        </div>
+      </section>
       <section class="al-about al-box">
         <h2>About Zezima</h2>
         <div class="al-box-body"><p>About text</p></div>
@@ -207,6 +218,7 @@ ${FENCE}
 - \`.al-filter[aria-current]\` is the filter being shown. \`.al-edited\` is on an update only when I changed it after posting.
 - \`.al-post\`, \`.al-actions\` and \`.al-reply-form\` hold buttons and forms that only signed-in readers see. Style them if you like, but keep them usable.
 - \`.al-gz-button\` shows only to signed-in readers other than me, and never to players I blocked; \`.al-gz-button[aria-pressed="true"]\` is a gz that reader gave.
+- The dialogue box (\`.al-dialogue\`) keeps its parchment look by default; restyle it if you like, but keep \`.al-continue\` visible.
 - Chatheads and outfits are drawn on \`<canvas>\`: you can frame, size and place them, but not recolour them.
 
 Its look before your CSS: a black page; each \`.al-box\` black with a 1px #3a3a3a border; each box title (\`.al-box > h2\`) a #2b2b2b bar with white 13px bold text; text #e4e4e4 in 13px Arial; links #c8ccd2; times #9a9a9a.`,
