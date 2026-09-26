@@ -1,0 +1,256 @@
+/* The Character tab, `/account/adventurer-log/character`: the form on the
+   left and, beside it, the log's own card and dialogue box drawing the
+   draft. On a phone it is one column - the form, the preview, then Save -
+   so what Save will do is in view as it is pressed.
+
+   These are the editor's own classes, outside `.al-root`. The preview's
+   insides are the log's markup, styled by Log.module.css; the one rule here
+   that reaches in (`.preview ... .al-page`) only stacks it into one column. */
+
+.editor {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  grid-template-areas:
+    "form preview"
+    "save preview";
+  gap: 12px 16px;
+  align-items: start;
+  font-size: 13px;
+  text-align: left;
+}
+
+@media (max-width: 899px) {
+  .editor {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "form"
+      "preview"
+      "save";
+  }
+}
+
+.form {
+  grid-area: form;
+  min-width: 0;
+}
+
+/* --- a section of the form --- */
+
+.section {
+  border: 1px solid var(--panel-border);
+  margin: 0 0 10px;
+  padding: 6px 10px 10px;
+  min-width: 0;
+}
+
+.section legend {
+  padding: 0 4px;
+  font-weight: bold;
+}
+
+/* A label beside its control; on a phone, above it. */
+.row {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  gap: 4px 8px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+@media (max-width: 599px) {
+  .row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.label {
+  color: var(--link);
+  font-weight: bold;
+}
+
+.editor input[type="text"],
+.editor select,
+.editor textarea {
+  width: 100%;
+  font: inherit;
+}
+
+.editor button {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 13px;
+}
+
+.editor [aria-invalid="true"] {
+  outline: 2px solid #ff5a5a;
+  outline-offset: 1px;
+}
+
+.hint {
+  margin: 2px 0 6px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.hint code {
+  color: var(--text);
+}
+
+.count {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: normal;
+}
+
+.goals {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+}
+
+@media (max-width: 599px) {
+  .goals {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* --- overhead chat: twelve colour chips and None / Wave / Scroll --- */
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+/* Black behind the game's colours, as in game. */
+.editor .chip {
+  padding: 2px 6px 3px;
+  background: #000;
+  border: 2px solid var(--panel-border);
+  cursor: pointer;
+  line-height: 1;
+}
+
+.editor .chip[aria-pressed="true"] {
+  border-color: var(--link-green);
+}
+
+.segments {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.segments button[aria-pressed="true"] {
+  outline: 2px solid var(--link-green);
+}
+
+/* --- what you say: one card per page --- */
+
+.pages {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+}
+
+.pageCard {
+  border: 1px dashed var(--panel-border);
+  padding: 6px 8px 8px;
+  margin-bottom: 8px;
+}
+
+.pageHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-weight: bold;
+}
+
+.tools {
+  display: flex;
+  gap: 4px;
+}
+
+.picks {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.picks label {
+  display: grid;
+  gap: 2px;
+}
+
+.lines textarea {
+  resize: vertical;
+  line-height: 1.4;
+}
+
+.counter {
+  margin: 2px 0 0;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.warn {
+  display: block;
+  color: #ff5a5a;
+}
+
+/* --- save --- */
+
+.save {
+  grid-area: save;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.save button {
+  padding: 3px 14px;
+}
+
+.error {
+  color: #ff5a5a;
+}
+
+/* --- the preview --- */
+
+.preview {
+  grid-area: preview;
+  min-width: 0;
+}
+
+/* It stays in view beside a long form, scrolling on its own when it is
+   taller than the window, so the dialogue box under the card is never out
+   of reach. */
+@media (min-width: 900px) {
+  .preview {
+    position: sticky;
+    top: 8px;
+    max-height: calc(100vh - 16px);
+    overflow-y: auto;
+  }
+}
+
+.previewTitle {
+  margin: 0 0 2px;
+  font-size: 13px;
+}
+
+/* The log puts its card and dialogue side by side at this width; the
+   preview's column is only as wide as the card, so they stack. */
+.preview :global(.al-root) :global(.al-page) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.pager {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 6px;
+}
