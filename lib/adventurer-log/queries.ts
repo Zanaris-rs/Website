@@ -401,15 +401,17 @@ export function setHiddenStatement(username: string, mask: number): Statement {
 }
 
 /**
- * "About you" in one Save: the headline and about, then the kinds of
- * adventure the log hides. One statement, so one transaction - the second
- * function runs only when the first answered 'ok', and if either throws,
- * neither sticks. The route checks the text and the mask first, so the
- * second answering anything but 'ok' means the two sides disagree.
+ * "About you" in one Save: the about text, then the kinds of adventure the
+ * log hides. One statement, so one transaction - the second function runs
+ * only when the first answered 'ok', and if either throws, neither sticks.
+ * The route checks the text and the mask first, so the second answering
+ * anything but 'ok' means the two sides disagree. `headline` is null to keep
+ * the stored headline: the Character tab (`/api/adventurer-log/persona`) is
+ * the only route that changes it now.
  */
 export function aboutSaveStatement(
   username: string,
-  headline: string,
+  headline: string | null,
   about: string,
   mask: number,
 ): Statement {
@@ -569,6 +571,15 @@ export const WRITE_RESULTS = [
   "bad_body",
   "bad_kind",
   "bad_reason",
+  "bad_title",
+  "bad_examine",
+  "bad_hangout",
+  "bad_clan",
+  "bad_goals",
+  "bad_god",
+  "bad_key",
+  "bad_emote",
+  "bad_dialogue",
   "too_long",
   "css_disabled",
   "no_such_player",
@@ -607,6 +618,15 @@ export const LOG_STATUS: Record<string, number> = {
   bad_body: 400,
   bad_kind: 400,
   bad_reason: 400,
+  bad_title: 400,
+  bad_examine: 400,
+  bad_hangout: 400,
+  bad_clan: 400,
+  bad_goals: 400,
+  bad_god: 400,
+  bad_key: 400,
+  bad_emote: 400,
+  bad_dialogue: 400,
   too_long: 400,
   self: 400,
   banned: 403,
