@@ -26,6 +26,20 @@ export function onCycle(listener: (cycle: number) => void): () => void {
   };
 }
 
+const REDUCED_MOTION = "(prefers-reduced-motion: reduce)";
+
 export function prefersReducedMotion(): boolean {
-  return typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  return typeof matchMedia === "function" && matchMedia(REDUCED_MOTION).matches;
+}
+
+/**
+ * `useSyncExternalStore`'s subscribe for `prefersReducedMotion`: calls back
+ * when the setting changes. Where there is no `matchMedia` (the server) it
+ * never does.
+ */
+export function subscribeReducedMotion(onChange: () => void): () => void {
+  if (typeof matchMedia !== "function") return () => {};
+  const query = matchMedia(REDUCED_MOTION);
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
 }
