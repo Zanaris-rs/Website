@@ -51,6 +51,33 @@ export function waveOffset(index: number, cycle: number): number {
   return Math.trunc(Math.sin(index / 2 + cycle / 5) * 5);
 }
 
+/** One piece of a wave line: a word's characters, or the spaces between words. */
+export type WaveRun =
+  | { kind: "word"; chars: { ch: string; i: number }[] }
+  | { kind: "space"; text: string };
+
+/**
+ * A wave line split so it can wrap between words: spaces stay plain text,
+ * where a line may break, and each word's characters are drawn one by one
+ * so each can drop. Every character keeps its index in the whole line,
+ * spaces counted, as `waveOffset` takes it from the client.
+ */
+export function waveRuns(text: string): WaveRun[] {
+  const runs: WaveRun[] = [];
+  [...text].forEach((ch, i) => {
+    const last = runs[runs.length - 1];
+    if (ch === " ") {
+      if (last?.kind === "space") last.text += ch;
+      else runs.push({ kind: "space", text: ch });
+    } else if (last?.kind === "word") {
+      last.chars.push({ ch, i });
+    } else {
+      runs.push({ kind: "word", chars: [{ ch, i }] });
+    }
+  });
+  return runs;
+}
+
 /**
  * How far scroll has moved the text left, in pixels. The client shows it
  * through a 100 px window centred on the speaker, starting at the window's
