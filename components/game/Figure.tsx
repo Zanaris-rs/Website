@@ -2,6 +2,7 @@
 
 import { useRef } from "react";
 
+import { nearestFacing } from "@/lib/chathead/facing";
 import { figure, loadFigureClips, loadFigures } from "@/lib/chathead/load";
 import type { Look } from "@/lib/chathead/look";
 import type { Emote } from "@/lib/chathead/vocab";
@@ -33,6 +34,12 @@ function paint(canvas: HTMLCanvasElement | null, image: ImageData | null, x = 0,
  * shares). Whether anything plays by itself is the caller's decision,
  * reduced motion included: a replay asked for is played.
  *
+ * With `facing` (`lib/chathead/facing.ts`) it is turned to that angle,
+ * standing and acting alike, in the turn frame: wide enough for every
+ * angle and centred on the figure's axis, so turning never moves it.
+ * Without one it is the plain figure in its own frame, the picture the
+ * golden tests hold.
+ *
  * As `<Chathead>`: the canvas is the frame's size from the first paint, so
  * nothing shifts when the figure arrives a moment later; `scale` enlarges it
  * with square pixels, and whole numbers keep every pixel the same size; a
@@ -42,6 +49,7 @@ export default function Figure({
   look,
   emote = null,
   replay,
+  facing,
   scale = 1,
   label = "Figure",
   className,
@@ -51,26 +59,33 @@ export default function Figure({
   emote?: Emote | null;
   /** Change it to act out `emote` once. */
   replay?: number;
+  /** Turn it to this facing, 0-15, in the turn frame; leave it out for the plain figure. */
+  facing?: number;
   scale?: number;
   label?: string;
   className?: string;
 }) {
   const canvas = useRef<HTMLCanvasElement>(null);
-  const { width, height } = figure.frame;
+  const turned = facing === undefined ? undefined : nearestFacing(facing);
+  const { width, height } = turned === undefined ? figure.frame : figure.turnFrame;
 
   useEmotePlayback({
     canvas,
     look,
     emote,
     replay,
+    source: turned,
     loadStanding: async () => {
       const figures = await loadFigures();
       return (actor) => {
-        const image = actor ? figures.draw(actor) : null;
+        const image = actor ? figures.draw(actor, turned) : null;
         return image && { image, x: 0, y: 0 };
       };
     },
-    loadEmotes: async () => (await loadFigureClips()).emote,
+    loadEmotes: async () => {
+      const clips = await loadFigureClips();
+      return (actor, act) => clips.emote(actor, act, turned);
+    },
     paint,
     errors: {
       standing: "[figure] the renderer failed to load:",

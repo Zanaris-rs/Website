@@ -17,9 +17,9 @@ export type EmotePlayback = {
   /** Change it to act out `emote` once. */
   replay: number | undefined;
   /**
-   * What the drawings are drawn from besides the look — a scene's spot, or
-   * nothing for the plain figure. A new one redraws the standing figure, as
-   * a new look does.
+   * What the drawings are drawn from besides the look - a scene's spot and
+   * the angle, or the angle alone for a turned plain figure; nothing for the
+   * plain figure. A new one redraws the standing figure, as a new look does.
    */
   source?: unknown;
   /** The renderer, loaded: how to draw a look standing (null: nothing to draw). */
@@ -46,6 +46,10 @@ export type EmotePlayback = {
  *   again. A new `replay` while it plays starts it over from the first
  *   frame; unmounting stops it. The look and emote are the ones current
  *   when the replay arrives.
+ * - A new look or `source` while it plays - another angle, an outfit tried
+ *   on - stops the emote there, and the figure stands in the new one: the
+ *   emote was drawn for the old. An emote plays at the angle current when
+ *   its replay arrives, as the game plays one at the angle a player faces.
  * - Whether anything plays by itself, reduced motion included, is the
  *   caller's decision: a replay asked for is played.
  */
@@ -65,6 +69,8 @@ export function useEmotePlayback({
   const playing = useRef(false);
   /** The last `replay` seen: the one it mounted with, then each played. */
   const played = useRef(replay);
+  /** Stops the emote now playing; null when none is. */
+  const stopPlaying = useRef<(() => void) | null>(null);
 
   const paintStanding = () => {
     const still = standing.current;
@@ -86,6 +92,7 @@ export function useEmotePlayback({
 
   useEffect(() => {
     let current = true;
+    stopPlaying.current?.();
     stand(() => current);
     return () => {
       current = false;
@@ -101,11 +108,13 @@ export function useEmotePlayback({
       stop?.();
       stop = null;
       playing.current = false;
+      if (stopPlaying.current === halt) stopPlaying.current = null;
     };
     const end = () => {
       halt();
       paintStanding();
     };
+    stopPlaying.current = halt;
 
     if (!look || !emote) {
       end();
