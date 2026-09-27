@@ -1,6 +1,7 @@
 import { type BodyTables, buildBody, type Pose } from "../chathead/body.ts";
 import type { Client, ClientModel } from "../chathead/client.ts";
 import type { Frame } from "../chathead/draw.ts";
+import { sceneYaw } from "../chathead/facing.ts";
 import type { Look } from "../chathead/look.ts";
 import type { SceneSpot } from "./spots.ts";
 
@@ -40,14 +41,17 @@ export function sceneFrame(spot: Size): Frame {
  * A posed, lit model drawn into a copy of a spot's backdrop at the spot's
  * eye (World.ts:1476: `sprite.model.worldRender(sprite.yaw, cameraSinX,
  * cameraCosX, cameraSinY, cameraCosY, sprite.x - cx, sprite.y - cy,
- * sprite.z - cz, typecode)`, where X is the pitch and Y the yaw). The
- * backdrop is left as it was.
+ * sprite.z - cz, typecode)`, where X is the pitch and Y the yaw), turned
+ * `facing` steps from the spot's own angle (`sceneYaw`). Only the facings in
+ * `spot.turns` are proved to be the game's picture. The backdrop is left as
+ * it was.
  */
 export function drawAtEye(
   client: Client,
   model: ClientModel,
   spot: SceneSpot,
   backdrop: Int32Array,
+  facing = 0,
 ): Int32Array {
   if (backdrop.length !== spot.width * spot.height) {
     throw new Error(`${spot.key}: the backdrop is not ${spot.width}x${spot.height}`);
@@ -59,7 +63,7 @@ export function drawAtEye(
   const { eye, figure } = spot;
   const { sinTable, cosTable } = client.Pix3D;
   model.worldRender(
-    figure.yaw,
+    sceneYaw(figure.yaw, facing),
     sinTable[eye.pitch],
     cosTable[eye.pitch],
     sinTable[eye.yaw],
@@ -74,7 +78,8 @@ export function drawAtEye(
 
 /**
  * A look standing at a spot — or, with a `pose`, in one frame of an emote —
- * drawn into its backdrop; null when the look has no body to draw.
+ * turned `facing` steps, drawn into its backdrop; null when the look has no
+ * body to draw.
  */
 export function drawAtSpot(
   client: Client,
@@ -83,9 +88,10 @@ export function drawAtSpot(
   spot: SceneSpot,
   backdrop: Int32Array,
   pose?: Pose,
+  facing = 0,
 ): Int32Array | null {
   const body = buildBody(client, tables, look, pose);
-  return body ? drawAtEye(client, body, spot, backdrop) : null;
+  return body ? drawAtEye(client, body, spot, backdrop, facing) : null;
 }
 
 const SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];

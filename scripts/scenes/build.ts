@@ -10,7 +10,7 @@
  * Writes, for every spot in `spots.ts`:
  *
  *   public/game/scenes/<key>.png     the backdrop: the spot with no one in it
- *   lib/scenes/spots.json            each spot's eye and figure, and the version
+ *   lib/scenes/spots.json            each spot's eye, figure and turns, and the version
  *   lib/scenes/composite-golden.json the proved composites' hashes, which
  *                                    `lib/scenes/composite.test.ts` holds the
  *                                    site's renderer to
@@ -18,14 +18,18 @@
  * and `scripts/scenes/contact-sheet.png`, every spot with the reference
  * figure drawn in, to judge the framing by eye. That one is not committed.
  *
- * A spot fails the build if drawing a figure over its backdrop is not pixel
- * for pixel the same as drawing it in the same pass, for any reference look
- * (`LOOKS`), standing or in any frame of any emote: something stands between
- * that tile and the camera. The error names the spot, the look, the emote
- * and the frame; move the tile or the camera. The figure is drawn over the
- * backdrop by the site's own function (`lib/scenes/draw.ts`), so what is
- * proved is what a page draws. Nothing is written but the
- * contact sheet, which then shows the first failing pose, when any fails.
+ * Every spot is proved at every facing (`lib/chathead/facing.ts`): drawing a
+ * figure over its backdrop must be pixel for pixel the same as drawing it in
+ * the same pass, for every reference look (`LOOKS`), standing and in every
+ * frame of every emote. Facing the camera (facing 0) it must: a spot that
+ * fails there fails the build - something stands between that tile and the
+ * camera; the error names the spot, the look, the emote and the frame; move
+ * the tile or the camera. Any other facing that fails is left out of the
+ * spot's `turns`, which a turn on the site walks, and printed. The figure is
+ * drawn over the backdrop by the site's own function (`lib/scenes/draw.ts`),
+ * so what is proved is what a page draws. Nothing is written but the
+ * contact sheet, which then shows the first failing pose, when a spot fails
+ * facing the camera.
  */
 
 import "../chathead/browser-stub.ts";
@@ -34,6 +38,7 @@ import { createHash } from "node:crypto";
 import { mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
+import { FACINGS } from "../../lib/chathead/facing.ts";
 import type { SceneSpot } from "../../lib/scenes/spots.ts";
 import { encodePng } from "../game-icons/png.ts";
 import { LOOKS } from "./looks.ts";
@@ -73,22 +78,31 @@ for (const input of SPOTS) {
     throw new Error(`${input.key}: ${black} pixels are true black, which the PNG would make transparent`);
   }
   const png = encodePng(shot.backdrop, WIDTH, HEIGHT);
-  const { eye, figure } = shot.spot;
+  const { eye, figure, turns } = shot.spot;
   const box = shot.figureBox;
   console.log(
     `scene ${input.key} ${WIDTH}x${HEIGHT} eye ${eye.x},${eye.y},${eye.z} pitch ${eye.pitch} yaw ${eye.yaw}, ` +
       `figure at ${figure.x >> 7},${figure.z >> 7} in x ${box.left}-${box.right} y ${box.top}-${box.bottom}, ` +
       `${(png.length / 1024).toFixed(1)} KB, ` +
       (shot.failures.length === 0
-        ? `composite exact in all ${shot.proofs} looks and poses`
-        : `composite DIFFERS in ${shot.failures.length} of ${shot.proofs} looks and poses`),
+        ? `turns ${turns.length} of ${FACINGS} (${turns.join(",")}), ${shot.proofs} composites compared`
+        : `composite DIFFERS facing the camera in ${shot.failures.length} looks and poses`),
   );
+  for (const drop of shot.dropped) {
+    console.log(`      dropped facing ${drop.facing}: ${drop.look}, ${drop.pose} differs in ${drop.differing} px`);
+  }
   shots.push({ ...shot, png });
 }
 
 const proofs = shots.reduce((total, shot) => total + shot.proofs, 0);
 const seconds = ((performance.now() - started) / 1000).toFixed(1);
 console.log(`proofs   ${proofs} composites compared with their same-pass renders in ${seconds} s`);
+const droppedBySpot = shots
+  .filter((shot) => shot.dropped.length > 0)
+  .map((shot) => `${shot.spot.key} ${shot.dropped.map((drop) => drop.facing).join(",")}`);
+console.log(
+  `turns    ${droppedBySpot.length === 0 ? `every spot turns through all ${FACINGS} facings` : `dropped: ${droppedBySpot.join("; ")}`}`,
+);
 
 const sheet = studio.sheet(
   shots.map((shot) => {
@@ -113,7 +127,7 @@ if (inexact.length > 0) {
     return `${shot.spot.key}: ${first.join("; ")}${more > 0 ? `; and ${more} more` : ""}`;
   });
   throw new Error(
-    `a figure drawn over the backdrop is not the figure drawn in the scene at\n  ${listed.join("\n  ")}\n` +
+    `a figure drawn over the backdrop facing the camera is not the figure drawn in the scene at\n  ${listed.join("\n  ")}\n` +
       `Something stands between its tile and the camera. Move the tile or the camera in spots.ts ` +
       `(the contact sheet shows the game's picture of the first failing pose).`,
   );
@@ -131,9 +145,9 @@ for (const shot of shots) writeFileSync(path.join(dir, `${shot.spot.key}.png`), 
 
 const spots: SceneSpot[] = shots.map((shot) => shot.spot);
 /**
- * One version for every backdrop and camera: the site asks for
- * `<key>.png?v=`, cached for a year (`next.config.ts`), so anything that
- * changes a picture or where the figure stands changes every URL.
+ * One version for every backdrop, camera and list of turns: the site asks
+ * for `<key>.png?v=`, cached for a year (`next.config.ts`), so anything that
+ * changes a picture or where and how the figure stands changes every URL.
  */
 const hash = createHash("sha256");
 for (const shot of shots) hash.update(shot.png);
@@ -142,27 +156,34 @@ const version = hash.update(JSON.stringify(spots)).digest("hex").slice(0, 12);
 writeFileSync(path.join(OUT_DIR, "lib/scenes/spots.json"), JSON.stringify({ version, spots }, null, 2) + "\n");
 
 /**
- * The composites the site's renderer must draw, pixel for pixel: every look
- * in every pose at the first spot, and every look standing at the others.
- * One entry per line, as the chathead goldens are written.
+ * The composites the site's renderer must draw, pixel for pixel:
+ *
+ * - every look standing, at every proved facing, at every spot;
+ * - at the first spot, every look in every pose facing the camera, and the
+ *   default look in every pose at every other proved facing.
+ *
+ * Plus each spot's proved facings (`turns`), which spots.json must agree
+ * with. One draw per line, as the chathead goldens are written.
  */
 const draws = shots.flatMap((shot, index) =>
   shot.hashes
-    .filter((entry) => index === 0 || entry.emote === null)
+    .filter((entry) => entry.emote === null || (index === 0 && (entry.facing === 0 || entry.look === LOOKS[0].name)))
     .map((entry) => ({ spot: shot.spot.key, ...entry })),
 );
+const turnsBySpot = Object.fromEntries(spots.map((spot) => [spot.key, spot.turns]));
 const looks = Object.fromEntries(LOOKS.map(({ name, look }) => [name, look]));
 writeFileSync(
   path.join(OUT_DIR, "lib/scenes/composite-golden.json"),
   `{"version":${JSON.stringify(version)},"bodies":${JSON.stringify(studio.versions.bodies)},` +
-    `"anims":${JSON.stringify(studio.versions.anims)},\n"looks":${JSON.stringify(looks)},\n"draws":[\n` +
+    `"anims":${JSON.stringify(studio.versions.anims)},\n"turns":${JSON.stringify(turnsBySpot)},\n` +
+    `"looks":${JSON.stringify(looks)},\n"draws":[\n` +
     draws.map((draw) => JSON.stringify(draw)).join(",\n") +
     "\n]}\n",
 );
 
 const bytes = shots.reduce((total, shot) => total + shot.png.length, 0);
 console.log(
-  `scenes   ${shots.length} spots (${spots.map((spot) => spot.key).join(", ")}), every composite exact, ` +
+  `scenes   ${shots.length} spots (${spots.map((spot) => spot.key).join(", ")}), every composite exact facing the camera, ` +
     `${(bytes / 1024).toFixed(0)} KB -> public/game/scenes/*.png?v=${version}, lib/scenes/spots.json`,
 );
 console.log(`golden   ${draws.length} composites -> lib/scenes/composite-golden.json`);
