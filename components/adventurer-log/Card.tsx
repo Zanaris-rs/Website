@@ -3,6 +3,7 @@ import ChatText from "@/components/game/ChatText";
 import { cardMode, sheetRows } from "@/lib/adventurer-log/card";
 import { formatMonth } from "@/lib/adventurer-log/format";
 import type { Persona } from "@/lib/adventurer-log/persona";
+import type { WardrobeOutfit } from "@/lib/adventurer-log/wardrobe";
 import type { Look } from "@/lib/chathead/look";
 import { sceneOf } from "@/lib/scenes/spots";
 
@@ -25,6 +26,7 @@ export default function Card({
   outfitLook,
   headLook,
   viewerIsOwner,
+  outfits = [],
 }: {
   name: string;
   username: string;
@@ -36,6 +38,8 @@ export default function Card({
   /** The header's look (outfit, else the game's head-only look), for the chathead. */
   headLook: Look | null;
   viewerIsOwner: boolean;
+  /** The Wardrobe's outfits: the card names the one a reader tries on. */
+  outfits?: readonly WardrobeOutfit[];
 }) {
   const mode = cardMode({ hasOutfit: outfitLook !== null, headline, pages: persona.dialogue });
   const rows = sheetRows(persona);
@@ -53,6 +57,7 @@ export default function Card({
           colour={persona.colour}
           effect={persona.effect}
           scene={scene}
+          outfits={outfits}
         />
       ) : mode === "strip" ? (
         headline ? (

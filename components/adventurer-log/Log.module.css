@@ -148,6 +148,23 @@
   font-size: 11px;
 }
 
+/* "Trying on <outfit> · back to usual", while a reader tries one on. */
+.root :global(.al-tryon) {
+  margin: 6px 8px 0;
+  color: #fff;
+  font-size: 12px;
+}
+
+.root :global(.al-tryon-back) {
+  padding: 0;
+  background: none;
+  border: 0;
+  color: var(--link);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 .root :global(.al-overhead) {
   display: block;
   margin: 0;
@@ -353,22 +370,28 @@
   flex: none;
 }
 
-/* --- the wardrobe: every saved outfit, a row of figures that wraps --- */
+/* --- the wardrobe: every saved outfit, small, under the card --- */
+
+.root :global(.al-wardrobe-hint) {
+  margin: 0 0 6px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
 
 .root :global(.al-outfits) {
   list-style: none;
   margin: 0;
   padding: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+  gap: 6px;
 }
 
 .root :global(.al-outfit) {
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: 124px;
+  min-width: 0;
   border: 1px solid var(--panel-border);
   padding: 2px 0 4px;
 }
@@ -377,8 +400,33 @@
   border-color: #ffe139;
 }
 
+/* The outfit the card shows now: the usual one, or one being tried on. */
+.root :global(.al-outfit--shown) {
+  outline: 2px solid #90c040;
+  outline-offset: -3px;
+}
+
+.root :global(.al-outfit-button) {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  background: none;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.root :global(.al-outfit-button:focus-visible) {
+  outline: 2px solid var(--link);
+  outline-offset: 2px;
+}
+
 .root :global(.al-outfit-name) {
-  max-width: 118px;
+  max-width: 100%;
   font-size: 12px;
   text-align: center;
   overflow-wrap: anywhere;

@@ -4,6 +4,7 @@ import { createContext, type ReactNode, useCallback, useContext, useEffect, useM
 
 import type { DialoguePage } from "@/lib/adventurer-log/persona";
 import { nearestFacing, stepFacing } from "@/lib/chathead/facing";
+import type { Look } from "@/lib/chathead/look";
 import type { Emote } from "@/lib/chathead/vocab";
 import { prefersReducedMotion } from "@/lib/game-chat/clock";
 
@@ -43,11 +44,20 @@ export type Stage = {
   turn(delta: 1 | -1): void;
   /** Face `f`, or the nearest facing `turns` allows. */
   setFacing(f: number): void;
+  /**
+   * An outfit a reader is trying on from the Wardrobe: the card's figure and
+   * the dialogue's chathead wear it in place of the usual look until it is
+   * set back to null. Never saved: what the owner wears is changed on their
+   * Character page. It is one of the Wardrobe's own look objects, so the
+   * drawings kept per look stay put.
+   */
+  tryOn: Look | null;
+  setTryOn(look: Look | null): void;
 };
 
 const StageContext = createContext<Stage>({
   page: 0, pageCount: 0, next() {}, prev() {}, emote: null, replay: 0, replayEmote() {},
-  facing: 0, turn() {}, setFacing() {},
+  facing: 0, turn() {}, setFacing() {}, tryOn: null, setTryOn() {},
 });
 
 /**
@@ -59,6 +69,9 @@ const StageContext = createContext<Stage>({
  * It also holds the way the figure faces: the owner's facing when the page
  * opens, then wherever a reader turns it. Turning only ever happens when
  * asked, so reduced motion changes nothing about it.
+ *
+ * And an outfit a reader tries on from the Wardrobe (`tryOn`), which the
+ * card and the dialogue box both wear.
  */
 export default function PersonaStage({
   pages,
@@ -84,6 +97,7 @@ export default function PersonaStage({
   const [pageState, setPageState] = useState(0);
   const [replay, setReplay] = useState(0);
   const [facingState, setFacingState] = useState(initialFacing);
+  const [tryOn, setTryOnState] = useState<Look | null>(null);
   // Clamped once, here, rather than by each reader: `pages` can shrink under
   // an unchanged `pageState` (W5's live editor preview), and an out-of-range
   // page would print wrong wherever it was read raw (e.g. "5 / 3").
@@ -122,10 +136,11 @@ export default function PersonaStage({
     [turns],
   );
   const setFacing = useCallback((f: number) => setFacingState(nearestFacing(f, turns)), [turns]);
+  const setTryOn = useCallback((look: Look | null) => setTryOnState(look), []);
 
   const value = useMemo(
-    () => ({ page, pageCount: pages.length, next, prev, emote, replay, replayEmote, facing, turn, setFacing }),
-    [page, pages.length, next, prev, emote, replay, replayEmote, facing, turn, setFacing],
+    () => ({ page, pageCount: pages.length, next, prev, emote, replay, replayEmote, facing, turn, setFacing, tryOn, setTryOn }),
+    [page, pages.length, next, prev, emote, replay, replayEmote, facing, turn, setFacing, tryOn, setTryOn],
   );
   return <StageContext.Provider value={value}>{children}</StageContext.Provider>;
 }

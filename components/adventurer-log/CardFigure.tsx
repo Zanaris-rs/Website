@@ -5,8 +5,9 @@ import { type KeyboardEvent, type PointerEvent, useRef, useState } from "react";
 import ChatText from "@/components/game/ChatText";
 import Figure from "@/components/game/Figure";
 import SceneFigure from "@/components/game/SceneFigure";
+import type { WardrobeOutfit } from "@/lib/adventurer-log/wardrobe";
 import { nearestFacing, stepFacing } from "@/lib/chathead/facing";
-import type { Look } from "@/lib/chathead/look";
+import { type Look, lookKey } from "@/lib/chathead/look";
 import type { SceneSpot } from "@/lib/scenes/spots";
 
 import { usePersonaStage } from "./PersonaStage";
@@ -71,6 +72,10 @@ function TurnIcon({ right = false }: { right?: boolean }) {
  * through the facings the spot proved (`turns`); where that is only the one
  * facing the camera, the buttons are disabled. An emote plays at the angle
  * the figure is turned to.
+ *
+ * A reader trying on an outfit from the Wardrobe (`PersonaStage`'s `tryOn`)
+ * sees the figure wear it, turned as it was, and a line under the turn
+ * buttons naming it, with "back to usual".
  */
 export default function CardFigure({
   name,
@@ -79,6 +84,7 @@ export default function CardFigure({
   colour,
   effect,
   scene,
+  outfits = [],
 }: {
   name: string;
   look: Look;
@@ -87,6 +93,8 @@ export default function CardFigure({
   effect: number;
   /** The spot the figure stands in, or null for the plain figure frame. */
   scene: SceneSpot | null;
+  /** The Wardrobe's outfits, to name the one a reader is trying on. */
+  outfits?: readonly WardrobeOutfit[];
 }) {
   const stage = usePersonaStage();
   const [failed, setFailed] = useState<string | null>(null);
@@ -99,6 +107,13 @@ export default function CardFigure({
   const turns = scene?.turns ?? null;
   const facing = shown ? nearestFacing(stage.facing, shown.turns) : stage.facing;
   const canTurn = turns === null || turns.length > 1;
+
+  // What the figure wears: an outfit a reader is trying on, or the owner's.
+  // Both are the page's own look objects, so the drawings kept per look stay put.
+  const worn = stage.tryOn ?? look;
+  const trying = stage.tryOn ? lookKey(stage.tryOn) : null;
+  const tryingName =
+    trying === null ? null : (outfits.find((outfit) => lookKey(outfit.look) === trying)?.name ?? "an outfit");
 
   const onPointerDown = (event: PointerEvent<HTMLButtonElement>) => {
     dragged.current = false;
@@ -158,7 +173,7 @@ export default function CardFigure({
       {shown ? (
         <SceneFigure
           spot={shown}
-          look={look}
+          look={worn}
           facing={facing}
           label={`${name} at ${shown.name}`}
           emote={stage.emote}
@@ -166,7 +181,7 @@ export default function CardFigure({
           onFail={() => setFailed(shown.key)}
         />
       ) : (
-        <Figure look={look} facing={facing} label={`${name}'s figure`} emote={stage.emote} replay={stage.replay} />
+        <Figure look={worn} facing={facing} label={`${name}'s figure`} emote={stage.emote} replay={stage.replay} />
       )}
     </button>
   );
@@ -181,6 +196,15 @@ export default function CardFigure({
       </button>
     </div>
   );
+  const trial =
+    tryingName === null ? null : (
+      <p className="al-tryon">
+        Trying on {tryingName} &middot;{" "}
+        <button type="button" className="al-tryon-back" onClick={() => stage.setTryOn(null)}>
+          back to usual
+        </button>
+      </p>
+    );
 
   return shown ? (
     <>
@@ -190,12 +214,14 @@ export default function CardFigure({
       </div>
       <p className="al-scene-name">{shown.name}</p>
       {controls}
+      {trial}
     </>
   ) : (
     <>
       {overhead}
       {figure}
       {controls}
+      {trial}
     </>
   );
 }

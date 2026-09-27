@@ -57,6 +57,7 @@ const OUTLINE = `<div class="al-root">                 <!-- the log; your CSS re
           <span class="al-turn-hint">Drag to turn · click to emote</span>
           <button class="al-turn-right" aria-label="Turn right"><svg></svg></button>
         </div>
+        <p class="al-tryon">Trying on Rune &middot; <button class="al-tryon-back">back to usual</button></p>   <!-- only while a reader tries on an outfit from the Wardrobe -->
         <!-- or, with no outfit (no figure to turn):<p class="al-chat-strip"><span class="al-chat … al-overhead al-headline"></span></p>,
              or with no words either: <div class="al-chathead"><canvas></canvas></div> -->
         <p class="al-examine">Examine text</p>
@@ -66,6 +67,16 @@ const OUTLINE = `<div class="al-root">                 <!-- the log; your CSS re
         </dl>
         <p class="al-joined">Adventuring since Sep 2026</p>
         <p class="al-links"><a>Hiscores</a></p>
+      </section>
+      <section class="al-wardrobe al-box">                   <!-- only with saved outfits -->
+        <h2>Zezima's Wardrobe</h2>
+        <div class="al-box-body">
+          <p class="al-wardrobe-hint">Click an outfit to see Zezima wear it.</p>
+          <ul class="al-outfits">
+            <li class="al-outfit al-outfit--default al-outfit--shown"><button class="al-outfit-button" aria-pressed="true"><canvas></canvas><span class="al-outfit-name">★ Outfit name</span></button></li> ...
+          </ul>
+          <!-- with no outfit worn on the card, the outfits are plain pictures: no hint and no buttons -->
+        </div>
       </section>
       <section class="al-stats al-box">
         <h2>Skills</h2>
@@ -104,14 +115,6 @@ const OUTLINE = `<div class="al-root">                 <!-- the log; your CSS re
       <section class="al-about al-box">
         <h2>About Zezima</h2>
         <div class="al-box-body"><p>About text</p></div>
-      </section>
-      <section class="al-wardrobe al-box">
-        <h2>Zezima's Wardrobe</h2>
-        <div class="al-box-body">
-          <ul class="al-outfits">
-            <li class="al-outfit al-outfit--default"><canvas></canvas><span class="al-outfit-name">★ Outfit name</span></li> ...
-          </ul>
-        </div>
       </section>
       <section class="al-timeline al-box">
         <h2>Zezima's Adventurer Log</h2>
@@ -224,6 +227,7 @@ ${FENCE}
 - \`.al-event--<kind>\` is one kind of adventure: ${kinds}.
 - \`.al-record--<seconds>\` is one record length, shown only when I hold a place on it: ${durations}.
 - \`.al-outfit--default\` is the outfit my chathead wears.
+- \`.al-outfit--shown\` is the outfit the card shows now: the one I wear, or one a reader clicked to try on (\`.al-tryon\` on the card says so until they go back).
 - \`.al-filter[aria-current]\` is the filter being shown. \`.al-edited\` is on an update only when I changed it after posting.
 - \`.al-post\`, \`.al-actions\` and \`.al-reply-form\` hold buttons and forms that only signed-in readers see. Style them if you like, but keep them usable.
 - \`.al-gz-button\` shows only to signed-in readers other than me, and never to players I blocked; \`.al-gz-button[aria-pressed="true"]\` is a gz that reader gave.

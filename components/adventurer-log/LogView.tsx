@@ -25,11 +25,11 @@ import Wardrobe from "./Wardrobe";
 /**
  * A player's Adventurer Log: who they are on the left - the character card
  * (name, title, figure or chathead acting out their persona, examine line
- * and sheet), skills - and on the right what they say about themselves and
- * what they have been doing. `bar` is the site's own strip above it (the
- * owner's links, later the report button), deliberately outside `.al-root`,
- * where nothing an owner's stylesheet reaches can hide or cover it - which
- * is why the report button for the whole log is there.
+ * and sheet), their wardrobe, skills and records - and on the right what they
+ * say about themselves and what they have been doing. `bar` is the site's own
+ * strip above it (the owner's links, later the report button), deliberately
+ * outside `.al-root`, where nothing an owner's stylesheet reaches can hide or
+ * cover it - which is why the report button for the whole log is there.
  */
 export default function LogView({
   header,
@@ -63,7 +63,10 @@ export default function LogView({
   persona: Persona;
   /** The default outfit: the only look ever drawn whole, on the card's figure. */
   outfitLook: Look | null;
-  /** The owner's saved outfits, for the Wardrobe; none hides it. */
+  /**
+   * The owner's saved outfits, for the Wardrobe under the card; none hides
+   * it. A reader can try one on when the card draws a figure (`outfitLook`).
+   */
   outfits?: readonly WardrobeOutfit[];
   /** The owner's best Overall gain per record length; none hides the box. */
   records?: readonly LogRecord[];
@@ -102,7 +105,10 @@ export default function LogView({
                 outfitLook={outfitLook}
                 headLook={header.look}
                 viewerIsOwner={viewer?.isOwner ?? false}
+                outfits={outfits}
               />
+
+              <Wardrobe name={name} outfits={outfits} interactive={outfitLook !== null} />
 
               <Skills username={header.username} skills={skills} />
 
@@ -120,8 +126,6 @@ export default function LogView({
                   </div>
                 </section>
               ) : null}
-
-              <Wardrobe name={name} outfits={outfits} />
 
               <section className="al-timeline al-box">
                 <h2>{name}&rsquo;s Adventurer Log</h2>
