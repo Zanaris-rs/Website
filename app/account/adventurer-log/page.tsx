@@ -88,9 +88,7 @@ export default async function LogSettingsPage() {
       <OwnerNav title="Your Adventurer Log" username={username} current="edit" />
       <Panel align="left" width="100%">
         <h2 className={styles.title}>About you</h2>
-        <AboutYou
-          initial={{ headline: header.headline, about: header.about, hidden: header.hiddenCategories }}
-        />
+        <AboutYou initial={{ about: header.about, hidden: header.hiddenCategories }} />
       </Panel>
       <Panel align="left" width="100%">
         <h2 className={styles.title}>Your adventurer log&rsquo;s style</h2>

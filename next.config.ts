@@ -149,6 +149,20 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      {
+        // The scenes' backdrops (`scripts/update-scenes.sh`), on the same
+        // terms: `sceneSrc` (lib/scenes/spots.ts) puts the build's version in
+        // every URL, so a year is safe and a regeneration reaches readers at
+        // once. Like the chathead rule, it matches no path the fonts' rule
+        // above does, so their order does not matter.
+        source: "/game/scenes/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
       // The Adventurer Log draws an owner's own stylesheet
       // (lib/adventurer-log/css.ts). The sanitiser already refuses anything
       // that loads from elsewhere; this is the backstop if it ever misses:
@@ -220,6 +234,19 @@ const nextConfig: NextConfig = {
             key: "Content-Security-Policy",
             value:
               "frame-ancestors 'none'; img-src 'self' data:; font-src 'self'; style-src 'self' 'unsafe-inline'",
+          },
+        ],
+      },
+      {
+        // The Character tab draws the log's own card and dialogue box, with
+        // the owner's words in them, so it takes the log's policy - and,
+        // for the same reason as the entry above, repeats the account pages'
+        // frame-ancestors, which this entry would otherwise replace.
+        source: "/account/adventurer-log/character",
+        headers: [
+          {
+            key: "Content-Security-Policy",
+            value: "frame-ancestors 'none'; img-src 'self'; font-src 'self'; style-src 'self' 'unsafe-inline'",
           },
         ],
       },

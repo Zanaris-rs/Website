@@ -31,13 +31,17 @@ export const GZ_MESSAGES: Readonly<Record<string, string>> = {
   rate_limited: "That is a lot of gz at once. Try again in a while.",
 };
 
-/** `messages` puts a request's own sentences before the shared ones. */
+/**
+ * `messages` puts a request's own sentences before the shared ones. A refusal
+ * also carries its `code` (the route's `error`), for a form that marks the
+ * field it was about.
+ */
 export async function send(
   url: string,
   body: unknown,
   method: "POST" | "PUT" | "PATCH" | "DELETE" = "POST",
   messages: Readonly<Record<string, string>> = {},
-): Promise<{ ok: true; data: Record<string, unknown> } | { ok: false; message: string }> {
+): Promise<{ ok: true; data: Record<string, unknown> } | { ok: false; message: string; code: string }> {
   let response: Response;
   try {
     response = await fetch(url, {
@@ -48,7 +52,7 @@ export async function send(
       cache: "no-store",
     });
   } catch {
-    return { ok: false, message: MESSAGES.unavailable };
+    return { ok: false, message: MESSAGES.unavailable, code: "unavailable" };
   }
 
   const data = ((await response.json().catch(() => null)) ?? {}) as Record<string, unknown>;
@@ -58,5 +62,6 @@ export async function send(
   return {
     ok: false,
     message: messages[code] ?? MESSAGES[code] ?? (code.includes(" ") ? code : MESSAGES.unavailable),
+    code,
   };
 }

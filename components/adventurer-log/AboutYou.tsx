@@ -4,17 +4,18 @@ import { useState } from "react";
 
 import { ADVENTURE_CATEGORIES, isHidden } from "@/lib/adventurer-log/categories";
 import { send } from "@/lib/adventurer-log/client";
-import { ABOUT_MAX, HEADLINE_MAX, PUBLIC_DELAY_MINUTES } from "@/lib/adventurer-log/format";
+import { ABOUT_MAX, PUBLIC_DELAY_MINUTES } from "@/lib/adventurer-log/format";
 
 import styles from "./Settings.module.css";
 
-type About = { headline: string; about: string; hidden: number };
+type About = { about: string; hidden: number };
 
 /**
  * The settings page's "About you" box: what the log says about its owner,
  * and which kinds of adventure it shows. Nothing is saved until Save, which
- * sends all three at once (`/api/adventurer-log/about`), so the page and the
- * log never disagree about half of them.
+ * sends both at once (`/api/adventurer-log/about`), so the page and the log
+ * never disagree about half of them. The headline is on the Character tab
+ * now (`/account/adventurer-log/character`).
  */
 export default function AboutYou({ initial }: { initial: About }) {
   const [saved, setSaved] = useState(initial);
@@ -22,8 +23,7 @@ export default function AboutYou({ initial }: { initial: About }) {
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const dirty =
-    draft.headline !== saved.headline || draft.about !== saved.about || draft.hidden !== saved.hidden;
+  const dirty = draft.about !== saved.about || draft.hidden !== saved.hidden;
 
   function change(next: Partial<About>) {
     setDraft((current) => ({ ...current, ...next }));
@@ -38,7 +38,6 @@ export default function AboutYou({ initial }: { initial: About }) {
       (category) => category.id,
     );
     const result = await send("/api/adventurer-log/about", {
-      headline: sent.headline,
       about: sent.about,
       hidden,
     });
@@ -49,7 +48,6 @@ export default function AboutYou({ initial }: { initial: About }) {
     }
     // The server trims the text; what it kept is what is saved.
     const kept = {
-      headline: typeof result.data.headline === "string" ? result.data.headline : sent.headline,
       about: typeof result.data.about === "string" ? result.data.about : sent.about,
       hidden: sent.hidden,
     };
@@ -60,15 +58,7 @@ export default function AboutYou({ initial }: { initial: About }) {
 
   return (
     <form onSubmit={save} className={styles.form}>
-      <label>
-        Headline <span className={styles.count}>{draft.headline.length}/{HEADLINE_MAX}</span>
-        <input
-          type="text"
-          value={draft.headline}
-          maxLength={HEADLINE_MAX}
-          onChange={(event) => change({ headline: event.target.value })}
-        />
-      </label>
+      <p className={styles.hint}>Your headline is now on the Your character tab.</p>
       <label>
         About <span className={styles.count}>{draft.about.length}/{ABOUT_MAX}</span>
         <textarea

@@ -1,8 +1,12 @@
 "use client";
 
+import { useState } from "react";
+
 import ChatText from "@/components/game/ChatText";
 import Figure from "@/components/game/Figure";
+import SceneFigure from "@/components/game/SceneFigure";
 import type { Look } from "@/lib/chathead/look";
+import type { SceneSpot } from "@/lib/scenes/spots";
 
 import { usePersonaStage } from "./PersonaStage";
 
@@ -14,6 +18,13 @@ import { usePersonaStage } from "./PersonaStage";
  * copy exists for. Keeping the headline as a sibling means it is read once,
  * plainly, the way it always was, and the button's own name only has to
  * describe what clicking it does.
+ *
+ * With a scene, the two sit in its frame (`al-scene`), in the same order:
+ * the headline over the figure's head, as the game draws overhead chat, and
+ * the figure standing in the spot, with the spot's name under the frame. The
+ * look is passed straight through, as the figures' drawings are kept per
+ * look. A scene that fails to load (`SceneFigure`'s `onFail`) gives way to
+ * the plain figure, as if no scene were picked.
  */
 export default function CardFigure({
   name,
@@ -21,25 +32,56 @@ export default function CardFigure({
   headline,
   colour,
   effect,
+  scene,
 }: {
   name: string;
   look: Look;
   headline: string;
   colour: number;
   effect: number;
+  /** The spot the figure stands in, or null for the plain figure frame. */
+  scene: SceneSpot | null;
 }) {
   const stage = usePersonaStage();
-  return (
-    <>
-      {headline ? <ChatText className="al-overhead al-headline" text={headline} colour={colour} effect={effect} /> : null}
-      <button
-        type="button"
-        className="al-figure"
-        onClick={stage.replayEmote}
-        aria-label={stage.emote ? `${name}: play the emote again` : `${name}'s figure`}
-      >
+  const [failed, setFailed] = useState<string | null>(null);
+  const shown = scene && failed !== scene.key ? scene : null;
+  const overhead = headline ? (
+    <ChatText className="al-overhead al-headline" text={headline} colour={colour} effect={effect} />
+  ) : null;
+  const figure = (
+    <button
+      type="button"
+      className="al-figure"
+      onClick={stage.replayEmote}
+      aria-label={stage.emote ? `${name}: play the emote again` : `${name}'s figure`}
+    >
+      {shown ? (
+        <SceneFigure
+          spot={shown}
+          look={look}
+          label={`${name} at ${shown.name}`}
+          emote={stage.emote}
+          replay={stage.replay}
+          onFail={() => setFailed(shown.key)}
+        />
+      ) : (
         <Figure look={look} label={`${name}'s figure`} emote={stage.emote} replay={stage.replay} />
-      </button>
+      )}
+    </button>
+  );
+
+  return shown ? (
+    <>
+      <div className="al-scene">
+        {overhead}
+        {figure}
+      </div>
+      <p className="al-scene-name">{shown.name}</p>
+    </>
+  ) : (
+    <>
+      {overhead}
+      {figure}
     </>
   );
 }

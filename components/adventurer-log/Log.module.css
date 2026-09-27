@@ -120,6 +120,38 @@
   text-align: center;
 }
 
+/* The figure standing in a scene: the spot's 240x300 backdrop with the
+   figure drawn into it, all one canvas, and the headline over the figure's
+   head, where the game draws overhead chat. The figure stands at the same
+   size in every spot, its head about 135-150 pixels above the frame's foot,
+   so the chat's foot is set just above that. */
+.root :global(.al-scene) {
+  position: relative;
+  width: 240px;
+  margin: 6px auto 0;
+}
+
+.root :global(.al-scene .al-figure),
+.root :global(.al-scene canvas) {
+  display: block;
+}
+
+.root :global(.al-scene .al-overhead) {
+  position: absolute;
+  right: 0;
+  bottom: 152px;
+  left: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.root :global(.al-scene-name) {
+  margin: 3px 8px 4px;
+  color: var(--text-muted);
+  font-size: 11px;
+  text-align: center;
+}
+
 .root :global(.al-chat-strip) {
   margin: 0 8px 6px;
   padding: 4px;
@@ -172,6 +204,59 @@
 .root :global(.al-goals) {
   margin: 0;
   padding-left: 14px;
+}
+
+/* --- the dialogue box: NPC-style, the 2004 chatbox's parchment --- */
+
+.root :global(.al-dialogue) {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  align-items: center;
+  min-height: 108px;
+  background: #c9b891;
+  border: 2px solid #5b4b32;
+}
+
+.root :global(.al-dialogue-body) {
+  padding: 6px 10px;
+}
+
+.root :global(.al-dialogue-name) {
+  margin: 0 0 4px;
+  font: 12px "Zanaris b12";
+  color: #800000;
+  text-align: center;
+}
+
+.root :global(.al-dialogue-text p) {
+  margin: 0;
+  font: 12px "Zanaris p12";
+  color: #000;
+  text-align: center;
+}
+
+.root :global(.al-continue) {
+  display: block;
+  margin: 4px auto 0;
+  padding: 2px;
+  background: none;
+  border: 0;
+  font: 12px "Zanaris p12";
+  color: #0000ff;
+  text-align: center;
+  cursor: pointer;
+}
+
+.root :global(.al-continue:focus-visible) {
+  outline: 2px solid var(--link);
+  outline-offset: 2px;
+}
+
+.root :global(.al-dialogue-page) {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: right;
 }
 
 .root :global(.al-about p) {

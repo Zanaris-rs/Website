@@ -205,6 +205,9 @@ async function main(): Promise<void> {
     // 15_adventure_timeline_v2. Who gave a gz is read only through the
     // timeline, which leaves out banned givers and those the owner blocked.
     "public.adventure_gz",
+    // 16_adventure_persona. Read only through adventure_persona, which
+    // answers nothing for a banned account.
+    "public.adventure_persona",
   ]) {
     try {
       await query(`select 1 from ${table} limit 1`);
@@ -333,6 +336,12 @@ async function main(): Promise<void> {
     "accounts.adventure_gz_take(text, int[])",
     "accounts.adventure_update_edit(text, int, text)",
     "accounts.adventure_log_pin(text, int)",
+    // 16_adventure_persona: a log's persona - the card's words and picks and
+    // the dialogue - read by anyone, saved by its owner. 13's
+    // adventure_log_save and staff_adventure_resolve are replaced in place,
+    // same signatures, so they are listed once, above.
+    "accounts.adventure_persona(text)",
+    "accounts.adventure_persona_save(text, text, int, int, text, text, text, text, jsonb, text, text, text, text, text, jsonb)",
   ];
   const withheld = [
     "accounts.throttled(text, text)",
@@ -361,6 +370,13 @@ async function main(): Promise<void> {
     // 13_adventurer_log's helpers.
     "accounts.adventure_text(text, int, boolean)",
     "accounts.adventure_author(text, boolean)",
+    // 16_adventure_persona's helpers: the fixed lists, the JSON checks, and
+    // the words a mute may not change.
+    "accounts.adventure_emotes()",
+    "accounts.adventure_moods()",
+    "accounts.adventure_goals(jsonb)",
+    "accounts.adventure_dialogue(jsonb)",
+    "accounts.adventure_persona_words(text, text, text, text, text, jsonb, jsonb)",
   ];
 
   // ...and nothing else: every function in `accounts` this role can run is
@@ -1020,6 +1036,10 @@ async function checkAdventurerLog(): Promise<void> {
     ["adventure_replies", repliesStatement("__db_check__", null, [1])],
     ["adventure_blocks", blocksStatement("__db_check__")],
     ["adventure_log_recent_replies", recentRepliesStatement("__db_check__")],
+    // 16_adventure_persona. Written out rather than imported: persona.ts
+    // reaches the chathead vocabulary through the `@/` alias, which this
+    // script, run by node, cannot resolve.
+    ["adventure_persona", { text: "select * from accounts.adventure_persona($1)", values: ["__db_check__"] }],
   ] as const) {
     const rows = await query(statement.text, statement.values);
     if (rows.length === 0) {
@@ -1046,6 +1066,16 @@ async function checkAdventurerLog(): Promise<void> {
     ["adventure_log_pin (unpin)", pinStatement("__db_check__", null)],
     ["adventure_gz_give", gzGiveStatement("__db_check__", 1)],
     ["adventure_gz_take", gzTakeStatement("__db_check__", [1])],
+    // 16_adventure_persona's save, with the fifteen arguments the site sends
+    // (lib/adventurer-log/persona-input.ts). It asks who is writing first.
+    [
+      "adventure_persona_save",
+      {
+        text:
+          "select accounts.adventure_persona_save($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10, $11, $12, $13, $14, $15::jsonb) as result",
+        values: ["__db_check__", "", 0, 0, "", "", "", "", "[]", null, null, null, null, null, "[]"],
+      },
+    ],
   ];
   for (const [name, statement] of writes) {
     const [row] = await query<{ result: unknown }>(statement.text, statement.values);

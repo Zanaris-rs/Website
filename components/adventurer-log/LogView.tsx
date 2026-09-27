@@ -1,5 +1,8 @@
 import type { ReactNode } from "react";
 
+import "@/components/game/game-fonts.css";
+
+import { dialoguePages } from "@/lib/adventurer-log/dialogue";
 import type { Persona } from "@/lib/adventurer-log/persona";
 import type { WardrobeOutfit } from "@/lib/adventurer-log/wardrobe";
 import type { Filter } from "@/lib/adventurer-log/filters";
@@ -10,6 +13,7 @@ import type { Look } from "@/lib/chathead/look";
 import type { PlayerSkill } from "@/lib/hiscores/api";
 
 import Card from "./Card";
+import DialogueBox from "./DialogueBox";
 import styles from "./Log.module.css";
 import PersonaStage from "./PersonaStage";
 import Records from "./Records";
@@ -63,6 +67,14 @@ export default function LogView({
   /** The owner's best Overall gain per record length; none hides the box. */
   records?: readonly LogRecord[];
 }) {
+  // Computed once so the stage and the dialogue box always agree on what is
+  // being said - the stage drives the figure's emote, the box draws the
+  // words, and the fallback page (headline, no pages) has to reach both.
+  const pages = dialoguePages(persona, header.headline);
+  // The signature emote is only a fallback for having no real pages of the
+  // owner's own: with real pages, `null` here keeps a page's own "no emote"
+  // choice from being papered over by it (PersonaStage's `emote` fallback).
+  const signatureEmote = persona.dialogue.length === 0 ? persona.signatureEmote : null;
   return (
     <>
       {bar ? <div className={styles.bar}>{bar}</div> : null}
@@ -71,7 +83,7 @@ export default function LogView({
             hoists only a <style> with href and precedence. Its text is the
             sanitiser's output, which has no "<" in it. */}
         {css ? <style>{css}</style> : null}
-        <PersonaStage pages={persona.dialogue} signatureEmote={persona.signatureEmote}>
+        <PersonaStage pages={pages} signatureEmote={signatureEmote}>
           <div className="al-page">
             <aside className="al-side">
               <Card
@@ -91,6 +103,8 @@ export default function LogView({
             </aside>
 
             <div className="al-main">
+              <DialogueBox name={name} look={header.look} pages={pages} />
+
               {header.about ? (
                 <section className="al-about al-box">
                   <h2>About {name}</h2>

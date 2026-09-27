@@ -100,6 +100,7 @@ export default async function AdventurerLog({ params, searchParams }: Params) {
     ...(data.header.isOwner
       ? [
           { href: "/account/adventurer-log", text: "Edit your log", br: true },
+          { href: "/account/adventurer-log/character", text: "Your character" },
           { href: "/account/adventurer-log/outfits", text: "Outfits" },
         ]
       : []),
