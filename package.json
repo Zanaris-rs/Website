@@ -12,6 +12,7 @@
     "db:check": "node --conditions=react-server --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/db-check.mts",
     "assets:vendor": "bash scripts/vendor-2004-assets.sh",
     "chathead:update": "bash scripts/update-chathead.sh",
+    "fonts:update": "bash scripts/update-game-fonts.sh",
     "icons:update": "bash scripts/update-game-icons.sh",
     "items:update": "bash scripts/update-item-names.sh",
     "textures:update": "bash scripts/update-game-textures.sh",
@@ -37,11 +38,13 @@
   "devDependencies": {
     "@types/css-tree": "^3.2.0",
     "@types/node": "^24.13.3",
+    "@types/opentype.js": "^1.3.10",
     "@types/pg": "^8.23.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.3.4",
+    "opentype.js": "^2.0.0",
     "typescript": "^5",
     "vitest": "^5.0.0"
   },

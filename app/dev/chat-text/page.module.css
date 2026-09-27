@@ -1,0 +1,11 @@
+/*
+ * `<ChatText>` fixes its font-size at the b12/p12 pixel height (12px) so one
+ * game pixel is one CSS pixel - that is the point of the component. The
+ * gallery's one "2x" sample overrides that through the component's own
+ * `className` escape hatch, to show what a page embedding it larger (a
+ * chathead's speech bubble, say) would look like. `!important` is the only
+ * way to win against the inline style `ChatText` sets on the same element.
+ */
+.big {
+  font-size: 26px !important;
+}
