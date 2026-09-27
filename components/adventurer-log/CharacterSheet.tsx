@@ -1,16 +1,8 @@
 "use client";
 
-import { type FormEvent, useMemo, useState } from "react";
+import { useMemo } from "react";
 
-import { useUnsavedGuard } from "@/components/site/useUnsavedGuard";
-import {
-  BAD_FIELDS,
-  type DraftField,
-  goalsWith,
-  previewPersona,
-  SAVE_MESSAGES,
-} from "@/lib/adventurer-log/character-draft";
-import { send } from "@/lib/adventurer-log/client";
+import { goalsWith, previewPersona } from "@/lib/adventurer-log/character-draft";
 import { CLAN_TAB_HREF } from "@/lib/adventurer-log/href";
 import { type God, GOD_NAMES, GODS, type Persona, PERSONA_LIMITS } from "@/lib/adventurer-log/persona";
 import { checkSheetInput, type SheetInput } from "@/lib/adventurer-log/persona-input";
@@ -20,9 +12,9 @@ import type { Look } from "@/lib/chathead/look";
 import styles from "./Character.module.css";
 import CharacterTabs from "./CharacterTabs";
 import CharacterWorkspace from "./CharacterWorkspace";
+import { useTabDraft } from "./useTabDraft";
 
 type WordField = "title" | "examine" | "hangout";
-type Status = { kind: "saved" } | { kind: "error"; message: string } | null;
 
 /** The three free-text lines of the sheet, with their limits. */
 const WORDS: Record<WordField, { label: string; max: number }> = {
@@ -57,22 +49,12 @@ export default function CharacterSheet({
   outfitLook: Look | null;
   headLook: Look | null;
 }) {
-  const [saved, setSaved] = useState(initial);
-  const [draft, setDraft] = useState(initial);
-  const [status, setStatus] = useState<Status>(null);
-  const [invalid, setInvalid] = useState<readonly DraftField[]>([]);
-  const [busy, setBusy] = useState(false);
-
-  const dirty = JSON.stringify(draft) !== JSON.stringify(saved);
-  useUnsavedGuard(dirty);
-  const marked = (field: DraftField) => invalid.includes(field) || undefined;
+  const { draft, set, dirty, busy, message, refused, marked, save } = useTabDraft(
+    initial,
+    "/api/adventurer-log/persona/sheet",
+    checkSheetInput,
+  );
   const shown = useMemo(() => previewPersona({ ...persona, ...draft }), [persona, draft]);
-
-  function set<K extends keyof SheetInput>(key: K, value: SheetInput[K]) {
-    setDraft({ ...draft, [key]: value });
-    setStatus(null);
-    setInvalid([]);
-  }
 
   function words(field: WordField) {
     return (
@@ -88,37 +70,6 @@ export default function CharacterSheet({
       </label>
     );
   }
-
-  async function save(event: FormEvent) {
-    event.preventDefault();
-    const checked = checkSheetInput(draft);
-    if (!checked.ok) {
-      setStatus({ kind: "error", message: checked.error });
-      return;
-    }
-    setBusy(true);
-    const sent = draft;
-    const result = await send("/api/adventurer-log/persona/sheet", checked.value, "POST", SAVE_MESSAGES);
-    setBusy(false);
-    if (!result.ok) {
-      setStatus({ kind: "error", message: result.message });
-      setInvalid(BAD_FIELDS[result.code] ?? []);
-      return;
-    }
-    setSaved(checked.value);
-    setDraft((current) => (current === sent ? checked.value : current));
-    setStatus({ kind: "saved" });
-  }
-
-  const message = busy
-    ? "Saving…"
-    : status?.kind === "error"
-      ? status.message
-      : status?.kind === "saved"
-        ? "Saved."
-        : dirty
-          ? "You have unsaved changes."
-          : "";
 
   return (
     <CharacterWorkspace
@@ -195,10 +146,10 @@ export default function CharacterSheet({
         <p className={styles.hint}>Where your figure stands, and which way it faces, are on the Look tab.</p>
 
         <div className={styles.save}>
-          <button type="submit" disabled={busy || !dirty}>
+          <button type="submit" disabled={!dirty} aria-disabled={busy || undefined}>
             Save
           </button>
-          <span role="status" className={status?.kind === "error" ? styles.error : undefined}>
+          <span role="status" className={refused ? styles.error : undefined}>
             {message}
           </span>
         </div>

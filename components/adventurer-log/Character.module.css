@@ -140,6 +140,12 @@
   outline-offset: 1px;
 }
 
+/* A save is on its way: the control keeps its focus (aria-disabled, not
+   disabled) and ignores presses until the answer comes. */
+.workspace button[aria-disabled="true"] {
+  cursor: progress;
+}
+
 .hint {
   margin: 2px 0 6px;
   color: var(--text-muted);
@@ -345,9 +351,6 @@
   cursor: default;
 }
 
-.workspace .outfit:disabled {
-  cursor: progress;
-}
 
 .outfitName {
   max-width: 100%;

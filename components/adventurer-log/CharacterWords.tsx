@@ -1,16 +1,8 @@
 "use client";
 
-import { type FormEvent, useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 
-import { useUnsavedGuard } from "@/components/site/useUnsavedGuard";
-import {
-  BAD_FIELDS,
-  type DraftField,
-  moved,
-  SAVE_MESSAGES,
-  typeHeadline,
-} from "@/lib/adventurer-log/character-draft";
-import { send } from "@/lib/adventurer-log/client";
+import { moved, pageAfterRemove, typeHeadline } from "@/lib/adventurer-log/character-draft";
 import { HEADLINE_MAX } from "@/lib/adventurer-log/format";
 import { type DialoguePage, type Persona, PERSONA_LIMITS } from "@/lib/adventurer-log/persona";
 import { checkWordsInput, type WordsInput } from "@/lib/adventurer-log/persona-input";
@@ -23,8 +15,7 @@ import CharacterWorkspace from "./CharacterWorkspace";
 import ColourPicker from "./ColourPicker";
 import PageCard from "./PageCard";
 import { usePersonaStage } from "./PersonaStage";
-
-type Status = { kind: "saved" } | { kind: "error"; message: string } | null;
+import { useTabDraft } from "./useTabDraft";
 
 const NEW_PAGE: DialoguePage = { mood: "neutral", emote: null, lines: [""] };
 
@@ -35,6 +26,10 @@ const NEW_PAGE: DialoguePage = { mood: "neutral", emote: null, lines: [""] };
  * The stage beside it draws the draft as it is typed. The browser checks
  * the draft as the server will (`checkWordsInput`); the database has the
  * last word, and draws a mute's line: picks may change, words may not.
+ *
+ * Adding or removing a page starts the stage's conversation again
+ * (`resetKey`), without remounting the tab: focus stays on "Add a page", and
+ * after a Remove it moves to the page that took the removed one's place.
  */
 export default function CharacterWords({
   name,
@@ -54,20 +49,21 @@ export default function CharacterWords({
   outfitLook: Look | null;
   headLook: Look | null;
 }) {
-  const [saved, setSaved] = useState(initial);
-  const [draft, setDraft] = useState(initial);
+  const { draft, change, set, dirty, busy, message, refused, marked, save } = useTabDraft(
+    initial,
+    "/api/adventurer-log/persona/words",
+    checkWordsInput,
+  );
   // A key per page that follows it when it moves, so a page's textarea
   // keeps its focus and caret through a reorder.
   const [pageKeys, setPageKeys] = useState(() => initial.dialogue.map((_, index) => index));
-  const [status, setStatus] = useState<Status>(null);
-  const [invalid, setInvalid] = useState<readonly DraftField[]>([]);
-  const [busy, setBusy] = useState(false);
   const headlineId = useId();
   const headlineCountId = useId();
-
-  const dirty = JSON.stringify(draft) !== JSON.stringify(saved);
-  useUnsavedGuard(dirty);
-  const marked = (field: DraftField) => invalid.includes(field) || undefined;
+  const pagesRef = useRef<HTMLOListElement>(null);
+  const addRef = useRef<HTMLButtonElement>(null);
+  // Which page takes the focus once a Remove has rendered (`pageAfterRemove`;
+  // null is "Add a page"), or undefined when nothing is waiting.
+  const refocus = useRef<number | null | undefined>(undefined);
   const pageCount = draft.dialogue.length;
   const shown = useMemo<Persona>(
     () => ({
@@ -80,15 +76,14 @@ export default function CharacterWords({
     [persona, draft],
   );
 
-  function change(next: WordsInput) {
-    setDraft(next);
-    setStatus(null);
-    setInvalid([]);
-  }
-
-  function set<K extends keyof WordsInput>(key: K, value: WordsInput[K]) {
-    change({ ...draft, [key]: value });
-  }
+  useEffect(() => {
+    if (refocus.current === undefined) return;
+    const target = refocus.current;
+    refocus.current = undefined;
+    const card = target === null ? null : pagesRef.current?.children[target];
+    const button = card?.querySelector<HTMLButtonElement>("button[aria-label^='Remove']") ?? addRef.current;
+    button?.focus();
+  });
 
   function setPage(index: number, page: DialoguePage) {
     set("dialogue", draft.dialogue.map((current, i) => (i === index ? page : current)));
@@ -102,6 +97,7 @@ export default function CharacterWords({
   function removePage(index: number) {
     set("dialogue", draft.dialogue.filter((_, i) => i !== index));
     setPageKeys(pageKeys.filter((_, i) => i !== index));
+    refocus.current = pageAfterRemove(index, pageCount - 1);
   }
 
   function addPage() {
@@ -109,39 +105,6 @@ export default function CharacterWords({
     set("dialogue", [...draft.dialogue, NEW_PAGE]);
     setPageKeys([...pageKeys, Math.max(-1, ...pageKeys) + 1]);
   }
-
-  async function save(event: FormEvent) {
-    event.preventDefault();
-    const checked = checkWordsInput(draft);
-    if (!checked.ok) {
-      setStatus({ kind: "error", message: checked.error });
-      return;
-    }
-    setBusy(true);
-    const sent = draft;
-    const result = await send("/api/adventurer-log/persona/words", checked.value, "POST", SAVE_MESSAGES);
-    setBusy(false);
-    if (!result.ok) {
-      setStatus({ kind: "error", message: result.message });
-      setInvalid(BAD_FIELDS[result.code] ?? []);
-      return;
-    }
-    // What was checked is what the server saved (trimmed, trailing blank
-    // lines gone); the draft becomes it unless it has moved on.
-    setSaved(checked.value);
-    setDraft((current) => (current === sent ? checked.value : current));
-    setStatus({ kind: "saved" });
-  }
-
-  const message = busy
-    ? "Saving…"
-    : status?.kind === "error"
-      ? status.message
-      : status?.kind === "saved"
-        ? "Saved."
-        : dirty
-          ? "You have unsaved changes."
-          : "";
 
   return (
     <CharacterWorkspace
@@ -154,7 +117,7 @@ export default function CharacterWords({
       headLook={headLook}
       // Adding or removing a page starts the conversation again from its
       // first page, emote and all.
-      stageKey={pageCount}
+      resetKey={pageCount}
       below={<Pager />}
     >
       <CharacterTabs current="words" />
@@ -200,14 +163,14 @@ export default function CharacterWords({
             characters. With no pages, your headline fills the dialogue box.
           </p>
           {pageCount > 0 ? (
-            <ol className={styles.pages}>
+            <ol ref={pagesRef} className={styles.pages}>
               {draft.dialogue.map((page, index) => (
                 <PageCard
                   key={pageKeys[index]}
                   index={index}
                   count={pageCount}
                   page={page}
-                  invalid={invalid.includes("dialogue")}
+                  invalid={marked("dialogue") ?? false}
                   onChange={(next) => setPage(index, next)}
                   onMove={(by) => movePage(index, by)}
                   onRemove={() => removePage(index)}
@@ -215,7 +178,7 @@ export default function CharacterWords({
               ))}
             </ol>
           ) : null}
-          <button type="button" onClick={addPage} disabled={pageCount >= PERSONA_LIMITS.pages}>
+          <button ref={addRef} type="button" onClick={addPage} disabled={pageCount >= PERSONA_LIMITS.pages}>
             Add a page
           </button>
           {pageCount >= PERSONA_LIMITS.pages ? (
@@ -249,10 +212,10 @@ export default function CharacterWords({
         </fieldset>
 
         <div className={styles.save}>
-          <button type="submit" disabled={busy || !dirty}>
+          <button type="submit" disabled={!dirty} aria-disabled={busy || undefined}>
             Save
           </button>
-          <span role="status" className={status?.kind === "error" ? styles.error : undefined}>
+          <span role="status" className={refused ? styles.error : undefined}>
             {message}
           </span>
         </div>

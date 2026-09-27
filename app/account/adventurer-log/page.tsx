@@ -14,6 +14,7 @@ import { requireSession } from "@/lib/account/session-server";
 import { excerpt, parseBody } from "@/lib/adventurer-log/body";
 import { sanitizeCss } from "@/lib/adventurer-log/css";
 import { CSS_MAX } from "@/lib/adventurer-log/format";
+import { logHref } from "@/lib/adventurer-log/href";
 import {
   blocksStatement,
   type LogHeader,
@@ -96,7 +97,7 @@ export default async function LogSettingsPage() {
           initial={header.customCss}
           disabled={header.cssDisabled}
           dropped={dropped}
-          logHref={`/adventurer-log/${encodeURIComponent(username)}`}
+          logHref={logHref(username)}
         />
       </Panel>
       <Panel align="left" width="100%">

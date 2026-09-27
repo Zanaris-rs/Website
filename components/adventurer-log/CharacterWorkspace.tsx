@@ -23,9 +23,11 @@ import PersonaStage from "./PersonaStage";
  * one `PersonaStage`, so a tab can drive the stage (turn it, read its
  * facing, play a page) and `below` can put controls under the card.
  *
- * `stageKey` starts the stage afresh when it changes: the Words tab keys it
- * by the page count (a new conversation from its first page), the Look tab
- * by the scene (the saved facing, or the nearest the scene allows).
+ * `resetKey` starts the stage afresh when it changes (`PersonaStage`): the
+ * Words tab passes the page count (a new conversation from its first page),
+ * the Look tab the scene (the saved facing, or the nearest the scene
+ * allows). It is not a React `key`: the tab beside the stage stays mounted,
+ * so the control just pressed keeps its focus.
  *
  * The looks are passed through untouched: `Chathead` and `Figure` redraw
  * whenever a look is a new object.
@@ -38,7 +40,7 @@ export default function CharacterWorkspace({
   persona,
   outfitLook,
   headLook,
-  stageKey,
+  resetKey,
   below,
   children,
 }: {
@@ -51,7 +53,7 @@ export default function CharacterWorkspace({
   outfitLook: Look | null;
   /** The chathead's look: the worn outfit, else the game's head-only look. */
   headLook: Look | null;
-  stageKey?: string | number;
+  resetKey?: string | number;
   below?: ReactNode;
   children: ReactNode;
 }) {
@@ -62,7 +64,7 @@ export default function CharacterWorkspace({
 
   return (
     <PersonaStage
-      key={stageKey}
+      resetKey={resetKey}
       pages={pages}
       signatureEmote={signatureEmote}
       initialFacing={nearestFacing(persona.facing, turns)}

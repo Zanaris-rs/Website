@@ -22,7 +22,7 @@ export const dynamic = "force-dynamic";
  * `POST /api/adventurer-log/persona/stage` for the scene and the facing.
  */
 export default async function CharacterLookPage() {
-  const page = await loadCharacterPage();
+  const page = await loadCharacterPage({ outfits: true });
   if (page.status === "signed_out") redirect("/account/login");
   if (page.status === "unavailable") return <CharacterUnavailable />;
 

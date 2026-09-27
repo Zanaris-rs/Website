@@ -44,6 +44,13 @@ type Status = { kind: "done" | "error"; message: string } | null;
  * Each outfit has an Edit link to the outfit editor; an empty slot links to
  * a new one there, and "Import your in-game look" opens the first empty
  * slot with the game's look in it.
+ *
+ * While a save is out, the controls are `aria-disabled` and ignore presses,
+ * rather than `disabled`: a disabled button drops the focus it has, and the
+ * one just pressed would lose it. `disabled` is kept for what cannot be done
+ * at all (a scene with no outfit to stand there, facing the way it already
+ * faces). A new scene resets the stage (`resetKey`) without remounting this
+ * panel, so the status line below is the one live region throughout.
  */
 export default function CharacterLook({
   name,
@@ -123,7 +130,7 @@ export default function CharacterLook({
       persona={shown}
       outfitLook={outfitLook}
       headLook={headLook}
-      stageKey={stage.scene ?? "none"}
+      resetKey={stage.scene ?? "none"}
       below={
         outfitLook ? (
           <FaceThisWay
@@ -154,8 +161,8 @@ export default function CharacterLook({
                       type="button"
                       className={styles.outfit}
                       aria-pressed={isWorn}
-                      aria-label={isWorn ? `${outfit.name}: wearing` : `Wear ${outfit.name}`}
-                      disabled={busy && !isWorn}
+                      aria-label={`Wear ${outfit.name}`}
+                      aria-disabled={busy || undefined}
                       onClick={() => void wear(slot)}
                     >
                       <Figure look={outfit.look} scale={0.5} label={outfit.name} />
@@ -167,7 +174,11 @@ export default function CharacterLook({
                     </a>
                   </>
                 ) : (
-                  <a className={styles.newOutfit} href={outfitEditHref(slot)}>
+                  <a
+                    className={styles.newOutfit}
+                    href={outfitEditHref(slot)}
+                    aria-label={`New outfit in slot ${slot + 1}`}
+                  >
                     + New outfit
                   </a>
                 )}
@@ -202,7 +213,8 @@ export default function CharacterLook({
             type="button"
             className={styles.scene}
             aria-pressed={stage.scene === null}
-            disabled={!outfitLook || busy}
+            disabled={!outfitLook}
+            aria-disabled={busy || undefined}
             onClick={() => stand(null, "You stand in no scene.")}
           >
             <span className={`${styles.thumb} ${styles.noScene}`} aria-hidden="true" />
@@ -214,7 +226,8 @@ export default function CharacterLook({
               type="button"
               className={styles.scene}
               aria-pressed={stage.scene === spot.key}
-              disabled={!outfitLook || busy}
+              disabled={!outfitLook}
+              aria-disabled={busy || undefined}
               onClick={() => stand(spot.key, `You stand at ${spot.name}.`)}
             >
               <Tile src={sceneSrc(spot)} width={spot.width / 2} height={spot.height / 2} className={styles.thumb} />
@@ -258,7 +271,14 @@ function FaceThisWay({
       <p className={styles.hint}>
         When someone opens your log you face: <b>{FACING_NAMES[opens]}</b>
       </p>
-      <button type="button" disabled={busy || stage.facing === opens} onClick={() => onFace(stage.facing)}>
+      <button
+        type="button"
+        disabled={stage.facing === opens}
+        aria-disabled={busy || undefined}
+        onClick={() => {
+          if (!busy) onFace(stage.facing);
+        }}
+      >
         Face this way
       </button>
     </div>

@@ -11,6 +11,8 @@ export function useUnsavedGuard(dirty: boolean): void {
     if (!dirty) return;
     const ask = (event: BeforeUnloadEvent) => {
       event.preventDefault();
+      // Older browsers prompt only when returnValue is set, not for preventDefault().
+      event.returnValue = "";
     };
     window.addEventListener("beforeunload", ask);
     return () => window.removeEventListener("beforeunload", ask);
