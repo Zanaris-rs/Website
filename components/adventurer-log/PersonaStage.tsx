@@ -3,10 +3,11 @@
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 import type { DialoguePage } from "@/lib/adventurer-log/persona";
+import { nearestFacing, stepFacing } from "@/lib/chathead/facing";
 import type { Emote } from "@/lib/chathead/vocab";
 import { prefersReducedMotion } from "@/lib/game-chat/clock";
 
-type Stage = {
+export type Stage = {
   /**
    * The page now shown, already clamped to `pages`: never out of range even
    * if `pages` shrinks while this state is kept (as with W5's live editor
@@ -28,10 +29,25 @@ type Stage = {
   /** Bumped to make the figure play `emote` once. */
   replay: number;
   replayEmote(): void;
+  /**
+   * The way the figure faces (`lib/chathead/facing.ts`; 0 faces you),
+   * already one of `turns` when the stage has them, as `page` is already
+   * clamped. Readers draw it as it is.
+   */
+  facing: number;
+  /**
+   * Turn one step: 1 turns the figure's face toward your left (the "Turn
+   * left" button, the left arrow), -1 toward your right; along `turns` when
+   * the stage has them, wrapping.
+   */
+  turn(delta: 1 | -1): void;
+  /** Face `f`, or the nearest facing `turns` allows. */
+  setFacing(f: number): void;
 };
 
 const StageContext = createContext<Stage>({
   page: 0, pageCount: 0, next() {}, prev() {}, emote: null, replay: 0, replayEmote() {},
+  facing: 0, turn() {}, setFacing() {},
 });
 
 /**
@@ -39,10 +55,16 @@ const StageContext = createContext<Stage>({
  * the dialogue plays the next page's emote on the figure. They sit in
  * different columns, so the log page wraps both in this. The first emote
  * plays once on arrival, unless the reader prefers reduced motion.
+ *
+ * It also holds the way the figure faces: the owner's facing when the page
+ * opens, then wherever a reader turns it. Turning only ever happens when
+ * asked, so reduced motion changes nothing about it.
  */
 export default function PersonaStage({
   pages,
   signatureEmote,
+  initialFacing = 0,
+  turns = null,
   children,
 }: {
   pages: readonly DialoguePage[];
@@ -53,16 +75,25 @@ export default function PersonaStage({
    * covered up by falling back to the signature emote.
    */
   signatureEmote: Emote | null;
+  /** The way the figure faces when the page opens: the persona's `facing`. */
+  initialFacing?: number;
+  /** The facings the figure may turn to, in order (its scene's `turns`), or null for all sixteen. */
+  turns?: readonly number[] | null;
   children: ReactNode;
 }) {
   const [pageState, setPageState] = useState(0);
   const [replay, setReplay] = useState(0);
+  const [facingState, setFacingState] = useState(initialFacing);
   // Clamped once, here, rather than by each reader: `pages` can shrink under
   // an unchanged `pageState` (W5's live editor preview), and an out-of-range
   // page would print wrong wherever it was read raw (e.g. "5 / 3").
   const page = pages.length === 0 ? 0 : Math.min(pageState, pages.length - 1);
   const currentPage = pages.length > 0 ? pages[page] : undefined;
   const emote = currentPage?.emote ?? signatureEmote;
+  // Held to `turns` here, once, for the same reason: a scene draws only the
+  // facings it proved, and `turns` can change under an unchanged state (the
+  // editor's scene picker).
+  const facing = nearestFacing(facingState, turns);
 
   useEffect(() => {
     // Deferred rather than called straight from the effect body: `Figure`
@@ -86,10 +117,15 @@ export default function PersonaStage({
     setReplay((count) => count + 1);
   }, [pages.length, page]);
   const replayEmote = useCallback(() => setReplay((count) => count + 1), []);
+  const turn = useCallback(
+    (delta: 1 | -1) => setFacingState((current) => stepFacing(current, delta, turns)),
+    [turns],
+  );
+  const setFacing = useCallback((f: number) => setFacingState(nearestFacing(f, turns)), [turns]);
 
   const value = useMemo(
-    () => ({ page, pageCount: pages.length, next, prev, emote, replay, replayEmote }),
-    [page, pages.length, next, prev, emote, replay, replayEmote],
+    () => ({ page, pageCount: pages.length, next, prev, emote, replay, replayEmote, facing, turn, setFacing }),
+    [page, pages.length, next, prev, emote, replay, replayEmote, facing, turn, setFacing],
   );
   return <StageContext.Provider value={value}>{children}</StageContext.Provider>;
 }

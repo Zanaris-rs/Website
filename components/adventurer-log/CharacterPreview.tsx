@@ -8,6 +8,7 @@ import { previewPersona } from "@/lib/adventurer-log/character-draft";
 import { dialoguePages } from "@/lib/adventurer-log/dialogue";
 import type { PersonaInput } from "@/lib/adventurer-log/persona-input";
 import type { Look } from "@/lib/chathead/look";
+import { sceneOf } from "@/lib/scenes/spots";
 
 import Card from "./Card";
 import styles from "./CharacterEditor.module.css";
@@ -45,7 +46,7 @@ export default function CharacterPreview({
   return (
     // Keyed by the page count, so adding or removing a page starts the
     // conversation again from its first page, emote and all.
-    <PersonaStage key={pages.length} pages={pages} signatureEmote={signatureEmote}>
+    <PersonaStage key={pages.length} pages={pages} signatureEmote={signatureEmote} turns={sceneOf(persona.scene)?.turns ?? null}>
       <div className={`al-root ${logStyles.root}`}>
         <div className="al-page">
           <aside className="al-side">

@@ -45,14 +45,19 @@ const OUTLINE = `<div class="al-root">                 <!-- the log; your CSS re
         <h1 class="al-title">Zezima</h1>
         <p class="al-persona-title">the Unready</p>                  <!-- only when set -->
         <span class="al-chat al-chat--c9 al-chat--e1 al-overhead al-headline">Headline</span>   <!-- outside the button, so its plain text is still the figure's own label -->
-        <button class="al-figure" aria-label="Zezima: play the emote again">   <!-- a saved outfit, standing; a click replays its emote -->
+        <button class="al-figure" aria-label="Zezima: play the emote again">   <!-- a saved outfit, standing; a click replays its emote, a drag or the arrow keys turn it -->
           <canvas></canvas>
         </button>
         <!-- or, standing in a scene the owner picked, the same two inside its frame, and the place under it:
              <div class="al-scene"><span class="al-chat … al-overhead al-headline"></span><button class="al-figure"><canvas></canvas></button></div>
              <p class="al-scene-name">Varrock square</p>
              .al-scene is 240×300 with the backdrop drawn in the canvas; you can frame it, not recolour it -->
-        <!-- or, with no outfit:<p class="al-chat-strip"><span class="al-chat … al-overhead al-headline"></span></p>,
+        <div class="al-turn">                                   <!-- under the figure, in a scene or not -->
+          <button class="al-turn-left" aria-label="Turn left"><svg></svg></button>
+          <span class="al-turn-hint">Drag to turn · click to emote</span>
+          <button class="al-turn-right" aria-label="Turn right"><svg></svg></button>
+        </div>
+        <!-- or, with no outfit (no figure to turn):<p class="al-chat-strip"><span class="al-chat … al-overhead al-headline"></span></p>,
              or with no words either: <div class="al-chathead"><canvas></canvas></div> -->
         <p class="al-examine">Examine text</p>
         <dl class="al-sheet">
@@ -224,6 +229,7 @@ ${FENCE}
 - \`.al-gz-button\` shows only to signed-in readers other than me, and never to players I blocked; \`.al-gz-button[aria-pressed="true"]\` is a gz that reader gave.
 - The dialogue box (\`.al-dialogue\`) keeps its parchment look by default; restyle it if you like, but keep \`.al-continue\` visible.
 - Chatheads and outfits are drawn on \`<canvas>\`: you can frame, size and place them, but not recolour them.
+- The figure turns: drag it, use the \`.al-turn\` buttons, or the arrow keys on it. With no scene its canvas is as wide as its widest angle needs, so centre it rather than fixing its width.
 
 Its look before your CSS: a black page; each \`.al-box\` black with a 1px #3a3a3a border; each box title (\`.al-box > h2\`) a #2b2b2b bar with white 13px bold text; text #e4e4e4 in 13px Arial; links #c8ccd2; times #9a9a9a.`,
 
