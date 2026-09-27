@@ -15,12 +15,17 @@ export const metadata: Metadata = {
 };
 
 const SAMPLE = "Like this";
+/** Each cell's width: a scroll's window is the whole of the box it is drawn in. */
+const CELL = 160;
+/** A line long enough to see a pass start and end across a scene's frame. */
+const LONG = "Party at the Varrock fountain, 8pm!";
 
 /**
  * Every chat colour x effect drawn by `<ChatText>`, plus the p12 font and a
  * scaled-up sample - the check that both fonts load and every colour cycle
  * and both effects animate on a real page, after a regeneration or a change
- * to `lib/game-chat/`. Development only - production answers 404.
+ * to `lib/game-chat/`. Development only - production answers 404. Each cell
+ * is `CELL` wide, which is the window a scroll crosses.
  */
 export default function ChatTextGallery() {
   if (process.env.NODE_ENV === "production") notFound();
@@ -49,7 +54,7 @@ export default function ChatTextGallery() {
               <tr key={name}>
                 <td>{name}</td>
                 {CHAT_EFFECT_NAMES.map((effectName, effect) => (
-                  <td key={effectName}>
+                  <td key={effectName} style={{ width: CELL }}>
                     <ChatText text={SAMPLE} colour={colour} effect={effect} />
                   </td>
                 ))}
@@ -57,6 +62,11 @@ export default function ChatTextGallery() {
             ))}
           </tbody>
         </table>
+
+        <p>One scroll line through a scene-wide window (240 px): it enters at the right edge and leaves at the left.</p>
+        <div style={{ width: 240, padding: "4px 0", background: "#000" }}>
+          <ChatText text={LONG} colour={0} effect={2} />
+        </div>
 
         <p style={{ fontFamily: '"Zanaris p12", Arial, sans-serif', fontSize: 12, color: "#fff" }}>
           p12: The quick brown fox jumps over the lazy dog. 0123456789

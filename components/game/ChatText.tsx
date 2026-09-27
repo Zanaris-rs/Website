@@ -24,6 +24,17 @@ const HIDDEN = {
 const WAVE_WORD = { display: "inline-block", maxWidth: "100%" } as const;
 const WAVE_CHAR = { display: "inline-block" } as const;
 
+/**
+ * A scroll's window: one line high and the whole width of the box the line
+ * is drawn in - a scene's frame, or the card's width - so the line crosses
+ * all of it.
+ */
+const SCROLL_WINDOW = { display: "inline-block", width: "100%", overflow: "hidden", verticalAlign: "bottom" } as const;
+const SCROLL_TEXT = { display: "inline-block", whiteSpace: "pre", transform: "translateX(0px)" } as const;
+
+/** The client's own scroll window: the width used until the real one is measured. */
+const GAME_WINDOW = 100;
+
 /** Off on the server and in the first render, so hydration matches. */
 const serverReducedMotion = () => false;
 
@@ -35,9 +46,12 @@ const serverReducedMotion = () => false;
  * colour, and a wave or scroll is drawn as plain, still text.
  *
  * A long line wraps between words; a wave's spaces stay text so it can. A
- * scroll keeps its one-line window, and starts with its text at the
- * window's left edge, so it reads before the clock moves it (without script,
- * too).
+ * scroll keeps its one-line window, as wide as the box it is in (measured
+ * with a ResizeObserver; the game's 100 px until then), and moves at the
+ * game's pixel speed, so a wider box takes proportionally longer to cross.
+ * Its pass starts when the line appears, entering at the window's right
+ * edge; before that - and without script - the text sits at the window's
+ * left edge, so it reads.
  */
 export default function ChatText({
   text,
@@ -51,9 +65,24 @@ export default function ChatText({
   className?: string;
 }) {
   const root = useRef<HTMLSpanElement>(null);
+  const scrollWindow = useRef<HTMLSpanElement>(null);
+  /** The scroll window's width in CSS pixels, kept by a ResizeObserver. */
+  const windowWidth = useRef(GAME_WINDOW);
   const reduced = useSyncExternalStore(subscribeReducedMotion, prefersReducedMotion, serverReducedMotion);
   const moving = colour >= 6 || effect !== 0;
   const drawnEffect = reduced ? 0 : effect;
+
+  useEffect(() => {
+    const frame = scrollWindow.current;
+    if (drawnEffect !== 2 || !frame) return;
+    windowWidth.current = frame.clientWidth || GAME_WINDOW;
+    if (typeof ResizeObserver !== "function") return;
+    const observer = new ResizeObserver(([entry]) => {
+      windowWidth.current = Math.round(entry.contentRect.width) || GAME_WINDOW;
+    });
+    observer.observe(frame);
+    return () => observer.disconnect();
+  }, [drawnEffect]);
 
   useEffect(() => {
     const element = root.current;
@@ -68,12 +97,16 @@ export default function ChatText({
     );
     const slider = element.querySelector<HTMLSpanElement>("[data-scroll]");
     const width = stringWidth(text, "b12");
+    /** The cycle the scroll's pass started on: the first it heard. */
+    let start: number | null = null;
     return onCycle((cycle) => {
       element.style.color = cssColour(colourAt(colour, cycle));
       if (effect === 1) {
         for (const [span, i] of chars) span.style.transform = `translateY(${waveOffset(i, cycle)}px)`;
       } else if (effect === 2 && slider) {
-        slider.style.transform = `translateX(${100 - scrollOffset(width, cycle)}px)`;
+        start ??= cycle;
+        const wide = windowWidth.current;
+        slider.style.transform = `translateX(${wide - scrollOffset(width, cycle - start, wide)}px)`;
       }
     });
   }, [text, colour, effect, moving, reduced]);
@@ -95,8 +128,8 @@ export default function ChatText({
         ),
       )
     ) : drawnEffect === 2 ? (
-      <span style={{ display: "inline-block", width: 100, overflow: "hidden", verticalAlign: "bottom" }}>
-        <span data-scroll style={{ display: "inline-block", whiteSpace: "pre", transform: "translateX(0px)" }}>
+      <span ref={scrollWindow} data-window style={SCROLL_WINDOW}>
+        <span data-scroll style={SCROLL_TEXT}>
           {text}
         </span>
       </span>
