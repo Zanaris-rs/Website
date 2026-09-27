@@ -206,14 +206,19 @@ export function buildBody(
   return posed;
 }
 
-/** A look's figure in a frame, or null when there is no body to draw. */
+/**
+ * A look's figure in a frame, or null when there is no body to draw. `yaw`
+ * turns it (`plainYaw`, facing.ts): the camera's own `yan`, 166, unless
+ * given, so a figure drawn without one is the picture the goldens hold.
+ */
 export function renderFigure(
   client: Client,
   tables: BodyTables,
   look: Look,
   frame: Frame,
+  yaw: number = FIGURE_CAMERA.yan,
 ): Int32Array | null {
   const body = buildBody(client, tables, look);
   if (!body) return null;
-  return drawModel(client, body, frame, FIGURE_CAMERA);
+  return drawModel(client, body, frame, { ...FIGURE_CAMERA, yan: yaw });
 }

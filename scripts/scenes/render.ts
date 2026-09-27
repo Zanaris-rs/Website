@@ -45,6 +45,7 @@ import { drawAtEye } from "../../lib/scenes/draw.ts";
 import type { SceneSpot } from "../../lib/scenes/spots.ts";
 import FileCache from "../game-icons/cache.ts";
 import { GAME_FAR, TILES } from "./far.ts";
+import { figurePoses, LOOKS } from "./looks.ts";
 import type { SpotInput } from "./spots.ts";
 
 /** The card's scene frame (spec: "With a scene, the frame is 240x300"). */
@@ -148,58 +149,6 @@ function hash(pixels: Int32Array): string {
 }
 
 // --- the studio ----------------------------------------------------------------
-
-/** The game's new-player look (`Player.body`), wearing nothing. */
-const REFERENCE: Look = {
-  gender: 0,
-  kits: [0, 10, 18, 26, 33, 36, 42],
-  colours: [0, 0, 0, 0, 0],
-  worn: new Array<number>(14).fill(-1),
-};
-
-/**
- * The same player geared up well past that outline: a rune full helm (0),
- * a red cape (1), a rune two-handed sword (3), a rune platebody (4) and
- * platelegs (7), by `wearpos`. A player's own outfit can be wider or taller
- * than the default, so each spot is proved with this one too.
- */
-const BULKY: Look = {
-  ...REFERENCE,
-  worn: [1163, 1007, -1, 1319, 1127, -1, -1, 1079, -1, -1, -1, -1, -1, -1],
-};
-
-/**
- * The game's new-player look as a woman (`Player.body` for gender 1): a
- * different outline again — at canifis it reached what the man's did not.
- */
-const WOMAN: Look = {
-  gender: 1,
-  kits: [45, -1, 56, 61, 67, 70, 79],
-  colours: [0, 0, 0, 0, 0],
-  worn: new Array<number>(14).fill(-1),
-};
-
-/**
- * The default look in an iron chainbody (4), whose see-through faces the
- * game blends with what is behind them. Proves that the site draws a figure
- * onto the backdrop, not alone and laid over it: that differs here, and
- * only here.
- */
-const CHAINBODY: Look = {
-  ...REFERENCE,
-  worn: [-1, -1, -1, -1, 1101, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-};
-
-/**
- * The looks every spot is proved with, named for the build's errors and
- * written into `lib/scenes/composite-golden.json` by these names.
- */
-export const LOOKS: { name: string; look: Look }[] = [
-  { name: "the default look", look: REFERENCE },
-  { name: "the bulky look", look: BULKY },
-  { name: "the woman's look", look: WOMAN },
-  { name: "the chainbody look", look: CHAINBODY },
-];
 
 /** The build area: 13 zones of 8 tiles (`BuildArea.SIZE`). */
 const SIZE = 104;
@@ -335,32 +284,20 @@ export async function openStudio(clientDir: string, engineDir: string, outDir: s
   for (const { name, look } of LOOKS) {
     for (const id of look.worn) {
       if (id !== -1 && !bodies.objs[id]) {
-        throw new Error(`${name} wears object ${id}, which bodies.json lacks: change LOOKS in render.ts`);
+        throw new Error(`${name} wears object ${id}, which bodies.json lacks: change LOOKS in looks.ts`);
       }
     }
   }
 
-  // Every pose the card can draw a figure in: standing, and every frame of
-  // every emote (lib/chathead/anims.json, what the site plays), each with
-  // the hands its seq empties. Frames an emote repeats are proved once.
+  // Every pose the card can draw a figure in (looks.ts), each frame checked
+  // against the cache's anims.
   const anims = JSON.parse(
     readFileSync(path.join(outDir, "lib/chathead/anims.json"), "utf8"),
   ) as AnimTables;
-  const poses: { name: string; emote: string | null; pose?: Pose }[] = [{ name: "standing", emote: null }];
-  const posed = new Set<string>();
-  for (const [emote, seq] of Object.entries(anims.emotes)) {
-    for (const frame of seq.frames) {
-      const id = `${frame}:${seq.hideLeft}:${seq.hideRight}`;
-      if (posed.has(id)) continue;
-      posed.add(id);
-      if (!AnimFrame.list[frame]) {
-        throw new Error(`${emote} frame ${frame} is not in the cache's anims: re-run npm run chathead:update`);
-      }
-      poses.push({
-        name: `${emote} frame ${frame}`,
-        emote,
-        pose: { frame, hideLeft: seq.hideLeft, hideRight: seq.hideRight },
-      });
+  const poses = figurePoses(anims.emotes);
+  for (const { name, pose } of poses) {
+    if (pose && !AnimFrame.list[pose.frame]) {
+      throw new Error(`${name} is not in the cache's anims: re-run npm run chathead:update`);
     }
   }
   const title = jag("title");

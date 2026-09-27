@@ -36,7 +36,8 @@ import path from "node:path";
 
 import type { SceneSpot } from "../../lib/scenes/spots.ts";
 import { encodePng } from "../game-icons/png.ts";
-import { HEIGHT, LOOKS, openStudio, WIDTH } from "./render.ts";
+import { LOOKS } from "./looks.ts";
+import { HEIGHT, openStudio, WIDTH } from "./render.ts";
 import { SPOTS } from "./spots.ts";
 
 function required(name: string): string {
