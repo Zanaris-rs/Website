@@ -1,8 +1,8 @@
 "use client";
 
-import { type KeyboardEvent, type PointerEvent, useRef } from "react";
+import { type KeyboardEvent, type PointerEvent, useRef, useState } from "react";
 
-import { DRAG_SLOP, dragSteps, stepFacing } from "@/lib/chathead/facing";
+import { DRAG_SLOP, dragSteps, FACING_NAMES, stepFacing } from "@/lib/chathead/facing";
 
 /** A drag in progress: its pointer, where it went down, the facing then, and whether it has moved. */
 type Drag = { pointer: number; x: number; facing: number; moved: boolean };
@@ -10,6 +10,12 @@ type Drag = { pointer: number; x: number; facing: number; moved: boolean };
 export type TurnGesture = {
   /** Whether the figure turns at all: not where only one facing may be drawn. */
   canTurn: boolean;
+  /**
+   * For a hidden polite live line beside the figure: the facing's name
+   * (`FACING_NAMES`) once the figure has been turned by hand, and empty until
+   * then, so a screen reader hears each turn and nothing on load.
+   */
+  said: string;
   /** "Turn left": a step toward your left (+1). */
   turnLeft: () => void;
   /** "Turn right": a step toward your right (-1). */
@@ -38,6 +44,8 @@ export type TurnGesture = {
  *   arrow and "Turn right" step -1.
  * - With `turns` it walks only those facings, in their order
  *   (`stepFacing`); with one facing or none it does not turn at all.
+ * - Once it has turned by hand, `said` names the way it faces, for a
+ *   polite live region.
  */
 export function useTurnGesture({
   facing,
@@ -56,10 +64,16 @@ export function useTurnGesture({
   const drag = useRef<Drag | null>(null);
   /** Set when a drag ends: the click the browser sends after it is not a click. */
   const dragged = useRef(false);
+  /** Set by the first turn by hand: until then `said` stays empty. */
+  const [turned, setTurned] = useState(false);
   const canTurn = turns === null || turns.length > 1;
 
+  const turnTo = (next: number) => {
+    if (next !== facing) setTurned(true);
+    setFacing(next);
+  };
   const step = (delta: 1 | -1) => {
-    if (canTurn) setFacing(stepFacing(facing, delta, turns));
+    if (canTurn) turnTo(stepFacing(facing, delta, turns));
   };
 
   const end = (event: PointerEvent<HTMLElement>) => {
@@ -71,6 +85,7 @@ export function useTurnGesture({
 
   return {
     canTurn,
+    said: turned ? FACING_NAMES[facing] : "",
     turnLeft: () => step(1),
     turnRight: () => step(-1),
     handlers: {
@@ -86,7 +101,7 @@ export function useTurnGesture({
         const dx = event.clientX - now.x;
         if (!now.moved && Math.abs(dx) <= DRAG_SLOP) return;
         now.moved = true;
-        setFacing(stepFacing(now.facing, dragSteps(dx), turns));
+        turnTo(stepFacing(now.facing, dragSteps(dx), turns));
       },
       onPointerUp: end,
       onPointerCancel: end,

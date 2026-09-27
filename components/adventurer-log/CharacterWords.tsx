@@ -206,8 +206,10 @@ export default function CharacterWords({
 /**
  * The rows, and "Add a page". Inside the stage, so that adding, moving or
  * removing a page keeps the stage on the page it was playing
- * (`followMove`, `followRemove`): the added page is chosen, a moved one is
- * followed, and a removed one gives way to the page in its place.
+ * (`followMove`, `followRemove`): the added page is chosen and played, a
+ * moved one is followed, and a removed one gives way to the page in its
+ * place. Following only moves the stage (`goTo(…, { play: false })`); it
+ * does not replay an emote nobody asked for.
  */
 function DialogueRows({
   dialogue,
@@ -252,16 +254,16 @@ function DialogueRows({
   function move(index: number, by: -1 | 1) {
     onMove(index, by);
     const next = followMove(stage.page, count, index, index + by);
-    if (next !== stage.page) stage.goTo(next);
+    if (next !== stage.page) stage.goTo(next, { play: false });
   }
 
   function remove(index: number) {
     onRemove(index);
     refocus.current = pageAfterRemove(index, count - 1);
     // The page being played, followed; if it is the one removed, the page in
-    // its place is played, as its row now shows.
+    // its place becomes current, as its row now shows. Neither plays.
     const next = followRemove(stage.page, index, count - 1);
-    if (next !== null && index <= stage.page) stage.goTo(next);
+    if (next !== null && index <= stage.page) stage.goTo(next, { play: false });
   }
 
   function add() {

@@ -3,7 +3,7 @@
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 
 import type { DialoguePage } from "@/lib/adventurer-log/persona";
-import { nearestFacing, stepFacing } from "@/lib/chathead/facing";
+import { nearestFacing } from "@/lib/chathead/facing";
 import type { Look } from "@/lib/chathead/look";
 import type { Emote } from "@/lib/chathead/vocab";
 import { prefersReducedMotion } from "@/lib/game-chat/clock";
@@ -11,22 +11,23 @@ import { prefersReducedMotion } from "@/lib/game-chat/clock";
 export type Stage = {
   /**
    * The page now shown, already clamped to `pages`: never out of range even
-   * if `pages` shrinks while this state is kept (as with W5's live editor
-   * preview, which re-renders with fewer pages under the same state).
-   * Readers use this directly and never reclamp it themselves.
+   * if `pages` shrinks while this state is kept (as with the Words tab's
+   * live stage, which re-renders with fewer pages under the same state when
+   * a page is removed). Readers use this directly and never reclamp it
+   * themselves.
    */
   page: number;
   pageCount: number;
   next(): void;
-  /** Back a page, to the last from the first; the editor preview's arrow. */
-  prev(): void;
   /**
    * Make `page` the current page and play its emote - the Words tab's rows,
-   * when one is chosen, typed in or played. Not clamped here: `page` above
-   * is clamped on read, so a row added in the same update (one past today's
-   * last) is shown once it exists.
+   * when one is chosen, typed in or played. With `{ play: false }` it only
+   * follows the page, without playing it: the Words tab keeps the stage on
+   * the page it was showing when a page is moved or removed. Not clamped
+   * here: `page` above is clamped on read, so a row added in the same update
+   * (one past today's last) is shown once it exists.
    */
-  goTo(page: number): void;
+  goTo(page: number, options?: { play?: boolean }): void;
   /**
    * The emote the figure acts out now: the current page's own emote, or -
    * only when there is no current page at all - the signature one. A page
@@ -43,13 +44,7 @@ export type Stage = {
    * clamped. Readers draw it as it is.
    */
   facing: number;
-  /**
-   * Turn one step: 1 turns the figure's face toward your left (the "Turn
-   * left" button, the left arrow), -1 toward your right; along `turns` when
-   * the stage has them, wrapping.
-   */
-  turn(delta: 1 | -1): void;
-  /** Face `f`, or the nearest facing `turns` allows. */
+  /** Face `f`, or the nearest facing `turns` allows. A figure turned by hand steps through `useTurnGesture`. */
   setFacing(f: number): void;
   /**
    * An outfit a reader is trying on from the Wardrobe: the card's figure and
@@ -66,8 +61,8 @@ export type Stage = {
 const NOT_YET = Symbol("not yet");
 
 const StageContext = createContext<Stage>({
-  page: 0, pageCount: 0, next() {}, prev() {}, goTo() {}, emote: null, replay: 0, replayEmote() {},
-  facing: 0, turn() {}, setFacing() {}, tryOn: null, setTryOn() {},
+  page: 0, pageCount: 0, next() {}, goTo() {}, emote: null, replay: 0, replayEmote() {},
+  facing: 0, setFacing() {}, tryOn: null, setTryOn() {},
 });
 
 /**
@@ -128,8 +123,8 @@ export default function PersonaStage({
     setFacingState(nearestFacing(initialFacing, turns));
   }
   // Clamped once, here, rather than by each reader: `pages` can shrink under
-  // an unchanged `pageState` (W5's live editor preview, a page removed in
-  // Words), and `goTo` stores the page asked for as it is - a page added in
+  // an unchanged `pageState` (the Words tab's live stage, when a page is
+  // removed), and `goTo` stores the page asked for as it is - a page added in
   // the same update is one past the last until then - so an out-of-range
   // page would print wrong wherever it was read raw (e.g. "5 / 3").
   const page = pages.length === 0 ? 0 : Math.min(pageState, pages.length - 1);
@@ -160,26 +155,17 @@ export default function PersonaStage({
     setPageState((page + 1) % pages.length);
     setReplay((count) => count + 1);
   }, [pages.length, page]);
-  const prev = useCallback(() => {
-    if (pages.length === 0) return;
-    setPageState((page + pages.length - 1) % pages.length);
-    setReplay((count) => count + 1);
-  }, [pages.length, page]);
-  const goTo = useCallback((to: number) => {
+  const goTo = useCallback((to: number, { play = true }: { play?: boolean } = {}) => {
     setPageState(Math.max(0, to));
-    setReplay((count) => count + 1);
+    if (play) setReplay((count) => count + 1);
   }, []);
   const replayEmote = useCallback(() => setReplay((count) => count + 1), []);
-  const turn = useCallback(
-    (delta: 1 | -1) => setFacingState((current) => stepFacing(current, delta, turns)),
-    [turns],
-  );
   const setFacing = useCallback((f: number) => setFacingState(nearestFacing(f, turns)), [turns]);
   const setTryOn = useCallback((look: Look | null) => setTryOnState(look), []);
 
   const value = useMemo(
-    () => ({ page, pageCount: pages.length, next, prev, goTo, emote, replay, replayEmote, facing, turn, setFacing, tryOn, setTryOn }),
-    [page, pages.length, next, prev, goTo, emote, replay, replayEmote, facing, turn, setFacing, tryOn, setTryOn],
+    () => ({ page, pageCount: pages.length, next, goTo, emote, replay, replayEmote, facing, setFacing, tryOn, setTryOn }),
+    [page, pages.length, next, goTo, emote, replay, replayEmote, facing, setFacing, tryOn, setTryOn],
   );
   return <StageContext.Provider value={value}>{children}</StageContext.Provider>;
 }

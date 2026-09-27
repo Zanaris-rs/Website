@@ -125,6 +125,16 @@
   font-size: 12px;
 }
 
+/* Which way the figure faces after a turn: said to a screen reader, never drawn. */
+.turnSaid {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
 .wornColumn {
   grid-area: tab;
   text-align: center;
