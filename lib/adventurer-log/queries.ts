@@ -544,6 +544,22 @@ export function parseBlocks(rows: readonly unknown[]): { username: string; block
 
 export type ReportKind = "update" | "reply" | "log" | "clan";
 
+/** The largest int4, the top of every row id (`MAX_ROW_ID` in `lib/messages/queries.ts`). */
+const INT4_MAX = 2147483647;
+
+/**
+ * The id an update, reply or clan report names, or null when it is not a row
+ * id (0, -1, 1.5, past int4, text): a target that cannot exist, answered as
+ * one that does not (`not_found`), as the gz and clan routes read theirs
+ * with `parseId`. Past int4, Postgres would refuse the call before the
+ * function ran, and the route would answer 503. The bound is written out
+ * rather than imported: `scripts/db-check.mts` runs this file under plain
+ * node, which cannot resolve the `@/` paths.
+ */
+export function reportTargetId(raw: unknown): number | null {
+  return typeof raw === "number" && Number.isInteger(raw) && raw >= 1 && raw <= INT4_MAX ? raw : null;
+}
+
 export function reportStatement(
   username: string,
   kind: ReportKind,

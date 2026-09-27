@@ -18,7 +18,7 @@ import { logHref } from "@/lib/adventurer-log/href";
 import { toDisplayName } from "@/lib/base37";
 import type { Look } from "@/lib/chathead/look";
 import { crestName } from "@/lib/clans/crests";
-import { CLANS_HREF } from "@/lib/clans/href";
+import { clanHref, CLANS_HREF } from "@/lib/clans/href";
 import { slugFrom } from "@/lib/clans/names";
 import { type LoadedClan, loadClan } from "@/lib/clans/page-data";
 import { byRank, RANK_NAMES } from "@/lib/clans/ranks";
@@ -40,7 +40,14 @@ export async function generateMetadata({ params }: PageProps<"/clan/[slug]">): P
     const title = `${clan.name}, a clan on Zanaris`;
     const description =
       clan.motto || `${clan.name}: ${clan.members} ${clan.members === 1 ? "member" : "members"} on Zanaris.`;
-    return { title: clan.name, description, openGraph: { title, description } };
+    // One address per clan: the stored slug, whatever case or spaces the
+    // reader typed (`slugFrom` forgives them).
+    return {
+      title: clan.name,
+      description,
+      alternates: { canonical: clanHref(clan.slug) },
+      openGraph: { title, description },
+    };
   } catch {
     return { title: "Clan" };
   }
@@ -53,7 +60,8 @@ export async function generateMetadata({ params }: PageProps<"/clan/[slug]">): P
  * column has About, Notices, newest first, and the members by rank. Banned
  * players are in none of it (migration 17). A signed-in reader who is not a
  * member gets the report button, in the site's strip above the page. An
- * unknown slug is a 404, as is a clan's old slug after a rename.
+ * unknown slug is a 404, as is a clan's old slug after a rename. A clan
+ * whose every member is banned still has its page, with no one listed.
  */
 export default async function ClanPage({ params }: PageProps<"/clan/[slug]">) {
   const slug = slugFrom((await params).slug);
@@ -178,6 +186,7 @@ export default async function ClanPage({ params }: PageProps<"/clan/[slug]">) {
           <section className={styles.box}>
             <h2>Members</h2>
             <div className={styles.boxBody}>
+              {members.length === 0 ? <p className={styles.empty}>No members to show just now.</p> : null}
               {byRank(members).map((group) => (
                 <div key={group.rank}>
                   <h3 className={styles.rankHead}>

@@ -42,14 +42,22 @@ export async function loadClan(slug: string): Promise<LoadedClan | null> {
 }
 
 /**
- * A player's clan and rank, or null: in none, or unknown or banned. Forgiving,
- * as the log's Records read is - a card with no Clan row is better than no
- * card - so a failure is logged and read as none.
+ * A player's clan and rank, or null: in none, or unknown or banned. Strict: a
+ * failed read throws, for a page that says "unavailable" rather than "not in
+ * a clan" (the owner's Sheet).
+ */
+export async function readClanOf(name: string): Promise<ClanOf | null> {
+  const wanted = clanOfStatement(name);
+  return parseClanOf(await query<Record<string, unknown>>(wanted.text, wanted.values));
+}
+
+/**
+ * `readClanOf`, forgiving, as the log's Records read is - a card with no Clan
+ * row is better than no card - so a failure is logged and read as none.
  */
 export async function loadClanOf(name: string): Promise<ClanOf | null> {
   try {
-    const wanted = clanOfStatement(name);
-    return parseClanOf(await query<Record<string, unknown>>(wanted.text, wanted.values));
+    return await readClanOf(name);
   } catch (error) {
     console.error("[clans] clan_of read failed", error);
     return null;

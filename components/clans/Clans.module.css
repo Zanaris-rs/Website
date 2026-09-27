@@ -148,10 +148,11 @@
 }
 
 /* A request is out: the control keeps its focus (aria-disabled, not
-   disabled) and ignores presses until the answer comes. */
-.tab button[aria-disabled="true"],
-.tab select[aria-disabled="true"] {
+   disabled) and ignores presses until the answer comes. It fades, so the
+   wait shows without a pointer too. */
+.tab button[aria-disabled="true"] {
   cursor: progress;
+  opacity: 0.55;
 }
 
 /* The field the last refusal was about. */

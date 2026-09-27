@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { reportStatement } from "./queries";
+import { MAX_ROW_ID, parseId } from "@/lib/messages/queries";
+
+import { reportStatement, reportTargetId } from "./queries";
 import { parseStaffReports } from "./staff";
 
 const CLAN_REPORT = {
@@ -60,5 +62,24 @@ describe("clan reports", () => {
 
   it("still throw on a kind nobody documented", () => {
     expect(() => parseStaffReports([{ ...CLAN_REPORT, target_kind: "guild" }])).toThrow(/guild/);
+  });
+});
+
+describe("a report's target id", () => {
+  it("is a row id: a whole number from 1 to the top of int4", () => {
+    expect(reportTargetId(1)).toBe(1);
+    expect(reportTargetId(2147483647)).toBe(2147483647);
+  });
+
+  it("is nothing for anything else, so the route answers not_found rather than 503", () => {
+    for (const bad of [0, -1, 1.5, 2147483648, 1e21, Number.NaN, Number.POSITIVE_INFINITY, "7", null, undefined, {}]) {
+      expect(reportTargetId(bad), String(bad)).toBeNull();
+    }
+  });
+
+  it("agrees with parseId, which the gz and clan routes use", () => {
+    for (const id of [1, 42, MAX_ROW_ID - 1, MAX_ROW_ID, MAX_ROW_ID + 1, 0, -3, 2.5]) {
+      expect(reportTargetId(id), String(id)).toBe(parseId(String(id)));
+    }
   });
 });

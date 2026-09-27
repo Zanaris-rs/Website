@@ -4,10 +4,8 @@ import { useState } from "react";
 
 import ChatText from "@/components/game/ChatText";
 import Panel from "@/components/site/Panel";
-import { send } from "@/lib/adventurer-log/client";
 import { formatWhen } from "@/lib/adventurer-log/format";
 import { toDisplayName } from "@/lib/base37";
-import { type ClanAction, type ClanField, clanFieldOf, clanMessages } from "@/lib/clans/client";
 import { CLANS_HREF, clanHref } from "@/lib/clans/href";
 import type { ClanInvite } from "@/lib/clans/queries";
 
@@ -15,6 +13,7 @@ import ClanFields, { type ClanFieldsValue } from "./ClanFields";
 import styles from "./Clans.module.css";
 import Crest from "./Crest";
 import RankIcon from "./RankIcon";
+import { useClanWrite } from "./useClanWrite";
 
 type Box = "invites" | "start";
 
@@ -24,10 +23,10 @@ type Box = "invites" | "start";
  * or decline. Then it offers "Start a clan". A successful answer or start
  * reads the page again, which then shows the clan.
  *
- * While a request is out every button is `aria-disabled` and ignores
- * presses (it keeps its focus); `disabled` is only for "Start the clan"
- * with no name. A refusal is said in its own box's status line, and marks
- * the field it was about.
+ * Writes go through `useClanWrite`: while one is out every button is
+ * `aria-disabled` and ignores presses (it keeps its focus); `disabled` is
+ * only for "Start the clan" with no name. A refusal is said in its own box,
+ * and marks the field it was about.
  */
 export default function NoClan({
   invites,
@@ -39,8 +38,7 @@ export default function NoClan({
   defaultCrest: number;
   defaultCrestName: string;
 }) {
-  const [busy, setBusy] = useState(false);
-  const [status, setStatus] = useState<{ box: Box; text: string; field: ClanField | null } | null>(null);
+  const { busy, act, said, statusId, invalidFor, clearFor } = useClanWrite<Box>();
   const [fields, setFields] = useState<ClanFieldsValue>({
     name: "",
     motto: "",
@@ -48,25 +46,6 @@ export default function NoClan({
     world: null,
     about: "",
   });
-
-  async function act(box: Box, action: ClanAction, url: string, body: unknown) {
-    if (busy) return;
-    setBusy(true);
-    setStatus(null);
-    const result = await send(url, body, "POST", clanMessages(action));
-    if (result.ok) {
-      window.location.reload();
-      return;
-    }
-    setBusy(false);
-    setStatus({ box, text: result.message, field: clanFieldOf(result.code) });
-  }
-
-  const said = (box: Box) => (
-    <p role="status" className={styles.error}>
-      {status?.box === box ? status.text : ""}
-    </p>
-  );
 
   return (
     <>
@@ -101,6 +80,7 @@ export default function NoClan({
                   <div className={styles.row}>
                     <button
                       type="button"
+                      aria-label={`Accept the invitation from ${invite.name}`}
                       aria-disabled={busy || undefined}
                       onClick={() =>
                         void act("invites", "answer", "/api/clans/invites/answer", { clanId: invite.clanId, accept: true })
@@ -110,6 +90,7 @@ export default function NoClan({
                     </button>
                     <button
                       type="button"
+                      aria-label={`Decline the invitation from ${invite.name}`}
                       aria-disabled={busy || undefined}
                       onClick={() =>
                         void act("invites", "answer", "/api/clans/invites/answer", { clanId: invite.clanId, accept: false })
@@ -147,12 +128,12 @@ export default function NoClan({
             value={fields}
             onChange={(next) => {
               setFields(next);
-              // A mark is about what was sent; editing clears it, as on the Sheet.
-              if (status?.box === "start") setStatus(null);
+              clearFor("start");
             }}
             withAbout={false}
             crestName={defaultCrestName}
-            invalid={status?.box === "start" ? status.field : null}
+            invalid={invalidFor("start")}
+            errorId={statusId("start")}
           />
           <button type="submit" disabled={fields.name.trim() === ""} aria-disabled={busy || undefined}>
             Start the clan
