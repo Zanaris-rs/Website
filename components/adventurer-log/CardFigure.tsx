@@ -75,7 +75,8 @@ function TurnIcon({ right = false }: { right?: boolean }) {
  *
  * A reader trying on an outfit from the Wardrobe (`PersonaStage`'s `tryOn`)
  * sees the figure wear it, turned as it was, and a line under the turn
- * buttons naming it, with "back to usual".
+ * buttons naming it, with "back to usual" - a polite live region, said as
+ * well as shown.
  */
 export default function CardFigure({
   name,
@@ -196,15 +197,22 @@ export default function CardFigure({
       </button>
     </div>
   );
-  const trial =
-    tryingName === null ? null : (
-      <p className="al-tryon">
-        Trying on {tryingName} &middot;{" "}
-        <button type="button" className="al-tryon-back" onClick={() => stage.setTryOn(null)}>
-          back to usual
-        </button>
-      </p>
-    );
+  // A polite live region, so a screen reader hears the try-on as well as a
+  // sighted reader sees it. It is always there, empty (and taking no room)
+  // until an outfit is tried on: a region only speaks for changes made after
+  // it is in the page.
+  const trial = (
+    <p className="al-tryon" aria-live="polite">
+      {tryingName === null ? null : (
+        <>
+          Trying on {tryingName} &middot;{" "}
+          <button type="button" className="al-tryon-back" onClick={() => stage.setTryOn(null)}>
+            back to usual
+          </button>
+        </>
+      )}
+    </p>
+  );
 
   return shown ? (
     <>

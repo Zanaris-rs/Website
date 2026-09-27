@@ -151,8 +151,12 @@
 /* "Trying on <outfit> · back to usual", while a reader tries one on. */
 .root :global(.al-tryon) {
   margin: 6px 8px 0;
-  color: #fff;
   font-size: 12px;
+}
+
+/* Kept in the page while no outfit is tried on, so its change is said; it takes no room then. */
+.root :global(.al-tryon:empty) {
+  margin: 0;
 }
 
 .root :global(.al-tryon-back) {
