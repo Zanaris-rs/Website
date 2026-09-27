@@ -50,8 +50,11 @@ export function photoSpot(leaderScene: string | null): SceneSpot {
   return fallback;
 }
 
-/** By rank, highest first; a rank keeps the order it was given. */
-function byRank<T extends { rank: Rank }>(members: readonly T[]): T[] {
+/**
+ * By rank, highest first; a rank keeps the order it was given. A sort, one
+ * list out - not `lib/clans/ranks.ts`'s `byRank`, which groups by rank.
+ */
+function sortByRank<T extends { rank: Rank }>(members: readonly T[]): T[] {
   return members
     .map((member, index) => ({ member, index }))
     .sort((a, b) => rankLevel(a.member.rank) - rankLevel(b.member.rank) || a.index - b.index)
@@ -64,7 +67,7 @@ function byRank<T extends { rank: Rank }>(members: readonly T[]): T[] {
  * outward.
  */
 export function photoOrder<T extends { rank: Rank }>(members: readonly T[]): T[] {
-  const ranked = byRank(members);
+  const ranked = sortByRank(members);
   const placed = new Array<T>(ranked.length);
   const middle = Math.floor(ranked.length / 2);
   ranked.forEach((member, i) => {
@@ -80,7 +83,7 @@ export function photoOrder<T extends { rank: Rank }>(members: readonly T[]): T[]
  * given), placed by `photoOrder`. The rest of the roster is left out.
  */
 export function photoSitters<T extends { rank: Rank }>(spot: SceneSpot, members: readonly T[]): T[] {
-  return photoOrder(byRank(members).slice(0, spot.photo?.length ?? 0));
+  return photoOrder(sortByRank(members).slice(0, spot.photo?.length ?? 0));
 }
 
 /**

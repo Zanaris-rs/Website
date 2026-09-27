@@ -575,8 +575,6 @@ export async function loadMoodStill(look: Look, mood: Mood): Promise<ImageData |
 // --- a clan photo -----------------------------------------------------------
 
 export type PhotoDrawer = {
-  /** The spot's backdrop as it is: what shows before the members are drawn, or instead of them. */
-  backdrop: ImageData;
   /** The members, left to right, drawn far to near into one copy of the backdrop (`drawPhoto`). */
   draw(looks: readonly Look[]): ImageData;
 };
@@ -590,7 +588,6 @@ export type PhotoDrawer = {
 export async function loadClanPhoto(spot: SceneSpot): Promise<PhotoDrawer> {
   const [{ client, bodyTables }, backdrop] = await Promise.all([loadBodyTables(), loadBackdrop(spot)]);
   return {
-    backdrop: backdrop.image,
     draw: (looks) =>
       new ImageData(toRgba(drawPhoto(client, bodyTables, spot, backdrop.pixels, looks)), spot.width, spot.height),
   };
