@@ -2,16 +2,20 @@ import { describe, expect, it } from "vitest";
 
 import {
   BAD_FIELDS,
+  draftDirty,
   goalsWith,
   longLines,
   moved,
+  pageAfterRemove,
   pageLines,
   previewPersona,
   SAVE_MESSAGES,
+  saveDraft,
+  saveStatusText,
   typeHeadline,
 } from "./character-draft";
 import { EMPTY_PERSONA } from "./persona";
-import type { WordsInput } from "./persona-input";
+import { checkSheetInput, checkWordsInput, type SheetInput, type WordsInput } from "./persona-input";
 
 const draft: WordsInput = { headline: "", colour: 3, effect: 2, signatureEmote: null, dialogue: [] };
 
@@ -88,5 +92,72 @@ describe("the save's refusals", () => {
       ].sort(),
     );
     expect(BAD_FIELDS).not.toHaveProperty("bad_clan");
+  });
+});
+
+describe("draftDirty", () => {
+  it("compares a draft with what was saved by value, not by identity", () => {
+    const page = { mood: "happy" as const, emote: null, lines: ["hi"] };
+    expect(draftDirty(draft, { ...draft })).toBe(false);
+    expect(draftDirty({ ...draft, dialogue: [page] }, { ...draft, dialogue: [{ ...page, lines: ["hi"] }] })).toBe(false);
+    expect(draftDirty({ ...draft, headline: "hi" }, draft)).toBe(true);
+    expect(draftDirty({ ...draft, dialogue: [page] }, draft)).toBe(true);
+  });
+});
+
+describe("saveStatusText", () => {
+  it("says what is happening first, then a refusal, then saved, then unsaved", () => {
+    const refused = { kind: "error" as const, message: "Pick a god from the list." };
+    expect(saveStatusText(true, refused, true)).toBe("Saving…");
+    expect(saveStatusText(false, refused, true)).toBe("Pick a god from the list.");
+    expect(saveStatusText(false, { kind: "saved" }, false)).toBe("Saved.");
+    expect(saveStatusText(false, null, true)).toBe("You have unsaved changes.");
+    expect(saveStatusText(false, null, false)).toBe("");
+  });
+});
+
+describe("saveDraft", () => {
+  const sheet: SheetInput = { title: "  the Ready ", examine: "", hangout: "", goals: ["", "b"], god: null, homeTown: null };
+
+  it("posts what the check made of the draft, and answers with it", async () => {
+    const posted: unknown[] = [];
+    const outcome = await saveDraft(sheet, checkSheetInput, async (value) => {
+      posted.push(value);
+      return { ok: true };
+    });
+    const value = { ...sheet, title: "the Ready", goals: ["b"] };
+    expect(outcome).toEqual({ ok: true, value });
+    expect(posted).toEqual([value]);
+  });
+
+  it("posts nothing when the check refuses, and gives its sentence with no field marked", async () => {
+    let posts = 0;
+    const outcome = await saveDraft({ ...draft, colour: 12 }, checkWordsInput, async () => {
+      posts++;
+      return { ok: true };
+    });
+    expect(outcome).toEqual({ ok: false, message: "Pick one of the twelve colours.", fields: [] });
+    expect(posts).toBe(0);
+  });
+
+  it("marks the fields a refusal is about", async () => {
+    const message = SAVE_MESSAGES.bad_emote;
+    const outcome = await saveDraft(draft, checkWordsInput, async () => ({ ok: false, message, code: "bad_emote" }));
+    expect(outcome).toEqual({ ok: false, message, fields: ["signatureEmote", "dialogue"] });
+  });
+
+  it("marks nothing for a refusal about no one field", async () => {
+    const message = SAVE_MESSAGES.muted;
+    const outcome = await saveDraft(draft, checkWordsInput, async () => ({ ok: false, message, code: "muted" }));
+    expect(outcome).toEqual({ ok: false, message, fields: [] });
+  });
+});
+
+describe("pageAfterRemove", () => {
+  it("is the page now in the removed one's place, else the one before, else none", () => {
+    expect(pageAfterRemove(1, 3)).toBe(1);
+    expect(pageAfterRemove(0, 1)).toBe(0);
+    expect(pageAfterRemove(3, 3)).toBe(2);
+    expect(pageAfterRemove(0, 0)).toBeNull();
   });
 });

@@ -40,7 +40,8 @@ export type SheetInput = {
 };
 export type StageInput = { scene: string | null; facing: number };
 
-type Check<T> = { ok: true; value: T } | { ok: false; error: string };
+/** A check's verdict: the value as it will be saved, or why it will not be. */
+export type Check<T> = { ok: true; value: T } | { ok: false; error: string };
 
 const bad = (error: string) => ({ ok: false as const, error });
 const oneLine = { emptyOk: true, oneLine: true } as const;

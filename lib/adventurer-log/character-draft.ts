@@ -2,7 +2,7 @@ import { CHAT_COLOUR_NAMES } from "@/lib/game-chat/effects";
 import { parseChatPrefix } from "@/lib/game-chat/prefix";
 
 import { type Persona, PERSONA_LIMITS } from "./persona";
-import type { SheetInput, StageInput, WordsInput } from "./persona-input";
+import type { Check, SheetInput, StageInput, WordsInput } from "./persona-input";
 
 /**
  * The Character tabs' drafts, step by step: what typing, reordering and
@@ -92,3 +92,47 @@ export const SAVE_MESSAGES: Readonly<Record<string, string>> = {
     Object.keys(BAD_FIELDS).map((code) => [code, "Something didn't save; check the highlighted field."]),
   ),
 };
+
+/** Whether a tab's draft differs from what was last saved: by value, as the save would see it. */
+export function draftDirty<T>(draft: T, saved: T): boolean {
+  return JSON.stringify(draft) !== JSON.stringify(saved);
+}
+
+/** What the last Save came to: nothing yet (or changed since), saved, or refused with a sentence. */
+export type SaveStatus = { kind: "saved" } | { kind: "error"; message: string } | null;
+
+/** The line beside a tab's Save button. */
+export function saveStatusText(busy: boolean, status: SaveStatus, dirty: boolean): string {
+  if (busy) return "Saving…";
+  if (status?.kind === "error") return status.message;
+  if (status?.kind === "saved") return "Saved.";
+  return dirty ? "You have unsaved changes." : "";
+}
+
+/**
+ * A tab's Save, from the draft to what to show: checked in the browser as
+ * the server will check it (a refusal there sends nothing), then posted as
+ * the check made it - trimmed, blank goals and trailing blank lines gone -
+ * which is also the value the draft becomes. A refusal from the server
+ * marks the fields its code is about (`BAD_FIELDS`), if any.
+ */
+export async function saveDraft<T>(
+  draft: T,
+  check: (raw: unknown) => Check<T>,
+  post: (value: T) => Promise<{ ok: true } | { ok: false; message: string; code: string }>,
+): Promise<{ ok: true; value: T } | { ok: false; message: string; fields: readonly DraftField[] }> {
+  const checked = check(draft);
+  if (!checked.ok) return { ok: false, message: checked.error, fields: [] };
+  const result = await post(checked.value);
+  if (!result.ok) return { ok: false, message: result.message, fields: BAD_FIELDS[result.code] ?? [] };
+  return { ok: true, value: checked.value };
+}
+
+/**
+ * After removing page `removed`, leaving `left`, the page whose controls
+ * take the focus: the one now in its place, else the one before it; null
+ * when none are left.
+ */
+export function pageAfterRemove(removed: number, left: number): number | null {
+  return left === 0 ? null : Math.min(removed, left - 1);
+}
