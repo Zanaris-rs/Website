@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { cache } from "react";
 
 import ReportButton from "@/components/adventurer-log/ReportButton";
+import ClanPhoto from "@/components/clans/ClanPhoto";
 import styles from "@/components/clans/Clans.module.css";
 import Crest from "@/components/clans/Crest";
 import RankIcon from "@/components/clans/RankIcon";
@@ -20,10 +21,11 @@ import type { Look } from "@/lib/chathead/look";
 import { crestName } from "@/lib/clans/crests";
 import { clanHref, CLANS_HREF } from "@/lib/clans/href";
 import { slugFrom } from "@/lib/clans/names";
-import { type LoadedClan, loadClan } from "@/lib/clans/page-data";
+import { type LoadedClan, loadClan, loadPhotoSitters, type PhotoSitter } from "@/lib/clans/page-data";
 import { byRank, RANK_NAMES } from "@/lib/clans/ranks";
 import { clanWorldName } from "@/lib/clans/worlds";
 import { chatheadLooks } from "@/lib/outfits/looks";
+import { photoSitters, photoSpot } from "@/lib/scenes/photo";
 
 export const dynamic = "force-dynamic";
 
@@ -56,12 +58,13 @@ export async function generateMetadata({ params }: PageProps<"/clan/[slug]">): P
 /**
  * `/clan/<slug>` - a clan's public page. The left column is its card: the
  * crest on a shield, the name, the motto in the game's font, the clan photo
- * (W8), and a sheet (Leader, Founded, Members, World, Crest). The right
- * column has About, Notices, newest first, and the members by rank. Banned
- * players are in none of it (migration 17). A signed-in reader who is not a
- * member gets the report button, in the site's strip above the page. An
- * unknown slug is a 404, as is a clan's old slug after a rename. A clan
- * whose every member is banned still has its page, with no one listed.
+ * (members in their outfits, in the Leader's scene), and a sheet (Leader,
+ * Founded, Members, World, Crest). The right column has About, Notices,
+ * newest first, and the members by rank. Banned players are in none of it
+ * (migration 17). A signed-in reader who is not a member gets the report
+ * button, in the site's strip above the page. An unknown slug is a 404, as is
+ * a clan's old slug after a rename. A clan whose every member is banned still
+ * has its page, with no one listed and the scene alone in its photo.
  */
 export default async function ClanPage({ params }: PageProps<"/clan/[slug]">) {
   const slug = slugFrom((await params).slug);
@@ -89,6 +92,20 @@ export default async function ClanPage({ params }: PageProps<"/clan/[slug]">) {
     console.error("[clans] roster chatheads failed", error);
   }
 
+  // The clan photo:
+  // - who: the top ranks with a saved outfit, as many as the spot holds;
+  // - where: the Leader's scene when it has proved slots, else Varrock square.
+  // A failed read leaves the scene alone in the frame.
+  let sitters: PhotoSitter[] = [];
+  let leaderScene: string | null = null;
+  try {
+    ({ sitters, leaderScene } = await loadPhotoSitters(clan.leader, members));
+  } catch (error) {
+    console.error("[clans] clan photo read failed", error);
+  }
+  const photoAt = photoSpot(leaderScene);
+  const placed = photoSitters(photoAt, sitters);
+
   const world = clanWorldName(clan.world);
   const crest = crestName(clan.crest);
 
@@ -111,7 +128,11 @@ export default async function ClanPage({ params }: PageProps<"/clan/[slug]">) {
                 <ChatText text={clan.motto} colour={0} effect={0} />
               </p>
             ) : null}
-            {/* The clan photo: W8 (Task 15) draws <ClanPhoto> here. */}
+            <ClanPhoto
+              spot={photoAt}
+              looks={placed.map((sitter) => sitter.look)}
+              names={placed.map((sitter) => toDisplayName(sitter.username))}
+            />
             <dl className={styles.sheet}>
               {clan.leader ? (
                 <div>

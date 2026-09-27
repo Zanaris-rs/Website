@@ -1,6 +1,9 @@
 import "server-only";
 
+import { parsePersona, personaStatement } from "@/lib/adventurer-log/persona";
+import type { Look } from "@/lib/chathead/look";
 import { query } from "@/lib/db";
+import { defaultLooksStatement, parseDefaultLooks } from "@/lib/outfits/queries";
 
 import {
   type ClanListing,
@@ -19,11 +22,13 @@ import {
   parseClanOf,
   parseClanPage,
 } from "./queries";
+import type { Rank } from "./ranks";
 
 /**
  * What the clan pages read, one query after another on the site's
- * two-connection pool: a clan by its slug with its roster and notices, a
- * player's clan for their card and Sheet tab, and the directory.
+ * two-connection pool: a clan by its slug with its roster and notices, who
+ * stands in its photo, a player's clan for their card and Sheet tab, and the
+ * directory.
  */
 
 export type LoadedClan = { clan: ClanPage; members: ClanMember[]; notices: ClanNotice[] };
@@ -68,4 +73,43 @@ export async function loadClanOf(name: string): Promise<ClanOf | null> {
 export async function loadClanDirectory(): Promise<ClanListing[]> {
   const wanted = clanDirectoryStatement();
   return parseClanDirectory(await query<Record<string, unknown>>(wanted.text, wanted.values));
+}
+
+export type PhotoSitter = { username: string; rank: Rank; look: Look };
+
+/**
+ * Who can stand in the clan photo, and where the Leader stands.
+ * - **The sitters:** every member with a saved outfit, from
+ *   `outfit_default_looks`, since only a saved outfit is ever drawn whole: a
+ *   member with none is left out, never drawn in a look from the game. They
+ *   come in the roster's order (rank, then joined); the page keeps as many as
+ *   the spot has slots (`photoSitters`).
+ * - **The scene:** the Leader's persona scene. The page stands the photo
+ *   there if it has slots, else in Varrock square (`photoSpot`).
+ *
+ * The persona read is forgiving (a failure is logged and read as no scene);
+ * the outfits read throws, for the page to catch.
+ */
+export async function loadPhotoSitters(
+  leader: string | null,
+  members: readonly ClanMember[],
+): Promise<{ leaderScene: string | null; sitters: PhotoSitter[] }> {
+  let leaderScene: string | null = null;
+  if (leader) {
+    try {
+      const persona = personaStatement(leader);
+      leaderScene = parsePersona(await query<Record<string, unknown>>(persona.text, persona.values)).scene;
+    } catch (error) {
+      console.error("[clans] the Leader's persona read failed", error);
+    }
+  }
+  if (members.length === 0) return { leaderScene, sitters: [] };
+
+  const wanted = defaultLooksStatement(members.map((member) => member.username));
+  const looks = parseDefaultLooks(await query<Record<string, unknown>>(wanted.text, wanted.values));
+  const sitters = members.flatMap((member) => {
+    const look = looks.get(member.username);
+    return look ? [{ username: member.username, rank: member.rank, look }] : [];
+  });
+  return { leaderScene, sitters };
 }

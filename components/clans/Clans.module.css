@@ -462,3 +462,20 @@
   width: fit-content;
   max-width: 100%;
 }
+
+/* --- the clan photo, on the clan card --------------------------------------- */
+
+.photo {
+  margin: 8px 0 0;
+}
+
+.photo canvas {
+  display: block;
+  border: 1px solid var(--panel-border);
+}
+
+.photo figcaption {
+  margin-top: 3px;
+  color: var(--text-muted);
+  font-size: 11px;
+}
