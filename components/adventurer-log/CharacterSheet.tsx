@@ -2,13 +2,12 @@
 
 import { useMemo } from "react";
 
-import SheetClanRow from "@/components/clans/SheetClanRow";
+import SheetClanRow, { type SheetClan } from "@/components/clans/SheetClanRow";
 import { goalsWith, previewPersona } from "@/lib/adventurer-log/character-draft";
 import { type God, GOD_NAMES, GODS, type Persona, PERSONA_LIMITS } from "@/lib/adventurer-log/persona";
 import { checkSheetInput, type SheetInput } from "@/lib/adventurer-log/persona-input";
 import { PLACES } from "@/lib/adventurer-log/places";
 import type { Look } from "@/lib/chathead/look";
-import type { ClanOf } from "@/lib/clans/queries";
 
 import styles from "./Character.module.css";
 import CharacterTabs from "./CharacterTabs";
@@ -51,8 +50,8 @@ export default function CharacterSheet({
   initial: SheetInput;
   outfitLook: Look | null;
   headLook: Look | null;
-  /** The owner's clan and rank, or null when they are in none. */
-  clan: ClanOf | null;
+  /** The owner's clan and rank, null when they are in none, or "unavailable" when the read failed. */
+  clan: SheetClan;
 }) {
   const { draft, set, dirty, busy, message, refused, marked, save } = useTabDraft(
     initial,
@@ -85,7 +84,8 @@ export default function CharacterSheet({
       persona={shown}
       outfitLook={outfitLook}
       headLook={headLook}
-      clan={clan}
+      // The stage card is the log's: a failed read draws no Clan row there.
+      clan={clan === "unavailable" ? null : clan}
     >
       <CharacterTabs current="sheet" />
       <form onSubmit={save} className={styles.form}>
