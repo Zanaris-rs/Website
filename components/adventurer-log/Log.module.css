@@ -120,6 +120,38 @@
   text-align: center;
 }
 
+/* The figure standing in a scene: the spot's 240x300 backdrop with the
+   figure drawn into it, all one canvas, and the headline over the figure's
+   head, where the game draws overhead chat. The figure stands at the same
+   size in every spot, its head about 135-150 pixels above the frame's foot,
+   so the chat's foot is set just above that. */
+.root :global(.al-scene) {
+  position: relative;
+  width: 240px;
+  margin: 6px auto 0;
+}
+
+.root :global(.al-scene .al-figure),
+.root :global(.al-scene canvas) {
+  display: block;
+}
+
+.root :global(.al-scene .al-overhead) {
+  position: absolute;
+  right: 0;
+  bottom: 152px;
+  left: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.root :global(.al-scene-name) {
+  margin: 3px 8px 4px;
+  color: var(--text-muted);
+  font-size: 11px;
+  text-align: center;
+}
+
 .root :global(.al-chat-strip) {
   margin: 0 8px 6px;
   padding: 4px;

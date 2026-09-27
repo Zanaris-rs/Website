@@ -1,5 +1,6 @@
 import type { Statement } from "@/lib/account/register";
 import { type Emote, isEmote, isMood } from "@/lib/chathead/vocab";
+import { sceneOf } from "@/lib/scenes/spots";
 
 import { checkText, HEADLINE_MAX } from "./format";
 import { type DialoguePage, type God, GODS, type Persona, PERSONA_LIMITS, PLAYSTYLES } from "./persona";
@@ -52,7 +53,8 @@ export function checkPersonaInput(raw: Record<string, unknown> | null): Check {
   const playstyle = raw.playstyle ?? null;
   if (playstyle !== null && !(PLAYSTYLES as readonly unknown[]).includes(playstyle)) return bad("Pick a playstyle from the list.");
   const scene = raw.scene ?? null;
-  if (scene !== null && !isPlace(scene)) return bad("Pick a scene from the list.");
+  // A place the build framed a scene at (lib/scenes/spots.json), not just any place.
+  if (scene !== null && (typeof scene !== "string" || !sceneOf(scene))) return bad("Pick a scene from the list.");
   const signatureEmote = raw.signatureEmote ?? null;
   if (signatureEmote !== null && !isEmote(signatureEmote)) return bad("Pick an emote from the list.");
 
@@ -92,9 +94,10 @@ export function checkPersonaInput(raw: Record<string, unknown> | null): Check {
 
 /**
  * The stored persona as the editor starts from it. A home town, playstyle or
- * scene the site no longer lists (a place dropped since it was saved) would
- * have every Save refused with "Pick ... from the list", for a pick the owner
- * cannot see in the editor - and cannot always clear. It starts as none.
+ * scene the site no longer lists (a place dropped since it was saved, or a
+ * scene whose backdrop is) would have every Save refused with "Pick ... from
+ * the list", for a pick the owner cannot see in the editor - and, without an
+ * outfit, cannot clear. It starts as none.
  */
 export function editablePersona(stored: PersonaInput): PersonaInput {
   const listed = (key: string | null, known: (key: string) => boolean) => (key !== null && known(key) ? key : null);
@@ -102,7 +105,7 @@ export function editablePersona(stored: PersonaInput): PersonaInput {
     ...stored,
     homeTown: listed(stored.homeTown, isPlace),
     playstyle: listed(stored.playstyle, (key) => (PLAYSTYLES as readonly string[]).includes(key)),
-    scene: listed(stored.scene, isPlace),
+    scene: listed(stored.scene, (key) => sceneOf(key) !== null),
   };
 }
 

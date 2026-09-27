@@ -1,0 +1,309 @@
+{
+  "version": "5519dd88a2a8",
+  "spots": [
+    {
+      "key": "varrock",
+      "name": "Varrock square",
+      "width": 240,
+      "height": 300,
+      "eye": {
+        "x": 411200,
+        "y": -737,
+        "z": 437356,
+        "pitch": 64,
+        "yaw": 0
+      },
+      "figure": {
+        "x": 411200,
+        "y": -312,
+        "z": 438336,
+        "yaw": 0
+      }
+    },
+    {
+      "key": "lumbridge",
+      "name": "Lumbridge castle",
+      "width": 240,
+      "height": 300,
+      "eye": {
+        "x": 413480,
+        "y": -476,
+        "z": 411968,
+        "pitch": 0,
+        "yaw": 512
+      },
+      "figure": {
+        "x": 412480,
+        "y": -246,
+        "z": 411968,
+        "yaw": 1536
+      }
+    },
+    {
+      "key": "falador",
+      "name": "Falador park",
+      "width": 240,
+      "height": 300,
+      "eye": {
+        "x": 383424,
+        "y": -592,
+        "z": 433187,
+        "pitch": 32,
+        "yaw": 1024
+      },
+      "figure": {
+        "x": 383424,
+        "y": -264,
+        "z": 432192,
+        "yaw": 1024
+      }
+    },
+    {
+      "key": "wilderness",
+      "name": "the Wilderness border",
+      "width": 240,
+      "height": 300,
+      "eye": {
+        "x": 395840,
+        "y": -757,
+        "z": 450668,
+        "pitch": 64,
+        "yaw": 0
+      },
+      "figure": {
+        "x": 395840,
+        "y": -332,
+        "z": 451648,
+        "yaw": 0
+      }
+    },
+    {
+      "key": "draynor",
+      "name": "Draynor market",
+      "width": 240,
+      "height": 300,
+      "eye": {
+        "x": 395540,
+        "y": -705,
+        "z": 415808,
+        "pitch": 64,
+        "yaw": 512
+      },
+      "figure": {
+        "x": 394560,
+        "y": -280,
+        "z": 415808,
+        "yaw": 1536
+      }
+    },
+    {
+      "key": "catherby",
+      "name": "Catherby beach",
+      "width": 240,
+      "height": 300,
+      "eye": {
+        "x": 363284,
+        "y": -425,
+        "z": 439744,
+        "pitch": 64,
+        "yaw": 512
+      },
+      "figure": {
+        "x": 362304,
+        "y": 0,
+        "z": 439744,
+        "yaw": 1536
+      }
+    },
+    {
+      "key": "al_kharid",
+      "name": "Al Kharid palace",
+      "width": 240,
+      "height": 300,
+      "eye": {
+        "x": 421568,
+        "y": -825,
+        "z": 407572,
+        "pitch": 64,
+        "yaw": 1024
+      },
+      "figure": {
+        "x": 421568,
+        "y": -400,
+        "z": 406592,
+        "yaw": 1024
+      }
+    },
+    {
+      "key": "edgeville",
+      "name": "Edgeville",
+      "width": 240,
+      "height": 300,
+      "eye": {
+        "x": 395456,
+        "y": -921,
+        "z": 445548,
+        "pitch": 64,
+        "yaw": 0
+      },
+      "figure": {
+        "x": 395456,
+        "y": -496,
+        "z": 446528,
+        "yaw": 0
+      }
+    },
+    {
+      "key": "port_sarim",
+      "name": "Port Sarim docks",
+      "width": 240,
+      "height": 300,
+      "eye": {
+        "x": 386796,
+        "y": -665,
+        "z": 411968,
+        "pitch": 64,
+        "yaw": 1536
+      },
+      "figure": {
+        "x": 387776,
+        "y": -240,
+        "z": 411968,
+        "yaw": 512
+      }
+    },
+    {
+      "key": "barbarian_village",
+      "name": "Barbarian Village",
+      "width": 240,
+      "height": 300,
+      "eye": {
+        "x": 394176,
+        "y": -1025,
+        "z": 437484,
+        "pitch": 64,
+        "yaw": 0
+      },
+      "figure": {
+        "x": 394176,
+        "y": -600,
+        "z": 438464,
+        "yaw": 0
+      }
+    },
+    {
+      "key": "karamja",
+      "name": "the banana plantation",
+      "width": 240,
+      "height": 300,
+      "eye": {
+        "x": 373824,
+        "y": -821,
+        "z": 403820,
+        "pitch": 64,
+        "yaw": 0
+      },
+      "figure": {
+        "x": 373824,
+        "y": -396,
+        "z": 404800,
+        "yaw": 0
+      }
+    },
+    {
+      "key": "seers_village",
+      "name": "Seers' Village",
+      "width": 240,
+      "height": 300,
+      "eye": {
+        "x": 351508,
+        "y": -715,
+        "z": 445376,
+        "pitch": 64,
+        "yaw": 512
+      },
+      "figure": {
+        "x": 350528,
+        "y": -290,
+        "z": 445376,
+        "yaw": 1536
+      }
+    },
+    {
+      "key": "ardougne",
+      "name": "Ardougne market",
+      "width": 240,
+      "height": 300,
+      "eye": {
+        "x": 340800,
+        "y": -745,
+        "z": 422124,
+        "pitch": 64,
+        "yaw": 0
+      },
+      "figure": {
+        "x": 340800,
+        "y": -320,
+        "z": 423104,
+        "yaw": 0
+      }
+    },
+    {
+      "key": "yanille",
+      "name": "the Wizards' Guild",
+      "width": 240,
+      "height": 300,
+      "eye": {
+        "x": 334185,
+        "y": -568,
+        "z": 397436,
+        "pitch": 32,
+        "yaw": 832
+      },
+      "figure": {
+        "x": 333632,
+        "y": -240,
+        "z": 396608,
+        "yaw": 1216
+      }
+    },
+    {
+      "key": "canifis",
+      "name": "Canifis",
+      "width": 240,
+      "height": 300,
+      "eye": {
+        "x": 446912,
+        "y": -799,
+        "z": 447892,
+        "pitch": 64,
+        "yaw": 1024
+      },
+      "figure": {
+        "x": 446912,
+        "y": -374,
+        "z": 446912,
+        "yaw": 1024
+      }
+    },
+    {
+      "key": "taverley",
+      "name": "the druids' circle",
+      "width": 240,
+      "height": 300,
+      "eye": {
+        "x": 374464,
+        "y": -1137,
+        "z": 444268,
+        "pitch": 64,
+        "yaw": 0
+      },
+      "figure": {
+        "x": 374464,
+        "y": -712,
+        "z": 445248,
+        "yaw": 0
+      }
+    }
+  ]
+}

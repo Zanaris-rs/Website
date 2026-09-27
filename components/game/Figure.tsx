@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useEffectEvent, useRef } from "react";
+import { useRef } from "react";
 
-import { frameAt } from "@/lib/chathead/animate";
 import { figure, loadFigureClips, loadFigures } from "@/lib/chathead/load";
 import type { Look } from "@/lib/chathead/look";
 import type { Emote } from "@/lib/chathead/vocab";
-import { onCycle } from "@/lib/game-chat/clock";
+
+import { useEmotePlayback } from "./useEmotePlayback";
 
 /** Put a drawing on the canvas at `x`, `y`, over nothing. */
 function paint(canvas: HTMLCanvasElement | null, image: ImageData | null, x = 0, y = 0) {
@@ -28,10 +28,10 @@ function paint(canvas: HTMLCanvasElement | null, image: ImageData | null, x = 0,
  * wears in game, and must never be drawn whole.
  *
  * It acts out `emote` once each time `replay` changes after it mounts,
- * frame by frame at the game's pace (`lib/chathead/animate.ts`), then stands
- * again; a new `replay` while it plays starts it over. Whether anything
- * plays by itself is the caller's decision, reduced motion included: a
- * replay asked for is played.
+ * frame by frame at the game's pace, then stands again; a new `replay`
+ * while it plays starts it over (`useEmotePlayback`, which `<SceneFigure>`
+ * shares). Whether anything plays by itself is the caller's decision,
+ * reduced motion included: a replay asked for is played.
  *
  * As `<Chathead>`: the canvas is the frame's size from the first paint, so
  * nothing shifts when the figure arrives a moment later; `scale` enlarges it
@@ -56,77 +56,27 @@ export default function Figure({
   className?: string;
 }) {
   const canvas = useRef<HTMLCanvasElement>(null);
-  /** The standing figure, to return to after an emote. */
-  const standing = useRef<ImageData | null>(null);
-  const playing = useRef(false);
-  /** The last `replay` seen: the one it mounted with, then each played. */
-  const played = useRef(replay);
   const { width, height } = figure.frame;
 
-  useEffect(() => {
-    let current = true;
-    loadFigures()
-      .then((figures) => {
-        if (!current) return;
-        standing.current = look ? figures.draw(look) : null;
-        if (!playing.current) paint(canvas.current, standing.current);
-      })
-      .catch((error) => {
-        console.error("[figure] the renderer failed to load:", error);
-      });
-    return () => {
-      current = false;
-    };
-  }, [look]);
-
-  /** Act out the emote from its first frame; returns how to stop. */
-  const play = useEffectEvent(() => {
-    let current = true;
-    let stop: (() => void) | null = null;
-    const halt = () => {
-      current = false;
-      stop?.();
-      stop = null;
-      playing.current = false;
-    };
-    const stand = () => {
-      halt();
-      paint(canvas.current, standing.current);
-    };
-
-    if (!look || !emote) {
-      stand();
-      return halt;
-    }
-    const [actor, act] = [look, emote];
-    loadFigureClips()
-      .then((clips) => {
-        if (!current) return;
-        const clip = clips.emote(actor, act);
-        if (!clip) return stand();
-        playing.current = true;
-        let start: number | null = null;
-        let shown = -1;
-        stop = onCycle((cycle) => {
-          start ??= cycle;
-          const index = frameAt(clip, cycle - start);
-          if (index === null) return stand();
-          if (index === shown) return;
-          shown = index;
-          paint(canvas.current, clip.frames[index], clip.x, clip.y);
-        });
-      })
-      .catch((error) => {
-        console.error("[figure] the emotes failed to load:", error);
-      });
-    return halt;
+  useEmotePlayback({
+    canvas,
+    look,
+    emote,
+    replay,
+    loadStanding: async () => {
+      const figures = await loadFigures();
+      return (actor) => {
+        const image = actor ? figures.draw(actor) : null;
+        return image && { image, x: 0, y: 0 };
+      };
+    },
+    loadEmotes: async () => (await loadFigureClips()).emote,
+    paint,
+    errors: {
+      standing: "[figure] the renderer failed to load:",
+      emotes: "[figure] the emotes failed to load:",
+    },
   });
-
-  useEffect(() => {
-    if (replay === played.current) return;
-    played.current = replay;
-    return play();
-  }, [replay]);
 
   return (
     <canvas

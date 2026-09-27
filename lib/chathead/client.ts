@@ -52,6 +52,30 @@ export interface ClientModel {
     eyeY: number,
     eyeZ: number,
   ): void;
+  /**
+   * Draw the model into the world's picture, as `World` draws every model
+   * standing on a tile — players, NPCs, objects (Client-TS
+   * `dash3d/World.ts:1476`): turned by `yaw` about its own base, at
+   * `relative*` from the eye (the model's position minus the camera's, in
+   * scene units), seen through the eye's pitch and yaw, each passed as
+   * `Pix3D`'s sine and cosine of the angle. It projects about `Pix3D`'s
+   * origin, which `setRenderClipping` puts at the picture's centre, where
+   * the world's viewport has it. `typecode` is what a click on it would
+   * pick: 0, nothing.
+   *
+   * It draws nothing nearer than 50 or past the game's far clip, 3500 deep.
+   */
+  worldRender(
+    yaw: number,
+    sinEyePitch: number,
+    cosEyePitch: number,
+    sinEyeYaw: number,
+    cosEyeYaw: number,
+    relativeX: number,
+    relativeY: number,
+    relativeZ: number,
+    typecode: number,
+  ): void;
 }
 
 export interface ClientModelClass {
