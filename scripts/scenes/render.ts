@@ -74,6 +74,9 @@ type Jag = { read(name: string): Uint8Array | null };
 /** What `World` draws a sprite with: a built model, or a source that builds one as it is drawn. */
 type Drawable = Pick<ClientModel, "worldRender">;
 
+/** One model added to the world for a pass: where it stands (scene-local units) and its yaw. */
+type Standing = { x: number; y: number; z: number; model: Drawable; yaw: number };
+
 /**
  * `ModelSource`, which `World` draws every sprite through. A player is one
  * (`ClientPlayer`): it builds its body into the one scratch model the
@@ -164,6 +167,13 @@ function hash(pixels: Int32Array): string {
     .slice(0, 16);
 }
 
+/** How many pixels two same-sized pictures differ in. */
+function differingPixels(a: Int32Array, b: Int32Array): number {
+  let differing = 0;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) differing++;
+  return differing;
+}
+
 // --- the studio ----------------------------------------------------------------
 
 /** The build area: 13 zones of 8 tiles (`BuildArea.SIZE`). */
@@ -186,7 +196,7 @@ export type Failure = {
 };
 
 export type Shot = {
-  /** Its `turns` are the facings proved. */
+  /** Its `turns` are the facings proved, and its `photo`, when there is one, the clan photo's proved slots. */
   spot: SceneSpot;
   /** The scene with no one in it: the PNG. */
   backdrop: Int32Array;
@@ -557,30 +567,44 @@ export async function openStudio(clientDir: string, engineDir: string, outDir: s
       const fy = groundHeight(region.groundh, region.mapl, fx, fz, input.level);
       const facingCamera = (2048 - input.yaw) & 2047;
 
+      /** Whether a scene-local point is on the build area, where renderAll and groundHeight can reach. */
+      const inBuildArea = (x: number, z: number) => x >= 0 && z >= 0 && x < SIZE * 128 && z < SIZE * 128;
+
       const eye = camFollow(input.pitch, input.yaw, fx, fy - input.lift, fz, input.dist);
       // renderAll clamps an eye outside the build area; the site's figure would not.
-      if (eye.x < 0 || eye.z < 0 || eye.x >= SIZE * 128 || eye.z >= SIZE * 128) {
+      if (!inBuildArea(eye.x, eye.z)) {
         throw new Error(`${input.key}: the camera is outside the build area; shorten dist`);
       }
 
-      // The figure's depth, as worldRender works it out: the site draws it with
-      // the game's own far clip, which far.ts does not reach.
       const sinPitch = Pix3D.sinTable[input.pitch];
       const cosPitch = Pix3D.cosTable[input.pitch];
       const sinYaw = Pix3D.sinTable[input.yaw];
       const cosYaw = Pix3D.cosTable[input.yaw];
-      const zPrime = ((fz - eye.z) * cosYaw - (fx - eye.x) * sinYaw) >> 16;
-      const depth = ((fy - eye.y) * sinPitch + zPrime * cosPitch) >> 16;
+      /**
+       * How deep a scene-local point is from the eye, as worldRender works it
+       * out: the site draws with the game's own far clip (`GAME_FAR`), which
+       * far.ts does not reach.
+       */
+      const depthOf = (x: number, y: number, z: number) => {
+        const zPrime = ((z - eye.z) * cosYaw - (x - eye.x) * sinYaw) >> 16;
+        return ((y - eye.y) * sinPitch + zPrime * cosPitch) >> 16;
+      };
+      const depth = depthOf(fx, fy, fz);
       if (depth >= GAME_FAR) {
         throw new Error(`${input.key}: the figure is ${depth} deep, past the game's far clip of ${GAME_FAR}; shorten dist`);
       }
 
-      /** The spot in one pass with `body` in it, turned to `yaw`; with no body, the backdrop. */
-      const render = (body: ClientModel | null, yaw: number): Int32Array => {
+      /**
+       * The spot in one pass, as the game draws it, with `standing` added to
+       * the world in order (`addDynamic`); with no one, the backdrop.
+       */
+      const render = (standing: readonly Standing[]): Int32Array => {
         const drawn = sky();
         Pix2D.setPixels(drawn, DRAWN, HEIGHT);
         Pix3D.setClipping(DRAWN, HEIGHT);
-        if (body) region.world.addDynamic(input.level, fx, fy, fz, body, 0, yaw, 60, false);
+        for (const { x, y, z, model, yaw } of standing) {
+          region.world.addDynamic(input.level, x, y, z, model, 0, yaw, 60, false);
+        }
         region.world.renderAll(eye.x, eye.y, eye.z, 3, input.yaw, input.pitch);
         region.world.removeSprites();
         return frame(drawn);
@@ -606,7 +630,7 @@ export async function openStudio(clientDir: string, engineDir: string, outDir: s
         turns,
       };
 
-      const backdrop = render(null, facingCamera);
+      const backdrop = render([]);
       let reference: { samePass: Int32Array; composite: Int32Array } | null = null;
       const failures: Failure[] = [];
       const dropped: Failure[] = [];
@@ -619,14 +643,13 @@ export async function openStudio(clientDir: string, engineDir: string, outDir: s
         for (const { name: look, look: worn } of LOOKS) {
           if (facing !== 0 && differ.length > 0) break;
           for (const { name: pose, emote, pose: frame } of poses) {
-            const samePass = render(figure(worn, frame), yaw);
+            const samePass = render([{ x: fx, y: fy, z: fz, model: figure(worn, frame), yaw }]);
             // What the site does (lib/scenes/draw.ts): the figure drawn onto
             // the backdrop, from the spot's eye, turned the same.
             const composite = drawAtEye(source, figure(worn, frame), spot, backdrop, facing);
             proofs++;
 
-            let differing = 0;
-            for (let i = 0; i < composite.length; i++) if (composite[i] !== samePass[i]) differing++;
+            const differing = differingPixels(composite, samePass);
             // The first proof is the default look standing facing the camera: the contact sheet's.
             if (facing === 0) reference ??= { samePass, composite };
             if (differing > 0) {
@@ -687,48 +710,36 @@ export async function openStudio(clientDir: string, engineDir: string, outDir: s
       let photo: Shot["photo"] = null;
       for (const count of PHOTO_COUNTS) {
         const half = (count - 1) / 2;
-        const placed = Array.from({ length: count }, (_, i) => {
+        const offsets = Array.from({ length: count }, (_, i) => {
           const along = (i - half) * PHOTO_SPACING;
-          const dx = (along * cosYaw) >> 16;
-          const dz = (along * sinYaw) >> 16;
+          return { dx: (along * cosYaw) >> 16, dz: (along * sinYaw) >> 16 };
+        });
+        // Before the ground is looked up: groundHeight cannot reach off the build area.
+        if (offsets.some(({ dx, dz }) => !inBuildArea(fx + dx, fz + dz))) {
+          photoTried.push(`${count}: off the build area`);
+          continue;
+        }
+        const placed = offsets.map(({ dx, dz }) => {
           const x = fx + dx;
           const z = fz + dz;
           const y = groundHeight(region.groundh, region.mapl, x, z, input.level);
           const slot: PhotoSlot = { x: spot.figure.x + dx, y, z: spot.figure.z + dz, yaw: spot.figure.yaw };
           return { local: { x, y, z }, slot };
         });
-        if (placed.some(({ local }) => local.x < 0 || local.z < 0 || local.x >= SIZE * 128 || local.z >= SIZE * 128)) {
-          photoTried.push(`${count}: off the build area`);
-          continue;
-        }
         // As the figure's own depth check: the site draws with the game's far clip.
-        const tooDeep = placed.some(({ local }) => {
-          const zPrime = ((local.z - eye.z) * cosYaw - (local.x - eye.x) * sinYaw) >> 16;
-          const depth = ((local.y - eye.y) * sinPitch + zPrime * cosPitch) >> 16;
-          return depth >= GAME_FAR;
-        });
-        if (tooDeep) {
+        if (placed.some(({ local }) => depthOf(local.x, local.y, local.z) >= GAME_FAR)) {
           photoTried.push(`${count}: past the game's far clip`);
           continue;
         }
 
         // The game's picture: every one of them in the world at once.
-        const drawn = sky();
-        Pix2D.setPixels(drawn, DRAWN, HEIGHT);
-        Pix3D.setClipping(DRAWN, HEIGHT);
-        for (const { local, slot } of placed) {
-          region.world.addDynamic(input.level, local.x, local.y, local.z, sitter(BULKY), 0, slot.yaw, 60, false);
-        }
-        region.world.renderAll(eye.x, eye.y, eye.z, 3, input.yaw, input.pitch);
-        region.world.removeSprites();
-        const samePass = frame(drawn);
+        const samePass = render(placed.map(({ local, slot }) => ({ ...local, model: sitter(BULKY), yaw: slot.yaw })));
 
         // The site's: drawPhoto, far to near over the backdrop.
         const candidate: SceneSpot = { ...spot, photo: placed.map(({ slot }) => slot) };
         const composite = drawPhoto(source, bodies, candidate, backdrop, placed.map(() => BULKY));
 
-        let differing = 0;
-        for (let i = 0; i < composite.length; i++) if (composite[i] !== samePass[i]) differing++;
+        const differing = differingPixels(composite, samePass);
         if (differing > 0) {
           photoTried.push(`${count}: ${differing} px differ`);
           continue;

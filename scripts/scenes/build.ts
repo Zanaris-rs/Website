@@ -10,10 +10,12 @@
  * Writes, for every spot in `spots.ts`:
  *
  *   public/game/scenes/<key>.png     the backdrop: the spot with no one in it
- *   lib/scenes/spots.json            each spot's eye, figure and turns, and the version
- *   lib/scenes/composite-golden.json the proved composites' hashes, which
- *                                    `lib/scenes/composite.test.ts` holds the
- *                                    site's renderer to
+ *   lib/scenes/spots.json            each spot's eye, figure, turns and clan
+ *                                    photo slots, and the version
+ *   lib/scenes/composite-golden.json the proved composites' and clan photos'
+ *                                    hashes, which `lib/scenes/composite.test.ts`
+ *                                    and `photo-golden.test.ts` hold the site's
+ *                                    renderer to
  *
  * and `scripts/scenes/contact-sheet.png`, every spot with the reference
  * figure drawn in, to judge the framing by eye. That one is not committed.
@@ -169,9 +171,10 @@ for (const shot of shots) writeFileSync(path.join(dir, `${shot.spot.key}.png`), 
 
 const spots: SceneSpot[] = shots.map((shot) => shot.spot);
 /**
- * One version for every backdrop, camera and list of turns: the site asks
- * for `<key>.png?v=`, cached for a year (`next.config.ts`), so anything that
- * changes a picture or where and how the figure stands changes every URL.
+ * One version for every backdrop, camera, list of turns and row of photo
+ * slots: the site asks for `<key>.png?v=`, cached for a year
+ * (`next.config.ts`), so anything that changes a picture or where and how a
+ * figure stands changes every URL.
  */
 const hash = createHash("sha256");
 for (const shot of shots) hash.update(shot.png);
@@ -187,7 +190,10 @@ writeFileSync(path.join(OUT_DIR, "lib/scenes/spots.json"), JSON.stringify({ vers
  *   default look in every pose at every other proved facing.
  *
  * Plus each spot's proved facings (`turns`), which spots.json must agree
- * with. One draw per line, as the chathead goldens are written.
+ * with, and each proved clan photo (`photos`, the last key): the spot, its
+ * slot count and the hash of `drawPhoto` with the bulky look in every slot,
+ * which `photo-golden.test.ts` holds the site to. One draw or photo per
+ * line, as the chathead goldens are written.
  */
 const draws = shots.flatMap((shot, index) =>
   shot.hashes
