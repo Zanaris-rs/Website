@@ -18,15 +18,15 @@ export type Stage = {
   page: number;
   pageCount: number;
   next(): void;
-  /** Back a page, to the last from the first; the editor preview's arrow. */
-  prev(): void;
   /**
    * Make `page` the current page and play its emote - the Words tab's rows,
-   * when one is chosen, typed in or played. Not clamped here: `page` above
-   * is clamped on read, so a row added in the same update (one past today's
-   * last) is shown once it exists.
+   * when one is chosen, typed in or played. With `{ play: false }` it only
+   * follows the page, without playing it: the Words tab keeps the stage on
+   * the page it was showing when a page is moved or removed. Not clamped
+   * here: `page` above is clamped on read, so a row added in the same update
+   * (one past today's last) is shown once it exists.
    */
-  goTo(page: number): void;
+  goTo(page: number, options?: { play?: boolean }): void;
   /**
    * The emote the figure acts out now: the current page's own emote, or -
    * only when there is no current page at all - the signature one. A page
@@ -66,7 +66,7 @@ export type Stage = {
 const NOT_YET = Symbol("not yet");
 
 const StageContext = createContext<Stage>({
-  page: 0, pageCount: 0, next() {}, prev() {}, goTo() {}, emote: null, replay: 0, replayEmote() {},
+  page: 0, pageCount: 0, next() {}, goTo() {}, emote: null, replay: 0, replayEmote() {},
   facing: 0, turn() {}, setFacing() {}, tryOn: null, setTryOn() {},
 });
 
@@ -160,14 +160,9 @@ export default function PersonaStage({
     setPageState((page + 1) % pages.length);
     setReplay((count) => count + 1);
   }, [pages.length, page]);
-  const prev = useCallback(() => {
-    if (pages.length === 0) return;
-    setPageState((page + pages.length - 1) % pages.length);
-    setReplay((count) => count + 1);
-  }, [pages.length, page]);
-  const goTo = useCallback((to: number) => {
+  const goTo = useCallback((to: number, { play = true }: { play?: boolean } = {}) => {
     setPageState(Math.max(0, to));
-    setReplay((count) => count + 1);
+    if (play) setReplay((count) => count + 1);
   }, []);
   const replayEmote = useCallback(() => setReplay((count) => count + 1), []);
   const turn = useCallback(
@@ -178,8 +173,8 @@ export default function PersonaStage({
   const setTryOn = useCallback((look: Look | null) => setTryOnState(look), []);
 
   const value = useMemo(
-    () => ({ page, pageCount: pages.length, next, prev, goTo, emote, replay, replayEmote, facing, turn, setFacing, tryOn, setTryOn }),
-    [page, pages.length, next, prev, goTo, emote, replay, replayEmote, facing, turn, setFacing, tryOn, setTryOn],
+    () => ({ page, pageCount: pages.length, next, goTo, emote, replay, replayEmote, facing, turn, setFacing, tryOn, setTryOn }),
+    [page, pages.length, next, goTo, emote, replay, replayEmote, facing, turn, setFacing, tryOn, setTryOn],
   );
   return <StageContext.Provider value={value}>{children}</StageContext.Provider>;
 }
