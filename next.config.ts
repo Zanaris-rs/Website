@@ -180,8 +180,10 @@ const nextConfig: NextConfig = {
       // nothing an owner writes can add a script.
       //
       // Every link into and out of a log is a plain <a> (the site's rule), so
-      // this header is on every log a reader sees and on nothing else.
-      ...["/adventurer/:path*"].map((source) => ({
+      // this header is on every log and every clan page a reader sees - a
+      // clan's words and crest are drawn in the same fonts and pictures - and
+      // on nothing else.
+      ...["/adventurer/:path*", "/clan/:path*"].map((source) => ({
         source,
         headers: [
           {

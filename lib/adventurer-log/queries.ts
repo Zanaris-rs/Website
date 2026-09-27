@@ -542,7 +542,7 @@ export function parseBlocks(rows: readonly unknown[]): { username: string; block
 
 // --- reports ------------------------------------------------------------------------
 
-export type ReportKind = "update" | "reply" | "log";
+export type ReportKind = "update" | "reply" | "log" | "clan";
 
 export function reportStatement(
   username: string,

@@ -6,14 +6,15 @@ import { fail, readJson, runWrite, writer } from "@/lib/adventurer-log/route";
 import { INVALID_NAME, toSafeName } from "@/lib/base37";
 
 /**
- * `POST /api/adventurer-log/reports` — report an update or a reply
- * `{ kind, id, reason }`, or a whole log's own text and style
- * `{ kind: "log", name, reason }`. Staff see them at /staff/adventure-reports.
+ * `POST /api/adventurer-log/reports` — report `{ kind, id, reason }` for an
+ * update, a reply or a clan (its id), or `{ kind: "log", name, reason }` for
+ * a whole log's own text and style. Staff see them at
+ * /staff/adventure-reports.
  */
 
 export const runtime = "nodejs";
 
-const KINDS: readonly ReportKind[] = ["update", "reply", "log"];
+const KINDS: readonly ReportKind[] = ["update", "reply", "log", "clan"];
 
 export async function POST(request: NextRequest) {
   const payload = await readJson(request);

@@ -63,6 +63,7 @@ const OUTLINE = `<div class="al-root">                 <!-- the log; your CSS re
         <p class="al-examine">Examine text</p>
         <dl class="al-sheet">
           <div class="al-sheet-row al-sheet--home"><dt>Home</dt><dd>Varrock</dd></div> ...
+          <div class="al-sheet-row al-sheet--clan"><dt>Clan</dt><dd><svg class="al-rank" role="img" aria-label="Captain"></svg> <a class="al-clan-link">Varrock Knights</a></dd></div>   <!-- the clan they are in: their rank's icon, and the clan's page -->
           <div class="al-sheet-row al-sheet--goals"><dt>Goals</dt><dd><ul class="al-goals"><li>99 Thieving</li></ul></dd></div>
         </dl>
         <p class="al-joined">Adventuring since Sep 2026</p>
@@ -223,6 +224,7 @@ ${FENCE}
 - One column on a phone. From 900px wide there are two: \`.al-side\` is 280px on the left and \`.al-main\` takes the rest (a CSS grid on \`.al-page\`).
 - \`.al-chat--c<0-11>\` is the headline's colour and \`.al-chat--e<0-2>\` its effect. The colour is set by the page every frame, so a \`color\` rule won't stick.
 - \`.al-sheet--<home|hangout|god|clan|goals>\` is one row of the character sheet.
+- \`.al-rank\` is a clan rank's 13x13 icon, drawn in SVG (size and place it, don't recolour it); \`.al-clan-link\` goes to the clan's page.
 - \`.al-skill--<id>\` is one skill's row: ${skills}.
 - \`.al-event--<kind>\` is one kind of adventure: ${kinds}.
 - \`.al-record--<seconds>\` is one record length, shown only when I hold a place on it: ${durations}.

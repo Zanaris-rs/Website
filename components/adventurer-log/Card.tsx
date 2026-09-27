@@ -1,14 +1,37 @@
+import RankIcon from "@/components/clans/RankIcon";
 import Chathead from "@/components/game/Chathead";
 import ChatText from "@/components/game/ChatText";
-import { cardMode, sheetRows } from "@/lib/adventurer-log/card";
+import { cardMode, type SheetRow, sheetRows } from "@/lib/adventurer-log/card";
 import { formatMonth } from "@/lib/adventurer-log/format";
 import { CHARACTER_HREF } from "@/lib/adventurer-log/href";
 import type { Persona } from "@/lib/adventurer-log/persona";
 import type { WardrobeOutfit } from "@/lib/adventurer-log/wardrobe";
 import type { Look } from "@/lib/chathead/look";
+import { clanHref } from "@/lib/clans/href";
+import type { ClanOf } from "@/lib/clans/queries";
 import { sceneOf } from "@/lib/scenes/spots";
 
 import CardFigure from "./CardFigure";
+
+/** One row of the character sheet, as `sheetRows` gives it. */
+function sheetRow(row: SheetRow) {
+  return (
+    <div key={row.key} className={`al-sheet-row al-sheet--${row.key}`}>
+      <dt>{row.label}</dt>
+      <dd>
+        {Array.isArray(row.value) ? (
+          <ul className="al-goals">
+            {row.value.map((goal, i) => (
+              <li key={i}>{goal}</li>
+            ))}
+          </ul>
+        ) : (
+          row.value
+        )}
+      </dd>
+    </div>
+  );
+}
 
 /**
  * The top of the left column: who this adventurer is. It keeps the classes
@@ -17,6 +40,9 @@ import CardFigure from "./CardFigure";
  *
  * A figure stands in the owner's scene when they picked one that has a
  * backdrop (`lib/scenes/spots.ts`); an unknown key draws the plain figure.
+ *
+ * The sheet's Clan row (`al-sheet--clan`) is the owner's real clan
+ * (`clan_of`): their rank's icon and the clan's name, linked to its page.
  */
 export default function Card({
   name,
@@ -28,6 +54,7 @@ export default function Card({
   headLook,
   viewerIsOwner,
   outfits = [],
+  clan,
 }: {
   name: string;
   username: string;
@@ -41,6 +68,8 @@ export default function Card({
   viewerIsOwner: boolean;
   /** The Wardrobe's outfits: the card names the one a reader tries on. */
   outfits?: readonly WardrobeOutfit[];
+  /** The owner's clan and rank, for the sheet's Clan row; null for none. */
+  clan: ClanOf | null;
 }) {
   const mode = cardMode({ hasOutfit: outfitLook !== null, headline, pages: persona.dialogue });
   const rows = sheetRows(persona);
@@ -74,20 +103,21 @@ export default function Card({
 
       {persona.examine ? <p className="al-examine">{persona.examine}</p> : null}
 
-      {rows.length > 0 ? (
+      {rows.length > 0 || clan ? (
         <dl className="al-sheet">
-          {rows.map((row) => (
-            <div key={row.key} className={`al-sheet-row al-sheet--${row.key}`}>
-              <dt>{row.label}</dt>
+          {rows.filter((row) => row.key !== "goals").map(sheetRow)}
+          {clan ? (
+            <div className="al-sheet-row al-sheet--clan">
+              <dt>Clan</dt>
               <dd>
-                {Array.isArray(row.value) ? (
-                  <ul className="al-goals">{row.value.map((goal, i) => <li key={i}>{goal}</li>)}</ul>
-                ) : (
-                  row.value
-                )}
+                <RankIcon rank={clan.rank} className="al-rank" />{" "}
+                <a className="al-clan-link" href={clanHref(clan.slug)}>
+                  {clan.name}
+                </a>
               </dd>
             </div>
-          ))}
+          ) : null}
+          {rows.filter((row) => row.key === "goals").map(sheetRow)}
         </dl>
       ) : null}
 

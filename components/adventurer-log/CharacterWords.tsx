@@ -14,6 +14,7 @@ import { type DialoguePage, type Persona, PERSONA_LIMITS } from "@/lib/adventure
 import { checkWordsInput, type WordsInput } from "@/lib/adventurer-log/persona-input";
 import type { Look } from "@/lib/chathead/look";
 import { type Emote, EMOTE_NAMES, EMOTES } from "@/lib/chathead/vocab";
+import type { ClanOf } from "@/lib/clans/queries";
 
 import styles from "./Character.module.css";
 import CharacterTabs from "./CharacterTabs";
@@ -49,6 +50,7 @@ export default function CharacterWords({
   initial,
   outfitLook,
   headLook,
+  clan,
 }: {
   name: string;
   username: string;
@@ -58,6 +60,8 @@ export default function CharacterWords({
   initial: WordsInput;
   outfitLook: Look | null;
   headLook: Look | null;
+  /** The owner's clan and rank, for the stage card's Clan row; null for none. */
+  clan: ClanOf | null;
 }) {
   const { draft, change, set, dirty, busy, message, refused, marked, save } = useTabDraft(
     initial,
@@ -109,6 +113,7 @@ export default function CharacterWords({
       persona={shown}
       outfitLook={outfitLook}
       headLook={headLook}
+      clan={clan}
     >
       <CharacterTabs current="words" />
       <form onSubmit={save} className={styles.form}>

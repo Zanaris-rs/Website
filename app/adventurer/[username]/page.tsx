@@ -123,6 +123,7 @@ export default async function AdventurerLog({ params, searchParams }: Params) {
         outfitLook={data.outfitLook}
         outfits={data.outfits}
         records={data.records}
+        clan={data.clan}
       />
     </Frame>
   );

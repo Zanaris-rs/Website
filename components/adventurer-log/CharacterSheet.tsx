@@ -85,6 +85,7 @@ export default function CharacterSheet({
       persona={shown}
       outfitLook={outfitLook}
       headLook={headLook}
+      clan={clan}
     >
       <CharacterTabs current="sheet" />
       <form onSubmit={save} className={styles.form}>

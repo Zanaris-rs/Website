@@ -5,16 +5,19 @@ import { useState } from "react";
 import { send } from "@/lib/adventurer-log/client";
 import { REASON_MAX } from "@/lib/adventurer-log/format";
 
+/** A clan's own members cannot report it; the database says `self`. */
+const CLAN_REPORT: Readonly<Record<string, string>> = { self: "You cannot report your own clan." };
+
 /**
  * "Report", opening a one-line reason and a Send. `target` is an update or a
- * reply by id, or a whole log by name. Staff read reports at
+ * reply by id, or a whole log by name, or a clan by id. Staff read reports at
  * /staff/adventure-reports.
  */
 export default function ReportButton({
   target,
   label = "Report",
 }: {
-  target: { kind: "update" | "reply"; id: number } | { kind: "log"; name: string };
+  target: { kind: "update" | "reply" | "clan"; id: number } | { kind: "log"; name: string };
   label?: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -25,7 +28,12 @@ export default function ReportButton({
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     setBusy(true);
-    const result = await send("/api/adventurer-log/reports", { ...target, reason });
+    const result = await send(
+      "/api/adventurer-log/reports",
+      { ...target, reason },
+      "POST",
+      target.kind === "clan" ? CLAN_REPORT : {},
+    );
     setBusy(false);
     if (result.ok) {
       setStatus("Reported. Thank you.");

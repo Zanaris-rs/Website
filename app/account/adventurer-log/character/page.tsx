@@ -7,6 +7,7 @@ import OwnerNav from "@/components/adventurer-log/OwnerNav";
 import Frame from "@/components/site/Frame";
 import Panel from "@/components/site/Panel";
 import { loadCharacterPage } from "@/lib/adventurer-log/character-data";
+import { loadClanOf } from "@/lib/clans/page-data";
 import { displayName } from "@/lib/hiscores/format";
 
 export const metadata: Metadata = {
@@ -27,6 +28,8 @@ export default async function CharacterLookPage() {
   if (page.status === "unavailable") return <CharacterUnavailable />;
 
   const { header, persona, headLook, outfits } = page.data;
+  // The stage card's Clan row: forgiving, as the log's is - a failed read shows none.
+  const clan = await loadClanOf(header.username);
   return (
     <Frame>
       <OwnerNav title="Character" username={header.username} current="character" />
@@ -39,6 +42,7 @@ export default async function CharacterLookPage() {
           persona={persona}
           initialOutfits={outfits}
           headLook={headLook}
+          clan={clan}
         />
       </Panel>
     </Frame>

@@ -8,6 +8,7 @@ import { dialoguePages } from "@/lib/adventurer-log/dialogue";
 import type { Persona } from "@/lib/adventurer-log/persona";
 import { nearestFacing } from "@/lib/chathead/facing";
 import type { Look } from "@/lib/chathead/look";
+import type { ClanOf } from "@/lib/clans/queries";
 import { sceneOf } from "@/lib/scenes/spots";
 
 import Card from "./Card";
@@ -31,6 +32,9 @@ import PersonaStage from "./PersonaStage";
  *
  * The looks are passed through untouched: `Chathead` and `Figure` redraw
  * whenever a look is a new object.
+ *
+ * `clan` is the owner's real clan, read by the page (`loadClanOf`), so the
+ * stage's card has the same Clan row visitors see.
  */
 export default function CharacterWorkspace({
   name,
@@ -40,6 +44,7 @@ export default function CharacterWorkspace({
   persona,
   outfitLook,
   headLook,
+  clan,
   resetKey,
   below,
   children,
@@ -53,6 +58,8 @@ export default function CharacterWorkspace({
   outfitLook: Look | null;
   /** The chathead's look: the worn outfit, else the game's head-only look. */
   headLook: Look | null;
+  /** The owner's clan and rank, for the card's Clan row; null for none. */
+  clan: ClanOf | null;
   resetKey?: string | number;
   below?: ReactNode;
   children: ReactNode;
@@ -84,6 +91,7 @@ export default function CharacterWorkspace({
                   outfitLook={outfitLook}
                   headLook={headLook}
                   viewerIsOwner={false}
+                  clan={clan}
                 />
               </aside>
               <div className="al-main">

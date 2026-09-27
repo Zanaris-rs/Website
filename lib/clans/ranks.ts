@@ -75,3 +75,10 @@ export function ranksBelow(rank: Rank): Rank[] {
 export function youAre(rank: Rank): string {
   return rank === "leader" ? "You are the Leader" : `You are a ${RANK_NAMES[rank]}`;
 }
+
+/** A roster in groups by rank, the Leader first, each group in the order given; empty ranks left out. */
+export function byRank<T extends { rank: Rank }>(list: readonly T[]): { rank: Rank; members: T[] }[] {
+  return RANKS.map((rank) => ({ rank, members: list.filter((entry) => entry.rank === rank) })).filter(
+    (group) => group.members.length > 0,
+  );
+}

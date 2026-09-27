@@ -1,6 +1,8 @@
 import "server-only";
 
 import type { Look } from "@/lib/chathead/look";
+import { loadClanOf } from "@/lib/clans/page-data";
+import type { ClanOf } from "@/lib/clans/queries";
 import { query } from "@/lib/db";
 import { toPlayerResponse, type PlayerSkill } from "@/lib/hiscores/api";
 import { displayName } from "@/lib/hiscores/format";
@@ -29,7 +31,9 @@ import { type WardrobeOutfit, wardrobeOf } from "./wardrobe";
  * Migration 015's Records read is its own try/catch, separate from the rest
  * of this function: a rehearsal or a prod database behind the migration
  * should still show the log, only without its Records box, rather than the
- * whole page failing on a function that doesn't exist yet.
+ * whole page failing on a function that doesn't exist yet. The owner's clan
+ * (`loadClanOf`, migration 17) is forgiving the same way: a failed read is a
+ * card with no Clan row.
  */
 
 export type LogPageData =
@@ -48,6 +52,8 @@ export type LogPageData =
       records: LogRecord[];
       persona: Persona;
       outfitLook: Look | null;
+      /** The owner's clan and rank, for the card's Clan row; null for none. */
+      clan: ClanOf | null;
     };
 
 /**
@@ -110,6 +116,8 @@ export async function loadLogPage(
     console.error("[adventurer-log] persona read failed", error);
   }
 
+  const clan = await loadClanOf(header.username);
+
   return {
     result: "ok",
     header: { ...header, look },
@@ -122,5 +130,6 @@ export async function loadLogPage(
     records,
     persona,
     outfitLook: header.look,
+    clan,
   };
 }

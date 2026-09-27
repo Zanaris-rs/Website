@@ -295,3 +295,169 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+
+/* --- the clan page (`/clan/<slug>`) and the directory (`/clans`) ------------
+   The log's shape and grey: a narrow card on the left, the rest on the
+   right, each box black with a title bar. */
+
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  justify-content: center;
+  margin-top: var(--stack-gap-title);
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.page {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--stack-gap);
+  margin-top: var(--stack-gap-title);
+  color: var(--text);
+  font-size: 13px;
+  text-align: left;
+}
+
+@media (min-width: 900px) {
+  .page {
+    grid-template-columns: 280px 1fr;
+    align-items: start;
+  }
+}
+
+.side,
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--stack-gap);
+  min-width: 0;
+}
+
+.box {
+  background: #000;
+  border: 1px solid var(--panel-border);
+}
+
+.box > h2 {
+  margin: 0;
+  padding: 3px 8px;
+  border-bottom: 1px solid var(--panel-border);
+  background: #2b2b2b;
+  color: #fff;
+  font-size: 13px;
+}
+
+.boxBody {
+  padding: 8px;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 8px;
+  text-align: center;
+}
+
+.cardName {
+  margin: 6px 0 2px;
+  font-size: 18px;
+}
+
+.sheet {
+  width: 100%;
+  margin: 8px 0 0;
+  text-align: left;
+}
+
+.sheet > div {
+  display: flex;
+  gap: 8px;
+  padding: 2px 0;
+  border-top: 1px solid #1f1f1f;
+}
+
+.sheet dt {
+  flex: none;
+  width: 5.5em;
+  color: var(--text-muted);
+}
+
+.sheet dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.about {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.rankHead {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  margin: 8px 0 2px;
+  font-size: 13px;
+}
+
+.rankHead:first-child {
+  margin-top: 0;
+}
+
+.members {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.member {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 3px 0;
+}
+
+.memberName {
+  font-weight: bold;
+}
+
+.empty {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.clans {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+  text-align: left;
+}
+
+.clanRow {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 6px 0;
+  border-top: 1px solid var(--panel-border);
+}
+
+.clanMain {
+  flex: 1;
+  min-width: 0;
+}
+
+.clanName {
+  font-weight: bold;
+}
+
+/* The motto on its own line under the name, however short, as on the card. */
+.clanMain > .motto {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+}

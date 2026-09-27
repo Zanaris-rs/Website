@@ -25,7 +25,7 @@ export default async function CharacterSheetPage() {
   if (page.status === "unavailable") return <CharacterUnavailable />;
 
   const { header, persona, headLook } = page.data;
-  // The Clan row: forgiving, as the card's is - a failed read shows no clan.
+  // The Clan row, and the stage card's: forgiving, as the log's is - a failed read shows no clan.
   const clan = await loadClanOf(header.username);
   return (
     <Frame>

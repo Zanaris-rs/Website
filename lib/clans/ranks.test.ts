@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  byRank,
   DEFAULT_PERMS,
   isRank,
   may,
@@ -77,5 +78,22 @@ describe("Who can…", () => {
     expect(may("invite", "recruit", { ...DEFAULT_PERMS, invite: 6 })).toBe(true);
     expect(may("ranks", "general", { ...DEFAULT_PERMS, ranks: 0 })).toBe(false);
     expect(may("ranks", "leader", { ...DEFAULT_PERMS, ranks: 0 })).toBe(true);
+  });
+});
+
+describe("byRank", () => {
+  it("groups a roster by rank, top first, keeping each group's order and leaving out empty ranks", () => {
+    const roster = [
+      { username: "zezima", rank: "leader" as const },
+      { username: "nel", rank: "captain" as const },
+      { username: "fresh", rank: "recruit" as const },
+      { username: "lynx", rank: "captain" as const },
+    ];
+    expect(byRank(roster)).toEqual([
+      { rank: "leader", members: [roster[0]] },
+      { rank: "captain", members: [roster[1], roster[3]] },
+      { rank: "recruit", members: [roster[2]] },
+    ]);
+    expect(byRank([])).toEqual([]);
   });
 });

@@ -12,6 +12,7 @@ import { type StageInput, stageOf } from "@/lib/adventurer-log/persona-input";
 import { FACING_NAMES, nearestFacing } from "@/lib/chathead/facing";
 import type { Look } from "@/lib/chathead/look";
 import { firstEmptySlot, keepSame, type SavedOutfits } from "@/lib/chathead/outfit-store";
+import type { ClanOf } from "@/lib/clans/queries";
 import { apiStore } from "@/lib/outfits/api-store";
 import { SCENES, sceneOf, sceneSrc } from "@/lib/scenes/spots";
 
@@ -60,6 +61,7 @@ export default function CharacterLook({
   persona,
   initialOutfits,
   headLook: firstHead,
+  clan,
 }: {
   name: string;
   username: string;
@@ -70,6 +72,8 @@ export default function CharacterLook({
   initialOutfits: SavedOutfits;
   /** The chathead's look as the page was read: the worn outfit, else the game's head. */
   headLook: Look | null;
+  /** The owner's clan and rank, for the stage card's Clan row; null for none. */
+  clan: ClanOf | null;
 }) {
   const [store] = useState(apiStore);
   const [outfits, setOutfits] = useState(initialOutfits);
@@ -130,6 +134,7 @@ export default function CharacterLook({
       persona={shown}
       outfitLook={outfitLook}
       headLook={headLook}
+      clan={clan}
       resetKey={stage.scene ?? "none"}
       below={
         outfitLook ? (

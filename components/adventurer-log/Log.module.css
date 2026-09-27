@@ -258,6 +258,16 @@
   padding-left: 14px;
 }
 
+.root :global(.al-rank) {
+  display: inline-block;
+  vertical-align: -2px;
+  margin-right: 3px;
+}
+
+.root :global(.al-clan-link) {
+  color: var(--link);
+}
+
 /* --- the dialogue box: NPC-style, the 2004 chatbox's parchment --- */
 
 .root :global(.al-dialogue) {

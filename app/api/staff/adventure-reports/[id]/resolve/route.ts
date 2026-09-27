@@ -17,10 +17,11 @@ import { loadStaff } from "@/lib/staff/staff-server";
 
 /**
  * `POST /api/staff/adventure-reports/<id>/resolve` `{ action, note, password }`
- * — hide the reported update or reply (or clear a log's headline and about),
- * turn a log's stylesheet off, or dismiss. One decision answers every open
- * report on the same thing. The password is re-typed, as for game reports:
- * a stolen session cannot take down what players wrote.
+ * — hide the reported update or reply (or clear a log's headline and about,
+ * or, for a clan, blank its motto and About, delete its notices and rename
+ * it `Clan <id>`), turn a log's stylesheet off, or dismiss. One decision
+ * answers every open report on the same thing. The password is re-typed, as
+ * for game reports: a stolen session cannot take down what players wrote.
  */
 
 export const runtime = "nodejs";

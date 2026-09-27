@@ -4,6 +4,9 @@ import type { Statement } from "@/lib/account/register";
  * The staff side of Adventurer Log reports (migration 13): the list, and the
  * resolution, which re-types the moderator's password like every other
  * staff verb that changes what players see (`lib/staff/actor-server.ts`).
+ * Migration 17 adds the `clan` kind: its target is the clan's id, `log_owner`
+ * the clan's name, `author` its Leader, and `content` its motto, a newline
+ * and its About.
  */
 
 export type StaffAction = "hide" | "disable_css" | "dismiss";
@@ -11,7 +14,7 @@ export const STAFF_ACTIONS: readonly StaffAction[] = ["hide", "disable_css", "di
 
 export type AdventureReport = {
   id: number;
-  targetKind: "update" | "reply" | "log";
+  targetKind: "update" | "reply" | "log" | "clan";
   targetId: number;
   logOwner: string | null;
   author: string | null;
@@ -49,7 +52,7 @@ export function parseStaffReports(rows: readonly unknown[]): AdventureReport[] {
   return rows.map((raw) => {
     const row = raw as Record<string, unknown>;
     const kind = row.target_kind;
-    if (kind !== "update" && kind !== "reply" && kind !== "log") {
+    if (kind !== "update" && kind !== "reply" && kind !== "log" && kind !== "clan") {
       throw new Error(`staff_adventure_reports: kind ${JSON.stringify(kind)}`);
     }
     const state = row.content_state;

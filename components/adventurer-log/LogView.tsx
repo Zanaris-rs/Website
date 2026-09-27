@@ -11,6 +11,7 @@ import type { LogRecord } from "@/lib/adventurer-log/records";
 import type { PinnedView, TimelinePage } from "@/lib/adventurer-log/view";
 import { nearestFacing } from "@/lib/chathead/facing";
 import type { Look } from "@/lib/chathead/look";
+import type { ClanOf } from "@/lib/clans/queries";
 import type { PlayerSkill } from "@/lib/hiscores/api";
 import { sceneOf } from "@/lib/scenes/spots";
 
@@ -46,6 +47,7 @@ export default function LogView({
   outfitLook,
   outfits = [],
   records = [],
+  clan,
 }: {
   header: LogHeader & { result: "ok" };
   name: string;
@@ -71,6 +73,8 @@ export default function LogView({
   outfits?: readonly WardrobeOutfit[];
   /** The owner's best Overall gain per record length; none hides the box. */
   records?: readonly LogRecord[];
+  /** The owner's clan and rank, for the card's Clan row; null for none. */
+  clan: ClanOf | null;
 }) {
   // Computed once so the stage and the dialogue box always agree on what is
   // being said - the stage drives the figure's emote, the box draws the
@@ -110,6 +114,7 @@ export default function LogView({
                 headLook={header.look}
                 viewerIsOwner={viewer?.isOwner ?? false}
                 outfits={outfits}
+                clan={clan}
               />
 
               <Wardrobe name={name} outfits={outfits} interactive={outfitLook !== null} />
