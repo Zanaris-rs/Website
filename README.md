@@ -1600,7 +1600,9 @@ with:
 | `lib/chathead/wearables.json` | every wearable object by slot, and the design screen's colour swatches |
 
 The editor talks to an `OutfitStore` (`lib/chathead/outfit-store.ts`). On the
-site that is `/account/adventurer-log/outfits` over the `/api/outfits` routes
+site that is `/account/adventurer-log/character/outfit/<1-10>`, one slot per
+page, reached from Character › Look (where clicking an outfit wears it), over
+the `/api/outfits` routes
 and engine migration 12's functions (`lib/outfits/queries.ts`): `outfits`,
 `outfit_save`, `outfit_delete`, `outfit_set_default`, `outfit_import_look`
 (the look of the player's last save, which the login server keeps in
@@ -1670,9 +1672,11 @@ scrolls, as the game records them - mixed with the updates they post.
     14) with Delete and Block beside each - a blocked author's replies stay
     listed, dimmed, so the owner can see what a block hides.
 
-  It, `/account/adventurer-log/outfits` and the log itself link to each other
-  from their title boxes (`OwnerNav`). The Account Centre reaches them from
-  its "Your Adventurer" panel, beside "Account services".
+  It (titled "Log settings"), Character (`/account/adventurer-log/character`:
+  Look, Words and Sheet), Clan and the log itself link to each other from
+  their title boxes (`OwnerNav`). The old Outfits page redirects to Character.
+  The Account Centre reaches them from its "Your Adventurer" panel, beside
+  "Account services".
 - **Posting.** The owner posts updates; anyone signed in who is not muted,
   banned or blocked replies. Posts are plain text plus `[item:<debugname>]` and
   `[skill:<name>]`, which the composer's picker inserts

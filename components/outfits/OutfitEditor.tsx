@@ -1,39 +1,51 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useEffectEvent, useId, useRef, useState } from "react";
 
 import Chathead from "@/components/game/Chathead";
-import Figure from "@/components/game/Figure";
+import { useUnsavedGuard } from "@/components/site/useUnsavedGuard";
 import type { Look } from "@/lib/chathead/look";
 import type { OutfitStore, SavedOutfits } from "@/lib/chathead/outfit-store";
-import {
-  checkOutfit,
-  defaultLook,
-  kitChoices,
-  OUTFIT_NAME_MAX,
-  OUTFIT_SLOTS,
-  type Outfit,
-} from "@/lib/chathead/validate";
+import { checkOutfit, defaultLook, kitChoices, OUTFIT_NAME_MAX, type Outfit } from "@/lib/chathead/validate";
 import { swatchCss, wearables } from "@/lib/chathead/wearables";
 
 import ItemPicker from "./ItemPicker";
 import styles from "./Outfits.module.css";
+import TurnableFigure from "./TurnableFigure";
 import WornTab from "./WornTab";
 
 /**
- * Fashionscape: up to ten outfits, each a look — body, colours, and anything
- * the game lets you wear — with its chathead and its figure drawn live as you
- * change it. One outfit is the default, and its chathead is the player's
- * picture.
+ * Fashionscape: one outfit - a look: body, colours, and anything the game
+ * lets you wear - with its chathead and its figure drawn live as it changes.
+ * Which outfit is the page's (`/character/outfit/<n>`): Character › Look's
+ * grid is how a player moves between outfits, and wears one.
  *
  * The chathead shows the head, so only the hat, the hair and jaw, and the
- * hair and skin colours change it; the figure beside it is the whole body,
- * standing as the world shows it, and shows everything.
+ * hair and skin colours change it. The figure beside it is the whole body,
+ * and turns.
+ *
+ * Nothing here changes the page's height (`Outfits.module.css`): the panel
+ * beside the Worn Equipment tab is one size whatever it shows. Clicking a
+ * worn slot switches it to that slot's items, and picking an item keeps it
+ * open, marking the item worn.
+ *
+ * While a request is out, Save, Save and wear, Delete and Import are
+ * `aria-disabled` and ignore presses; `disabled` is only for what cannot be
+ * done at all (nothing to save, nothing saved to delete). Editing goes on:
+ * an edit made while a save is out stays, unsaved, rather than being
+ * replaced by what was saved.
  */
 
 const COLOUR_PARTS = ["Hair", "Torso", "Legs", "Feet", "Skin"] as const;
 /** Which colours the chathead shows: hair (and beard) and skin. */
 const HEAD_COLOURS = new Set([0, 4]);
+
+const PANELS = [
+  { key: "items", label: "Items" },
+  { key: "body", label: "Body" },
+  { key: "colours", label: "Colours" },
+] as const;
+type PanelKey = (typeof PANELS)[number]["key"];
 
 function fresh(slot: number): Outfit {
   return { name: `Outfit ${slot + 1}`, look: defaultLook(0) };
@@ -44,48 +56,57 @@ function withLook(outfit: Outfit, change: (look: Look) => Partial<Look>) {
 }
 
 export default function OutfitEditor({
+  slot,
   initial,
   store,
+  importOnLoad = false,
+  lookHref = null,
+  onChange,
 }: {
+  /** The slot edited, 0-9. */
+  slot: number;
   initial: SavedOutfits;
   store: OutfitStore;
+  /** Import the look from the game as the editor opens (Look's "Import your in-game look"). */
+  importOnLoad?: boolean;
+  /** Where "Look" in the heading goes; plain text without one. */
+  lookHref?: string | null;
+  /** Heard with the outfits as they are after each save, delete or wear. */
+  onChange?: (saved: SavedOutfits) => void;
 }) {
   const [saved, setSaved] = useState(initial);
-  const [slot, setSlot] = useState(initial.defaultSlot ?? 0);
-  const [draft, setDraft] = useState<Outfit>(
-    initial.outfits[initial.defaultSlot ?? 0] ?? fresh(initial.defaultSlot ?? 0),
-  );
+  const [draft, setDraft] = useState<Outfit>(() => initial.outfits[slot] ?? fresh(slot));
   const [dirty, setDirty] = useState(false);
+  const [panel, setPanel] = useState<PanelKey>("items");
   const [picking, setPicking] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
+  const ids = useId();
+  /** Counts edits, so a save that answers after another edit leaves that edit be. */
+  const edits = useRef(0);
+
+  useUnsavedGuard(dirty);
 
   const isSaved = saved.outfits[slot] !== null;
+  const wearing = saved.defaultSlot === slot;
   const check = checkOutfit(draft);
+  const title = draft.name.trim() || `Outfit ${slot + 1}`;
 
   /** Every change goes through the previous draft, so quick clicks add up. */
   function edit(change: (outfit: Outfit) => Outfit) {
+    edits.current += 1;
     setDraft(change);
     setDirty(true);
     setStatus(null);
   }
 
-  function open(next: number) {
-    if (next === slot) return;
-    if (dirty && !window.confirm("Discard the changes to this outfit?")) return;
-    setSlot(next);
-    setDraft(saved.outfits[next] ?? fresh(next));
-    setDirty(false);
-    setPicking(null);
-    setStatus(null);
-  }
-
-  async function run(action: () => Promise<SavedOutfits>, done: string) {
+  async function run(action: () => Promise<SavedOutfits>, done: string): Promise<SavedOutfits | null> {
     setBusy(true);
     setStatus(null);
     try {
       const next = await action();
       setSaved(next);
+      onChange?.(next);
       setStatus(done);
       return next;
     } catch (error) {
@@ -96,17 +117,27 @@ export default function OutfitEditor({
     }
   }
 
-  async function save() {
-    if (!check.ok) return;
-    const next = await run(() => store.save(slot, check.outfit), "Saved.");
-    if (next) {
-      setDraft(check.outfit);
+  async function save(): Promise<boolean> {
+    if (busy || !check.ok) return false;
+    const outfit = check.outfit;
+    const at = edits.current;
+    const next = await run(() => store.save(slot, outfit), "Saved.");
+    if (!next) return false;
+    if (edits.current === at) {
+      setDraft(outfit);
       setDirty(false);
     }
+    return true;
+  }
+
+  async function saveAndWear() {
+    if (busy || !check.ok) return;
+    if ((dirty || !isSaved) && !(await save())) return;
+    await run(() => store.setDefault(slot), "Saved. You're wearing it now.");
   }
 
   async function remove() {
-    if (!window.confirm(`Delete "${saved.outfits[slot]?.name}"?`)) return;
+    if (busy || !window.confirm(`Delete "${saved.outfits[slot]?.name}"?`)) return;
     const next = await run(() => store.remove(slot), "Deleted.");
     if (next) {
       setDraft(fresh(slot));
@@ -115,7 +146,7 @@ export default function OutfitEditor({
   }
 
   async function importLook() {
-    if (!store.importLook) return;
+    if (busy || !store.importLook) return;
     setBusy(true);
     setStatus(null);
     try {
@@ -124,9 +155,7 @@ export default function OutfitEditor({
         edit((outfit) => ({ ...outfit, look }));
         setStatus("Imported your look from your last save. Save to keep it.");
       } else {
-        setStatus(
-          "The game has not recorded your look yet. Log in, then log out, and try again.",
-        );
+        setStatus("The game has not recorded your look yet. Log in, then log out, and try again.");
       }
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Import failed.");
@@ -135,12 +164,29 @@ export default function OutfitEditor({
     }
   }
 
+  // "Import your in-game look" on the Look tab opens this with ?import=1:
+  // the imported look arrives as an unsaved draft. The query goes from the
+  // address first, so a reload opens the editor rather than a second import.
+  const importNow = useEffectEvent(() => {
+    void importLook();
+  });
+  useEffect(() => {
+    if (!importOnLoad) return;
+    let live = true;
+    queueMicrotask(() => {
+      if (!live) return;
+      window.history.replaceState(null, "", window.location.pathname);
+      importNow();
+    });
+    return () => {
+      live = false;
+    };
+  }, [importOnLoad]);
+
   function setGender(gender: number) {
     if (gender === draft.look.gender) return;
     // The design screen's own behaviour: a new body of the default kits.
-    edit((outfit) =>
-      withLook(outfit, () => ({ gender, kits: defaultLook(gender).kits })),
-    );
+    edit((outfit) => withLook(outfit, () => ({ gender, kits: defaultLook(gender).kits })));
   }
 
   function cycleKit(part: number, step: number) {
@@ -174,7 +220,11 @@ export default function OutfitEditor({
         return { worn };
       }),
     );
-    setPicking(null);
+  }
+
+  function pick(wornSlot: number) {
+    setPicking(wornSlot);
+    setPanel("items");
   }
 
   const kitRows = [
@@ -184,128 +234,131 @@ export default function OutfitEditor({
 
   return (
     <div className={styles.editor}>
-      <nav className={styles.slots} aria-label="Outfits">
-        {Array.from({ length: OUTFIT_SLOTS }, (_, i) => {
-          const outfit = saved.outfits[i];
-          return (
-            <button
-              key={i}
-              type="button"
-              className={outfit ? styles.slotTab : styles.slotTabEmpty}
-              aria-current={i === slot ? "true" : undefined}
-              aria-label={`Outfit ${i + 1}: ${outfit ? outfit.name : "empty"}${saved.defaultSlot === i ? ", your picture" : ""}`}
-              onClick={() => open(i)}
-              title={outfit ? outfit.name : "Empty"}
-            >
-              {saved.defaultSlot === i ? "★ " : ""}
-              {outfit ? outfit.name : `${i + 1}`}
-            </button>
-          );
-        })}
-      </nav>
+      <h2 className={styles.heading}>
+        {lookHref ? <a href={lookHref}>Look</a> : "Look"} › Editing {title}
+        {wearing ? <span className={styles.wearingBadge}>Wearing</span> : null}
+      </h2>
 
       <div className={styles.workbench}>
         <div className={styles.previews}>
           <figure className={styles.preview}>
-            <Chathead look={draft.look} label={`${draft.name}, chathead`} />
-            <figcaption>
-              {saved.defaultSlot === slot ? "Your picture" : "Chathead"}
-            </figcaption>
+            <Chathead look={draft.look} label={`${title}, chathead`} />
+            <figcaption>Chathead</figcaption>
           </figure>
           <figure className={styles.preview}>
-            <Figure look={draft.look} label={`${draft.name}, whole body`} />
-            <figcaption>Whole body</figcaption>
+            <TurnableFigure look={draft.look} label={`${title}, whole body`} />
+            <figcaption>Drag, or use ← →, to turn</figcaption>
           </figure>
         </div>
 
         <div className={styles.wornColumn}>
-          <WornTab
-            worn={draft.look.worn}
-            picking={picking}
-            onPick={(next) => setPicking(picking === next ? null : next)}
-          />
-          <p className={styles.hint}>Click a slot to wear something.</p>
+          <WornTab worn={draft.look.worn} picking={picking} onPick={pick} />
+          <p className={styles.hint}>Click a slot to choose what to wear.</p>
         </div>
 
-        <div className={styles.design}>
-          <fieldset className={styles.field}>
-            <legend>Body</legend>
-            <div className={styles.genders}>
-              {["Male", "Female"].map((label, gender) => (
-                <button
-                  key={label}
-                  type="button"
-                  aria-pressed={draft.look.gender === gender}
-                  onClick={() => setGender(gender)}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-            {kitRows.map(({ part, label }) => {
-              const choices = kitChoices(draft.look.gender, part);
-              const at = choices.indexOf(draft.look.kits[part]);
-              return (
-                <div key={part} className={styles.kitRow}>
-                  <button
-                    type="button"
-                    aria-label={`Previous ${label.toLowerCase()}`}
-                    onClick={() => cycleKit(part, -1)}
-                  >
-                    ‹
-                  </button>
-                  <span>
-                    {label} {at + 1} of {choices.length}
-                  </span>
-                  <button
-                    type="button"
-                    aria-label={`Next ${label.toLowerCase()}`}
-                    onClick={() => cycleKit(part, 1)}
-                  >
-                    ›
-                  </button>
-                </div>
-              );
-            })}
-          </fieldset>
-
-          <fieldset className={styles.field}>
-            <legend>Colours</legend>
-            {COLOUR_PARTS.map((label, part) => (
-              <div key={label} className={styles.colourRow}>
-                <span className={styles.colourLabel}>
-                  {label}
-                  {HEAD_COLOURS.has(part) ? "" : " *"}
-                </span>
-                <span className={styles.swatches}>
-                  {wearables.palettes[part].map((rgb, colour) => (
-                    <button
-                      key={colour}
-                      type="button"
-                      className={styles.swatch}
-                      style={{ background: swatchCss(rgb) }}
-                      aria-pressed={draft.look.colours[part] === colour}
-                      aria-label={`${label} colour ${colour + 1}`}
-                      onClick={() => setColour(part, colour)}
-                    />
-                  ))}
-                </span>
-              </div>
+        <div className={styles.panel}>
+          <div role="tablist" aria-label="Outfit" className={styles.panelTabs}>
+            {PANELS.map((entry) => (
+              <button
+                key={entry.key}
+                type="button"
+                role="tab"
+                id={`${ids}-${entry.key}`}
+                aria-selected={panel === entry.key}
+                aria-controls={`${ids}-panel`}
+                className={styles.panelTab}
+                onClick={() => setPanel(entry.key)}
+              >
+                {entry.label}
+              </button>
             ))}
-            <p className={styles.hint}>* not shown on the chathead</p>
-          </fieldset>
+          </div>
+          <div
+            role="tabpanel"
+            id={`${ids}-panel`}
+            aria-labelledby={`${ids}-${panel}`}
+            className={panel === "items" ? styles.panelItems : styles.panelBody}
+          >
+            {panel === "items" ? (
+              picking === null ? (
+                <p className={styles.empty}>Click a slot on the Worn Equipment tab to see what can be worn there.</p>
+              ) : (
+                <ItemPicker
+                  key={picking}
+                  slot={picking}
+                  worn={draft.look.worn[picking] ?? -1}
+                  onWear={(obj) => wear(picking, obj)}
+                />
+              )
+            ) : panel === "body" ? (
+              <>
+                <div className={styles.genders}>
+                  {["Male", "Female"].map((label, gender) => (
+                    <button
+                      key={label}
+                      type="button"
+                      aria-pressed={draft.look.gender === gender}
+                      onClick={() => setGender(gender)}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                {kitRows.map(({ part, label }) => {
+                  const choices = kitChoices(draft.look.gender, part);
+                  const at = choices.indexOf(draft.look.kits[part]);
+                  return (
+                    <div key={part} className={styles.kitRow}>
+                      <button
+                        type="button"
+                        aria-label={`Previous ${label.toLowerCase()}`}
+                        onClick={() => cycleKit(part, -1)}
+                      >
+                        ‹
+                      </button>
+                      <span>
+                        {label} {at + 1} of {choices.length}
+                      </span>
+                      <button
+                        type="button"
+                        aria-label={`Next ${label.toLowerCase()}`}
+                        onClick={() => cycleKit(part, 1)}
+                      >
+                        ›
+                      </button>
+                    </div>
+                  );
+                })}
+              </>
+            ) : (
+              <>
+                {COLOUR_PARTS.map((label, part) => (
+                  <div key={label} className={styles.colourRow}>
+                    <span className={styles.colourLabel}>
+                      {label}
+                      {HEAD_COLOURS.has(part) ? "" : " *"}
+                    </span>
+                    <span className={styles.swatches}>
+                      {wearables.palettes[part].map((rgb, colour) => (
+                        <button
+                          key={colour}
+                          type="button"
+                          className={styles.swatch}
+                          style={{ background: swatchCss(rgb) }}
+                          aria-pressed={draft.look.colours[part] === colour}
+                          aria-label={`${label} colour ${colour + 1}`}
+                          onClick={() => setColour(part, colour)}
+                        />
+                      ))}
+                    </span>
+                  </div>
+                ))}
+                <p className={styles.hint}>* not shown on the chathead</p>
+              </>
+            )}
+          </div>
         </div>
       </div>
-
-      {picking !== null ? (
-        <ItemPicker
-          key={picking}
-          slot={picking}
-          worn={draft.look.worn[picking] ?? -1}
-          onWear={(obj) => wear(picking, obj)}
-          onClose={() => setPicking(null)}
-        />
-      ) : null}
 
       <div className={styles.actions}>
         <label className={styles.name}>
@@ -322,30 +375,32 @@ export default function OutfitEditor({
         </label>
         <button
           type="button"
-          onClick={save}
-          disabled={busy || !check.ok || (!dirty && isSaved)}
+          onClick={() => void save()}
+          disabled={!check.ok || (!dirty && isSaved)}
+          aria-disabled={busy || undefined}
         >
           Save
         </button>
         <button
           type="button"
-          onClick={() => run(() => store.setDefault(slot), "This is now your picture.")}
-          disabled={busy || !isSaved || dirty || saved.defaultSlot === slot}
+          onClick={() => void saveAndWear()}
+          disabled={!check.ok || (!dirty && isSaved && wearing)}
+          aria-disabled={busy || undefined}
         >
-          Use as my picture
+          Save and wear
         </button>
-        <button type="button" onClick={remove} disabled={busy || !isSaved}>
+        <button type="button" onClick={() => void remove()} disabled={!isSaved} aria-disabled={busy || undefined}>
           Delete
         </button>
         {store.importLook ? (
-          <button type="button" onClick={importLook} disabled={busy}>
+          <button type="button" onClick={() => void importLook()} aria-disabled={busy || undefined}>
             Import from game
           </button>
         ) : null}
       </div>
 
       <p className={styles.status} role="status">
-        {!check.ok ? check.error : status}
+        {!check.ok ? check.error : (status ?? (dirty ? "You have unsaved changes." : ""))}
       </p>
     </div>
   );
