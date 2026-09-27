@@ -1,5 +1,5 @@
-import type { AnimTables } from "./anims.ts";
-import { type BodyTables, buildBody, FIGURE_CAMERA } from "./body.ts";
+import type { AnimTables, SeqClip } from "./anims.ts";
+import { type BodyTables, buildBody, FIGURE_CAMERA, type Pose } from "./body.ts";
 import type { Client, ClientModel } from "./client.ts";
 import { drawModel, type Frame } from "./draw.ts";
 import { buildHead, type HeadTables } from "./head.ts";
@@ -166,4 +166,59 @@ export function frameAt(
     at -= delays[i];
   }
   return null;
+}
+
+/**
+ * The frame a still shows of a seq of `frames` frames: the middle one - an
+ * emote at its height, a mood mid-word - its most telling frame. The Words
+ * tab's pickers draw thirteen emotes and fourteen moods at once, so each is
+ * one frame, not a clip.
+ */
+export function stillIndex(frames: number): number {
+  return frames > 0 ? Math.floor(frames / 2) : 0;
+}
+
+/** The pose an emote's still stands in: its middle frame, the hands emptied as the seq says. */
+export function stillPose(seq: SeqClip): Pose {
+  return { frame: seq.frames[stillIndex(seq.frames.length)], hideLeft: seq.hideLeft, hideRight: seq.hideRight };
+}
+
+/** The two frames a mood's still poses the head with: the middle one, and its second (-1 for none). */
+export function stillMoodFrames(seq: SeqClip): { first: number; second: number } {
+  const i = stillIndex(seq.frames.length);
+  return { first: seq.frames[i], second: seq.iframes[i] ?? -1 };
+}
+
+/**
+ * One still of a look acting out an emote (`stillPose`), drawn by `draw`
+ * as `emoteClip` draws each of its frames. No emote is the look standing.
+ */
+export function emoteStill(
+  client: Client,
+  bodyTables: BodyTables,
+  anims: AnimTables,
+  look: Look,
+  emote: Emote | null,
+  draw: (body: ClientModel) => Int32Array,
+): Int32Array | null {
+  const body = buildBody(client, bodyTables, look, emote ? stillPose(anims.emotes[emote]) : undefined);
+  return body ? draw(body) : null;
+}
+
+/**
+ * One still of a chathead in a mood: the middle frame of the mood's
+ * one-line seq (len1, the one a page of up to one line plays), posed and
+ * lit as `moodClip` poses each frame, at the dialogue camera.
+ */
+export function moodStill(
+  client: Client,
+  headTables: HeadTables,
+  anims: AnimTables,
+  look: Look,
+  mood: Mood,
+): Int32Array | null {
+  const head = buildHead(client, headTables, look);
+  if (!head) return null;
+  const { first, second } = stillMoodFrames(anims.moods[mood][0]);
+  return drawModel(client, animatedHead(client, head, first, second), headTables.frame);
 }

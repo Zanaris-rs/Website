@@ -29,18 +29,6 @@ export function typeHeadline<T extends { headline: string; colour: number; effec
   };
 }
 
-/** A page's textarea as dialogue lines: one per typed line, at most four. */
-export function pageLines(value: string): string[] {
-  return value.replace(/\r\n/g, "\n").split("\n").slice(0, PERSONA_LIMITS.lines);
-}
-
-/** The lines (by index) longer than a line may be once trimmed, as the save trims them. */
-export function longLines(lines: readonly string[]): number[] {
-  return lines.flatMap((line, index) =>
-    line.replace(/^[ \t]+|[ \t]+$/g, "").length > PERSONA_LIMITS.line ? [index] : [],
-  );
-}
-
 /** `list` with the item at `from` moved to `to`; unchanged past either end. */
 export function moved<T>(list: readonly T[], from: number, to: number): T[] {
   const next = [...list];
@@ -55,6 +43,21 @@ export function goalsWith(goals: readonly string[], index: number, value: string
   const next = Array.from({ length: PERSONA_LIMITS.goals }, (_, i) => (i === index ? value : goals[i] ?? ""));
   while (next.length > 0 && next[next.length - 1] === "") next.pop();
   return next;
+}
+
+/** A page's four line boxes with box `index` set; blank boxes at the end are dropped, down to one. */
+export function linesWith(lines: readonly string[], index: number, value: string): string[] {
+  if (index < 0 || index >= PERSONA_LIMITS.lines) return [...lines];
+  const next = Array.from({ length: PERSONA_LIMITS.lines }, (_, i) => (i === index ? value : lines[i] ?? ""));
+  while (next.length > 1 && next[next.length - 1] === "") next.pop();
+  return next;
+}
+
+/** How many of a page's lines will be saved: up to the last that is not blank. */
+export function usedLines(lines: readonly string[]): number {
+  let used = lines.length;
+  while (used > 0 && lines[used - 1].trim() === "") used--;
+  return used;
 }
 
 /** A persona with a draft in it, as the card draws it: blank goals are not saved, so not shown. */
@@ -135,4 +138,24 @@ export async function saveDraft<T>(
  */
 export function pageAfterRemove(removed: number, left: number): number | null {
   return left === 0 ? null : Math.min(removed, left - 1);
+}
+
+/**
+ * The page the stage plays once page `from` of `count` has moved to `to`:
+ * the one it was playing, wherever that went. A move past either end moves
+ * nothing (`moved`), so neither does this.
+ */
+export function followMove(current: number, count: number, from: number, to: number): number {
+  return moved([...Array(count).keys()], from, to).indexOf(current);
+}
+
+/**
+ * The page the stage plays once page `removed` has gone, leaving `left`:
+ * the one it was playing, one place up if an earlier page went; if it was
+ * the one removed, the page now in its place (`pageAfterRemove`); null when
+ * none are left.
+ */
+export function followRemove(current: number, removed: number, left: number): number | null {
+  if (current === removed) return pageAfterRemove(removed, left);
+  return current > removed ? current - 1 : current;
 }

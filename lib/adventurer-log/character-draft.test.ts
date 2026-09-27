@@ -3,16 +3,18 @@ import { describe, expect, it } from "vitest";
 import {
   BAD_FIELDS,
   draftDirty,
+  followMove,
+  followRemove,
   goalsWith,
-  longLines,
+  linesWith,
   moved,
   pageAfterRemove,
-  pageLines,
   previewPersona,
   SAVE_MESSAGES,
   saveDraft,
   saveStatusText,
   typeHeadline,
+  usedLines,
 } from "./character-draft";
 import { EMPTY_PERSONA } from "./persona";
 import { checkSheetInput, checkWordsInput, type SheetInput, type WordsInput } from "./persona-input";
@@ -35,20 +37,6 @@ describe("typeHeadline", () => {
   });
   it("reads the prefix as the client does", () => {
     expect(typeHeadline(draft, "green:red:hi")).toMatchObject({ headline: "red:hi", colour: 2, effect: 2 });
-  });
-});
-
-describe("pageLines", () => {
-  it("is one dialogue line per typed line, at most four", () => {
-    expect(pageLines("a\nb")).toEqual(["a", "b"]);
-    expect(pageLines("")).toEqual([""]);
-    expect(pageLines("1\r\n2\n3\n4\n5")).toEqual(["1", "2", "3", "4"]);
-  });
-});
-
-describe("longLines", () => {
-  it("names the lines over sixty characters, as saved (trimmed)", () => {
-    expect(longLines(["x".repeat(60), "x".repeat(61), ` ${"x".repeat(60)} `])).toEqual([1]);
   });
 });
 
@@ -159,5 +147,54 @@ describe("pageAfterRemove", () => {
     expect(pageAfterRemove(0, 1)).toBe(0);
     expect(pageAfterRemove(3, 3)).toBe(2);
     expect(pageAfterRemove(0, 0)).toBeNull();
+  });
+});
+
+describe("linesWith", () => {
+  it("sets one of the four boxes and drops blank boxes at the end, keeping one", () => {
+    expect(linesWith([""], 0, "Hi")).toEqual(["Hi"]);
+    expect(linesWith(["Hi"], 2, "x")).toEqual(["Hi", "", "x"]);
+    expect(linesWith(["Hi", "", "x"], 2, "")).toEqual(["Hi"]);
+    expect(linesWith(["Hi"], 0, "")).toEqual([""]);
+  });
+  it("ignores a box that is not one of the four", () => {
+    expect(linesWith(["Hi"], 4, "x")).toEqual(["Hi"]);
+    expect(linesWith(["Hi"], -1, "x")).toEqual(["Hi"]);
+  });
+});
+
+describe("usedLines", () => {
+  it("counts up to the last line that is not blank", () => {
+    expect(usedLines(["a", "", "b", " "])).toBe(3);
+    expect(usedLines(["", ""])).toBe(0);
+    expect(usedLines([])).toBe(0);
+  });
+});
+
+describe("followMove", () => {
+  it("follows the page the stage is playing when it moves, or when one moves past it", () => {
+    expect(followMove(0, 3, 0, 1)).toBe(1);
+    expect(followMove(1, 3, 0, 1)).toBe(0);
+    expect(followMove(2, 3, 2, 1)).toBe(1);
+    expect(followMove(1, 3, 2, 1)).toBe(2);
+  });
+  it("stays put when the move is elsewhere, or goes nowhere", () => {
+    expect(followMove(2, 3, 0, 1)).toBe(2);
+    expect(followMove(0, 3, 0, -1)).toBe(0);
+    expect(followMove(2, 3, 2, 3)).toBe(2);
+  });
+});
+
+describe("followRemove", () => {
+  it("follows the page the stage is playing when one before it goes", () => {
+    expect(followRemove(2, 0, 2)).toBe(1);
+  });
+  it("stays on the page when one after it goes", () => {
+    expect(followRemove(0, 1, 2)).toBe(0);
+  });
+  it("moves to the page in the removed one's place, else the one before, else none", () => {
+    expect(followRemove(1, 1, 2)).toBe(1);
+    expect(followRemove(2, 2, 2)).toBe(1);
+    expect(followRemove(0, 0, 0)).toBeNull();
   });
 });
