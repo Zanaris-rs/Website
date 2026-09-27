@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { emptyOutfits, firstEmptySlot, keepSame, memoryStore, type SavedOutfits } from "./outfit-store";
+import { emptyOutfits, firstEmptySlot, keepSame, memoryStore, sameOutfit, type SavedOutfits } from "./outfit-store";
 import { defaultLook, OUTFIT_SLOTS } from "./validate";
 
 const outfit = (name: string) => ({ name, look: defaultLook(0) });
@@ -76,5 +76,23 @@ describe("keepSame", () => {
     const kept = keepSame(before, after);
     expect(kept.outfits[0]).toBe(after.outfits[0]);
     expect(kept.outfits[1]).toBeNull();
+  });
+});
+
+describe("sameOutfit", () => {
+  it("is the same name and look, whatever the objects", () => {
+    expect(sameOutfit(outfit("a"), outfit("a"))).toBe(true);
+    expect(sameOutfit(null, null)).toBe(true);
+  });
+
+  it("is different for another name, another look, or nothing against something", () => {
+    expect(sameOutfit(outfit("a"), outfit("b"))).toBe(false);
+    expect(sameOutfit(outfit("a"), { name: "a", look: defaultLook(1) })).toBe(false);
+    const hat = outfit("a");
+    const worn = [...hat.look.worn];
+    worn[0] = 1163;
+    expect(sameOutfit(hat, { name: "a", look: { ...hat.look, worn } })).toBe(false);
+    expect(sameOutfit(outfit("a"), null)).toBe(false);
+    expect(sameOutfit(null, outfit("a"))).toBe(false);
   });
 });

@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect, useEffectEvent, useId, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useId, useState } from "react";
 
 import Chathead from "@/components/game/Chathead";
 import { useUnsavedGuard } from "@/components/site/useUnsavedGuard";
 import type { Look } from "@/lib/chathead/look";
-import type { OutfitStore, SavedOutfits } from "@/lib/chathead/outfit-store";
+import { type OutfitStore, sameOutfit, type SavedOutfits } from "@/lib/chathead/outfit-store";
 import { checkOutfit, defaultLook, kitChoices, OUTFIT_NAME_MAX, type Outfit } from "@/lib/chathead/validate";
 import { swatchCss, wearables } from "@/lib/chathead/wearables";
+import { type EditorStatus, editorStatusText } from "@/lib/outfits/editor-status";
 
 import ItemPicker from "./ItemPicker";
 import styles from "./Outfits.module.css";
@@ -29,11 +30,16 @@ import WornTab from "./WornTab";
  * worn slot switches it to that slot's items, and picking an item keeps it
  * open, marking the item worn.
  *
+ * The draft is unsaved (`dirty`) when it differs from the outfit saved in
+ * its slot - or, in an empty slot, from the fresh outfit it opened with - by
+ * value: picking an item and then the one before is no change.
+ *
  * While a request is out, Save, Save and wear, Delete and Import are
  * `aria-disabled` and ignore presses; `disabled` is only for what cannot be
  * done at all (nothing to save, nothing saved to delete). Editing goes on:
- * an edit made while a save is out stays, unsaved, rather than being
- * replaced by what was saved.
+ * an edit made while a save or a delete is out stays, unsaved, rather than
+ * being replaced by what was saved or by a fresh outfit, and the status
+ * line says it has changed since (`editorStatusText`).
  */
 
 const COLOUR_PARTS = ["Hair", "Torso", "Legs", "Feet", "Skin"] as const;
@@ -76,27 +82,23 @@ export default function OutfitEditor({
 }) {
   const [saved, setSaved] = useState(initial);
   const [draft, setDraft] = useState<Outfit>(() => initial.outfits[slot] ?? fresh(slot));
-  const [dirty, setDirty] = useState(false);
   const [panel, setPanel] = useState<PanelKey>("items");
   const [picking, setPicking] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
-  const [status, setStatus] = useState<string | null>(null);
+  const [status, setStatus] = useState<EditorStatus | null>(null);
   const ids = useId();
-  /** Counts edits, so a save that answers after another edit leaves that edit be. */
-  const edits = useRef(0);
-
-  useUnsavedGuard(dirty);
 
   const isSaved = saved.outfits[slot] !== null;
+  const dirty = !sameOutfit(draft, saved.outfits[slot] ?? fresh(slot));
+  useUnsavedGuard(dirty);
+
   const wearing = saved.defaultSlot === slot;
   const check = checkOutfit(draft);
   const title = draft.name.trim() || `Outfit ${slot + 1}`;
 
   /** Every change goes through the previous draft, so quick clicks add up. */
   function edit(change: (outfit: Outfit) => Outfit) {
-    edits.current += 1;
     setDraft(change);
-    setDirty(true);
     setStatus(null);
   }
 
@@ -107,10 +109,10 @@ export default function OutfitEditor({
       const next = await action();
       setSaved(next);
       onChange?.(next);
-      setStatus(done);
+      setStatus({ text: done, done: true });
       return next;
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Something went wrong.");
+      setStatus({ text: error instanceof Error ? error.message : "Something went wrong.", done: false });
       return null;
     } finally {
       setBusy(false);
@@ -119,14 +121,13 @@ export default function OutfitEditor({
 
   async function save(): Promise<boolean> {
     if (busy || !check.ok) return false;
+    const sent = draft;
     const outfit = check.outfit;
-    const at = edits.current;
     const next = await run(() => store.save(slot, outfit), "Saved.");
     if (!next) return false;
-    if (edits.current === at) {
-      setDraft(outfit);
-      setDirty(false);
-    }
+    // What was saved becomes the draft, unless the draft moved on meanwhile.
+    const kept = next.outfits[slot] ?? outfit;
+    setDraft((current) => (sameOutfit(current, sent) ? kept : current));
     return true;
   }
 
@@ -138,11 +139,10 @@ export default function OutfitEditor({
 
   async function remove() {
     if (busy || !window.confirm(`Delete "${saved.outfits[slot]?.name}"?`)) return;
+    const sent = draft;
     const next = await run(() => store.remove(slot), "Deleted.");
-    if (next) {
-      setDraft(fresh(slot));
-      setDirty(false);
-    }
+    // A fresh outfit takes the empty slot, unless the draft moved on meanwhile.
+    if (next) setDraft((current) => (sameOutfit(current, sent) ? fresh(slot) : current));
   }
 
   async function importLook() {
@@ -153,12 +153,15 @@ export default function OutfitEditor({
       const look = await store.importLook();
       if (look) {
         edit((outfit) => ({ ...outfit, look }));
-        setStatus("Imported your look from your last save. Save to keep it.");
+        setStatus({ text: "Imported your look from your last save. Save to keep it.", done: false });
       } else {
-        setStatus("The game has not recorded your look yet. Log in, then log out, and try again.");
+        setStatus({
+          text: "The game has not recorded your look yet. Log in, then log out, and try again.",
+          done: false,
+        });
       }
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Import failed.");
+      setStatus({ text: error instanceof Error ? error.message : "Import failed.", done: false });
     } finally {
       setBusy(false);
     }
@@ -400,7 +403,7 @@ export default function OutfitEditor({
       </div>
 
       <p className={styles.status} role="status">
-        {!check.ok ? check.error : (status ?? (dirty ? "You have unsaved changes." : ""))}
+        {editorStatusText({ checkError: check.ok ? null : check.error, status, dirty })}
       </p>
     </div>
   );

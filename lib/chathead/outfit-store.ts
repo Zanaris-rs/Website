@@ -71,6 +71,12 @@ export function firstEmptySlot(saved: SavedOutfits): number | null {
   return slot === -1 ? null : slot;
 }
 
+/** Two outfits (or empty slots) with the same name and the same look, whatever the objects. */
+export function sameOutfit(a: Outfit | null, b: Outfit | null): boolean {
+  if (a === null || b === null) return a === b;
+  return a.name === b.name && lookKey(a.look) === lookKey(b.look);
+}
+
 /**
  * The outfits a write answered with, keeping each one that did not change
  * as the object the page already had. Every write answers with all ten
@@ -83,9 +89,7 @@ export function keepSame(previous: SavedOutfits, next: SavedOutfits): SavedOutfi
     defaultSlot: next.defaultSlot,
     outfits: next.outfits.map((outfit, slot) => {
       const before = previous.outfits[slot];
-      return outfit && before && outfit.name === before.name && lookKey(outfit.look) === lookKey(before.look)
-        ? before
-        : outfit;
+      return outfit && before && sameOutfit(outfit, before) ? before : outfit;
     }),
   };
 }
