@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 
 import { checkText, REASON_MAX } from "@/lib/adventurer-log/format";
-import { type ReportKind, reportStatement } from "@/lib/adventurer-log/queries";
+import { type ReportKind, reportStatement, reportTargetId } from "@/lib/adventurer-log/queries";
 import { fail, readJson, runWrite, writer } from "@/lib/adventurer-log/route";
 import { INVALID_NAME, toSafeName } from "@/lib/base37";
 
@@ -32,8 +32,8 @@ export async function POST(request: NextRequest) {
     if (name === INVALID_NAME) return fail("not_found", 404);
     logName = name;
   } else {
-    if (!Number.isInteger(payload.id) || (payload.id as number) < 1) return fail("not_found", 404);
-    targetId = payload.id as number;
+    targetId = reportTargetId(payload.id);
+    if (targetId === null) return fail("not_found", 404);
   }
 
   const who = await writer(request, "report");

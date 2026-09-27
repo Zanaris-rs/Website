@@ -10,10 +10,14 @@ import { CSS_MAX } from "./format";
 const COMPONENTS = path.join(__dirname, "../../components");
 
 /**
- * Everything drawn inside `.al-root`, which is where an owner's classes
- * live. `game/ChatText.tsx` is not an adventurer-log component, but the card
- * uses it for overhead chat and its `al-chat`/`al-chat--c<n>`/`al-chat--e<n>`
- * classes land inside `.al-root` too.
+ * Every component drawn inside `.al-root`, which is where an owner's classes
+ * live, so the test can read the `al-` classes each one draws. Two are not
+ * adventurer-log components but are drawn on the log all the same:
+ * - `game/ChatText.tsx`, the card's overhead chat, draws its own
+ *   `al-chat`/`al-chat--c<n>`/`al-chat--e<n>` classes;
+ * - `clans/RankIcon.tsx`, the Clan row's rank icon, has no `al-` class of its
+ *   own (the card passes it `al-rank`), but its doc comment names `al-rank`,
+ *   which the outline has anyway.
  */
 const LOG_SOURCES = [
   "adventurer-log/LogView.tsx",
