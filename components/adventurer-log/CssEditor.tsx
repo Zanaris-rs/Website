@@ -39,9 +39,16 @@ const CLASSES: readonly [string, string][] = [
   [".al-side / .al-main", "the narrow and the wide column"],
   [".al-box, .al-box > h2", "every box, and its title bar"],
   [".al-header, .al-title, .al-chathead, .al-headline", "who you are"],
+  [".al-figure, .al-turn, .al-turn-left, .al-turn-right, .al-turn-hint", "your figure, and the turn buttons and hint under it"],
+  [".al-turn-said", "which way your figure faces after a turn: read aloud, never drawn"],
+  [".al-tryon, .al-tryon-back", "the line under your figure while a reader tries an outfit on"],
+  [".al-sheet, .al-sheet-row, .al-sheet--clan, .al-rank, .al-clan-link", "your character sheet; the clan row, its rank icon and its link"],
   [".al-stats, .al-skill", "the skills table (.al-skill--<category> for one)"],
   [".al-about", "about you"],
-  [".al-wardrobe, .al-outfits, .al-outfit, .al-outfit--default, .al-outfit-name", "your outfits (--default is your picture)"],
+  [
+    ".al-wardrobe, .al-wardrobe-hint, .al-outfits, .al-outfit, .al-outfit--default, .al-outfit--shown, .al-outfit-button, .al-outfit-name",
+    "your outfits (--default is the one you usually wear, --shown the one your figure has on now)",
+  ],
   [".al-timeline, .al-entries", "the timeline"],
   [".al-event, .al-event--level, --milestone, --quest, --drop, --clue, --random, --tutorial, --other", "an adventure, and by kind"],
   [".al-update, .al-update-body, .al-reply, .al-reply-body", "updates and replies"],
@@ -69,10 +76,10 @@ body {
   color: #ffcc00;
   text-shadow: 1px 1px 0 #000;
 }
-.al-name, .al-links a {
+.al-name, .al-links a, .al-clan-link, .al-tryon-back {
   color: #0033cc;
 }
-.al-time {
+.al-time, .al-sheet dt, .al-turn-hint, .al-wardrobe-hint {
   color: #996633;
 }
 .al-headline::before {

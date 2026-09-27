@@ -1241,14 +1241,8 @@ async function checkAdventurerLog(): Promise<void> {
     ["clan_notice_post", clanNoticePostStatement("__db_check__", "db check", "db check")],
     ["clan_notice_delete", clanNoticeDeleteStatement("__db_check__", 0)],
     // 017 widens adventure_report's kinds to 'clan', whose target is the
-    // clan's id. Written out: the site's ReportKind gains "clan" only in W7.
-    [
-      "adventure_report",
-      {
-        text: "select accounts.adventure_report($1, $2, $3, $4, $5) as result",
-        values: ["__db_check__", "clan", 0, null, "db check"],
-      },
-    ],
+    // clan's id: the site's own statement, as the clan page's Report sends it.
+    ["adventure_report", reportStatement("__db_check__", "clan", 0, null, "db check")],
   ];
   for (const [name, statement] of clanWrites) {
     const [row] = await query<{ result: unknown }>(statement.text, statement.values);
