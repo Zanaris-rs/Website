@@ -54,8 +54,9 @@ const OUTLINE = `<div class="al-root">                 <!-- the log; your CSS re
              .al-scene is 240×300 with the backdrop drawn in the canvas; you can frame it, not recolour it -->
         <div class="al-turn">                                   <!-- under the figure, in a scene or not -->
           <button class="al-turn-left" aria-label="Turn left"><svg></svg></button>
-          <span class="al-turn-hint">Drag to turn · click to emote</span>
+          <span class="al-turn-hint">Drag to turn · click to emote</span>   <!-- only where the figure can turn -->
           <button class="al-turn-right" aria-label="Turn right"><svg></svg></button>
+          <span class="al-turn-said" aria-live="polite">a little left</span>   <!-- hidden: tells a screen reader which way it faces after a turn -->
         </div>
         <!-- or, with no outfit (no figure to turn):<p class="al-chat-strip"><span class="al-chat … al-overhead al-headline"></span></p>,
              or with no words either: <div class="al-chathead"><canvas></canvas></div> -->

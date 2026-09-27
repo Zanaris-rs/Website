@@ -5,7 +5,7 @@ import { type KeyboardEvent, type PointerEvent, useRef, useState } from "react";
 import ChatText from "@/components/game/ChatText";
 import Figure from "@/components/game/Figure";
 import SceneFigure from "@/components/game/SceneFigure";
-import { nearestFacing, stepFacing } from "@/lib/chathead/facing";
+import { FACING_NAMES, nearestFacing, stepFacing } from "@/lib/chathead/facing";
 import type { Look } from "@/lib/chathead/look";
 import type { SceneSpot } from "@/lib/scenes/spots";
 
@@ -69,8 +69,10 @@ function TurnIcon({ right = false }: { right?: boolean }) {
  * and the click it ends with does not replay the emote - press the left or
  * right arrow on it, or use the buttons under it. In a scene it turns only
  * through the facings the spot proved (`turns`); where that is only the one
- * facing the camera, the buttons are disabled. An emote plays at the angle
- * the figure is turned to.
+ * facing the camera, the buttons are disabled and the hint is left out. An
+ * emote plays at the angle the figure is turned to. Once a reader turns it,
+ * a hidden polite live line (`al-turn-said`) says which way it now faces
+ * (`FACING_NAMES`), so a turn is heard as well as seen.
  */
 export default function CardFigure({
   name,
@@ -99,6 +101,16 @@ export default function CardFigure({
   const turns = scene?.turns ?? null;
   const facing = shown ? nearestFacing(stage.facing, shown.turns) : stage.facing;
   const canTurn = turns === null || turns.length > 1;
+  /** Set by the first turn by hand: until then the live line stays empty, so nothing is said on load. */
+  const [turned, setTurned] = useState(false);
+  const turnTo = (next: number) => {
+    if (next !== facing) setTurned(true);
+    stage.setFacing(next);
+  };
+  const turnBy = (delta: 1 | -1) => {
+    setTurned(true);
+    stage.turn(delta);
+  };
 
   const onPointerDown = (event: PointerEvent<HTMLButtonElement>) => {
     dragged.current = false;
@@ -113,7 +125,7 @@ export default function CardFigure({
     if (!now.moved && Math.abs(dx) <= DRAG_SLOP) return;
     now.moved = true;
     // Dragging right turns the figure's face toward your right: facing down.
-    stage.setFacing(stepFacing(now.facing, -Math.round(dx / DRAG_STEP), turns));
+    turnTo(stepFacing(now.facing, -Math.round(dx / DRAG_STEP), turns));
   };
   const onPointerEnd = (event: PointerEvent<HTMLButtonElement>) => {
     const now = drag.current;
@@ -132,10 +144,10 @@ export default function CardFigure({
     if (!canTurn) return;
     if (event.key === "ArrowLeft") {
       event.preventDefault();
-      stage.turn(1);
+      turnBy(1);
     } else if (event.key === "ArrowRight") {
       event.preventDefault();
-      stage.turn(-1);
+      turnBy(-1);
     }
   };
 
@@ -172,13 +184,18 @@ export default function CardFigure({
   );
   const controls = (
     <div className="al-turn">
-      <button type="button" className="al-turn-left" aria-label="Turn left" disabled={!canTurn} onClick={() => stage.turn(1)}>
+      <button type="button" className="al-turn-left" aria-label="Turn left" disabled={!canTurn} onClick={() => turnBy(1)}>
         <TurnIcon />
       </button>
-      <span className="al-turn-hint">{stage.emote ? <>Drag to turn &middot; click to emote</> : "Drag to turn"}</span>
-      <button type="button" className="al-turn-right" aria-label="Turn right" disabled={!canTurn} onClick={() => stage.turn(-1)}>
+      {canTurn ? (
+        <span className="al-turn-hint">{stage.emote ? <>Drag to turn &middot; click to emote</> : "Drag to turn"}</span>
+      ) : null}
+      <button type="button" className="al-turn-right" aria-label="Turn right" disabled={!canTurn} onClick={() => turnBy(-1)}>
         <TurnIcon right />
       </button>
+      <span className="al-turn-said" aria-live="polite">
+        {turned ? FACING_NAMES[facing] : ""}
+      </span>
     </div>
   );
 
