@@ -9,12 +9,12 @@ import type { Look } from "@/lib/chathead/look";
  * author are always the verified session's username, or null for nobody.
  */
 
-function asRecord(row: unknown, where: string): Record<string, unknown> {
+export function asRecord(row: unknown, where: string): Record<string, unknown> {
   if (typeof row !== "object" || row === null) throw new Error(`${where}: not a row`);
   return row as Record<string, unknown>;
 }
 
-function asIso(value: unknown, where: string): string {
+export function asIso(value: unknown, where: string): string {
   const date =
     value instanceof Date ? value : typeof value === "string" ? new Date(value) : null;
   if (!date || Number.isNaN(date.getTime())) {
@@ -23,17 +23,17 @@ function asIso(value: unknown, where: string): string {
   return date.toISOString();
 }
 
-function asInt(value: unknown, where: string): number {
+export function asInt(value: unknown, where: string): number {
   if (typeof value === "number" && Number.isInteger(value)) return value;
   throw new Error(`${where}: not a whole number: ${JSON.stringify(value)}`);
 }
 
-function asText(value: unknown, where: string): string {
+export function asText(value: unknown, where: string): string {
   if (typeof value === "string") return value;
   throw new Error(`${where}: not text: ${JSON.stringify(value)}`);
 }
 
-function asBool(value: unknown, where: string): boolean {
+export function asBool(value: unknown, where: string): boolean {
   if (typeof value === "boolean") return value;
   throw new Error(`${where}: not true or false: ${JSON.stringify(value)}`);
 }
@@ -44,7 +44,7 @@ function asTextArray(value: unknown, where: string): string[] {
   throw new Error(`${where}: not a list of text: ${JSON.stringify(value)}`);
 }
 
-function oneOf<T extends string>(allowed: readonly T[], raw: unknown, where: string): T {
+export function oneOf<T extends string>(allowed: readonly T[], raw: unknown, where: string): T {
   if (typeof raw === "string" && (allowed as readonly string[]).includes(raw)) {
     return raw as T;
   }
