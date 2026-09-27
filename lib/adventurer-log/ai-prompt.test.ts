@@ -9,9 +9,16 @@ import { CSS_MAX } from "./format";
 
 const COMPONENTS = path.join(__dirname, "../../components");
 
-/** Everything drawn inside `.al-root`, which is where an owner's classes live. */
+/**
+ * Everything drawn inside `.al-root`, which is where an owner's classes
+ * live. `game/ChatText.tsx` is not an adventurer-log component, but the card
+ * uses it for overhead chat and its `al-chat`/`al-chat--c<n>`/`al-chat--e<n>`
+ * classes land inside `.al-root` too.
+ */
 const LOG_SOURCES = [
   "adventurer-log/LogView.tsx",
+  "adventurer-log/Card.tsx",
+  "adventurer-log/CardFigure.tsx",
   "adventurer-log/Skills.tsx",
   "adventurer-log/Wardrobe.tsx",
   "adventurer-log/Timeline.tsx",
@@ -22,6 +29,7 @@ const LOG_SOURCES = [
   "adventurer-log/Composer.tsx",
   "adventurer-log/ReportButton.tsx",
   "adventurer-log/Records.tsx",
+  "game/ChatText.tsx",
 ];
 
 /**
