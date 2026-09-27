@@ -64,12 +64,15 @@ function TurnIcon({ right = false }: { right?: boolean }) {
  * ends with does not replay the emote - press the left or right arrow on it,
  * or use the buttons under it. In a scene it turns only through the facings
  * the spot proved (`turns`); where that is only the one facing the camera,
- * the buttons are disabled. An emote plays at the angle the figure is
- * turned to.
+ * the buttons are disabled and the hint is left out. An emote plays at the
+ * angle the figure is turned to. Once a reader turns it, a hidden polite
+ * live line (`al-turn-said`, the gesture's `said`) says which way it now
+ * faces, so a turn is heard as well as seen.
  *
  * A reader trying on an outfit from the Wardrobe (`PersonaStage`'s `tryOn`)
  * sees the figure wear it, turned as it was, and a line under the turn
- * buttons naming it, with "back to usual".
+ * buttons naming it, with "back to usual" - a polite live region, said as
+ * well as shown.
  */
 export default function CardFigure({
   name,
@@ -138,21 +141,33 @@ export default function CardFigure({
       <button type="button" className="al-turn-left" aria-label="Turn left" disabled={!gesture.canTurn} onClick={gesture.turnLeft}>
         <TurnIcon />
       </button>
-      <span className="al-turn-hint">{stage.emote ? <>Drag to turn &middot; click to emote</> : "Drag to turn"}</span>
+      {gesture.canTurn ? (
+        <span className="al-turn-hint">{stage.emote ? <>Drag to turn &middot; click to emote</> : "Drag to turn"}</span>
+      ) : null}
       <button type="button" className="al-turn-right" aria-label="Turn right" disabled={!gesture.canTurn} onClick={gesture.turnRight}>
         <TurnIcon right />
       </button>
+      <span className="al-turn-said" aria-live="polite">
+        {gesture.said}
+      </span>
     </div>
   );
-  const trial =
-    tryingName === null ? null : (
-      <p className="al-tryon">
-        Trying on {tryingName} &middot;{" "}
-        <button type="button" className="al-tryon-back" onClick={() => stage.setTryOn(null)}>
-          back to usual
-        </button>
-      </p>
-    );
+  // A polite live region, so a screen reader hears the try-on as well as a
+  // sighted reader sees it. It is always there, empty (and taking no room)
+  // until an outfit is tried on: a region only speaks for changes made after
+  // it is in the page.
+  const trial = (
+    <p className="al-tryon" aria-live="polite">
+      {tryingName === null ? null : (
+        <>
+          Trying on {tryingName} &middot;{" "}
+          <button type="button" className="al-tryon-back" onClick={() => stage.setTryOn(null)}>
+            back to usual
+          </button>
+        </>
+      )}
+    </p>
+  );
 
   return shown ? (
     <>

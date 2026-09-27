@@ -1113,6 +1113,35 @@ async function checkAdventurerLog(): Promise<void> {
     }
   }
 
+  // 17_adventure_clans made adventure_persona anew: `facing` in, `clan` and
+  // `playstyle` out. A name nobody has gives no rows, so the shape is read
+  // from the catalogue instead: a database still on 16 answers every call
+  // above, and would only fail later, in parsePersona, on a real log.
+  try {
+    const [shape] = await query<{ result: string | null }>(
+      "select pg_get_function_result('accounts.adventure_persona(text)'::regprocedure) as result",
+    );
+    const result = shape?.result ?? "";
+    // "TABLE(headline_colour integer, …, facing integer, …)": each column's
+    // name is the first word after "TABLE(" or ", ".
+    const columns = [...result.matchAll(/(?:^TABLE\(|, )([a-z_][a-z0-9_]*) /g)].map((match) => match[1]);
+    const wrong = [
+      ...(columns.includes("facing") ? [] : ["has no facing"]),
+      ...["clan", "playstyle"].filter((column) => columns.includes(column)).map((column) => `still has ${column}`),
+    ];
+    if (wrong.length === 0) {
+      console.log(`accounts.adventure_persona(text) returns ${columns.length} columns: facing, and no clan or playstyle (expected)`);
+    } else {
+      console.error(`FAIL: accounts.adventure_persona(text) ${wrong.join(" and ")}; it returns ${result || "nothing"}.`);
+      process.exitCode = 1;
+    }
+  } catch (error) {
+    console.error(
+      `FAIL: accounts.adventure_persona(text)'s result could not be read. ${error instanceof Error ? error.message : String(error)}`,
+    );
+    process.exitCode = 1;
+  }
+
   const writes: [string, { text: string; values: readonly unknown[] }][] = [
     ["adventure_log_save", logSaveStatement("__db_check__", "", "")],
     ["adventure_log_set_hidden", setHiddenStatement("__db_check__", 0)],
@@ -1241,14 +1270,8 @@ async function checkAdventurerLog(): Promise<void> {
     ["clan_notice_post", clanNoticePostStatement("__db_check__", "db check", "db check")],
     ["clan_notice_delete", clanNoticeDeleteStatement("__db_check__", 0)],
     // 017 widens adventure_report's kinds to 'clan', whose target is the
-    // clan's id. Written out: the site's ReportKind gains "clan" only in W7.
-    [
-      "adventure_report",
-      {
-        text: "select accounts.adventure_report($1, $2, $3, $4, $5) as result",
-        values: ["__db_check__", "clan", 0, null, "db check"],
-      },
-    ],
+    // clan's id: the site's own statement, as the clan page's Report sends it.
+    ["adventure_report", reportStatement("__db_check__", "clan", 0, null, "db check")],
   ];
   for (const [name, statement] of clanWrites) {
     const [row] = await query<{ result: unknown }>(statement.text, statement.values);

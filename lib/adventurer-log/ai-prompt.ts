@@ -54,10 +54,11 @@ const OUTLINE = `<div class="al-root">                 <!-- the log; your CSS re
              .al-scene is 240×300 with the backdrop drawn in the canvas; you can frame it, not recolour it -->
         <div class="al-turn">                                   <!-- under the figure, in a scene or not -->
           <button class="al-turn-left" aria-label="Turn left"><svg></svg></button>
-          <span class="al-turn-hint">Drag to turn · click to emote</span>
+          <span class="al-turn-hint">Drag to turn · click to emote</span>   <!-- only where the figure can turn -->
           <button class="al-turn-right" aria-label="Turn right"><svg></svg></button>
+          <span class="al-turn-said" aria-live="polite">a little left</span>   <!-- hidden: tells a screen reader which way it faces after a turn -->
         </div>
-        <p class="al-tryon">Trying on Rune &middot; <button class="al-tryon-back">back to usual</button></p>   <!-- only while a reader tries on an outfit from the Wardrobe -->
+        <p class="al-tryon" aria-live="polite">Trying on Rune &middot; <button class="al-tryon-back">back to usual</button></p>   <!-- empty, taking no room, until a reader tries on an outfit from the Wardrobe -->
         <!-- or, with no outfit (no figure to turn):<p class="al-chat-strip"><span class="al-chat … al-overhead al-headline"></span></p>,
              or with no words either: <div class="al-chathead"><canvas></canvas></div> -->
         <p class="al-examine">Examine text</p>
@@ -72,7 +73,7 @@ const OUTLINE = `<div class="al-root">                 <!-- the log; your CSS re
       <section class="al-wardrobe al-box">                   <!-- only with saved outfits -->
         <h2>Zezima's Wardrobe</h2>
         <div class="al-box-body">
-          <p class="al-wardrobe-hint">Click an outfit to see Zezima wear it.</p>
+          <p class="al-wardrobe-hint">Click an outfit to see Zezima wear it. Click it again, or the usual one, to go back.</p>
           <ul class="al-outfits">
             <li class="al-outfit al-outfit--default al-outfit--shown"><button class="al-outfit-button" aria-pressed="true"><canvas></canvas><span class="al-outfit-name">★ Outfit name</span></button></li> ...
           </ul>
