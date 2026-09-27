@@ -26,7 +26,9 @@
  *
  * And each spot proves the site can draw a figure into it, turned to each of
  * the sixteen facings, with the site's own function (`lib/scenes/draw.ts`):
- * see `shoot`.
+ * see `shoot`. It also proves a clan photo there, a row of figures added in
+ * one pass, against `lib/scenes/photo.ts`'s `drawPhoto`: see the end of
+ * `shoot`.
  */
 
 import "../chathead/browser-stub.ts";
@@ -44,10 +46,11 @@ import { type Client, type ClientModel, prepare } from "../../lib/chathead/clien
 import { FACINGS, sceneYaw } from "../../lib/chathead/facing.ts";
 import type { Look } from "../../lib/chathead/look.ts";
 import { drawAtEye } from "../../lib/scenes/draw.ts";
-import type { SceneSpot } from "../../lib/scenes/spots.ts";
+import { drawPhoto, PHOTO_COUNTS, PHOTO_SPACING } from "../../lib/scenes/photo.ts";
+import type { PhotoSlot, SceneSpot } from "../../lib/scenes/spots.ts";
 import FileCache from "../game-icons/cache.ts";
 import { GAME_FAR, TILES } from "./far.ts";
-import { figurePoses, LOOKS } from "./looks.ts";
+import { BULKY, figurePoses, LOOKS } from "./looks.ts";
 import type { SpotInput } from "./spots.ts";
 
 /** The card's scene frame (spec: "With a scene, the frame is 240x300"). */
@@ -68,6 +71,17 @@ const DRAWN = WIDTH + 1;
 
 type Jag = { read(name: string): Uint8Array | null };
 
+/** What `World` draws a sprite with: a built model, or a source that builds one as it is drawn. */
+type Drawable = Pick<ClientModel, "worldRender">;
+
+/**
+ * `ModelSource`, which `World` draws every sprite through. A player is one
+ * (`ClientPlayer`): it builds its body into the one scratch model the
+ * moment it is drawn, and `minY` is that body's, for the occlusion test.
+ */
+type Sitter = Drawable & { minY: number; getTempModel(): ClientModel | null };
+type ModelSourceClass = new () => Sitter;
+
 type Scene = {
   fillBaseLevel(level: number): void;
   addDynamic(
@@ -75,7 +89,7 @@ type Scene = {
     x: number,
     y: number,
     z: number,
-    model: ClientModel,
+    model: Drawable,
     typecode: number,
     yaw: number,
     padding: number,
@@ -192,6 +206,14 @@ export type Shot = {
   failures: Failure[];
   /** Each other facing left out of `spot.turns`, with the first composite that differed there. */
   dropped: Failure[];
+  /**
+   * The clan photo: the slots of the largest count (7, 5 or 3) whose proof
+   * was clean, and the hash of `drawPhoto` with the bulky look in all of
+   * them; null when none was.
+   */
+  photo: { slots: PhotoSlot[]; hash: string } | null;
+  /** Why each larger count was refused, for the build's log. */
+  photoTried: string[];
 };
 
 export type Studio = {
@@ -213,7 +235,7 @@ export async function openStudio(clientDir: string, engineDir: string, outDir: s
 
   // Pinned while the classes are first evaluated: ClientBuild rolls its
   // hue and lightness offsets as a static initialiser.
-  const { JagFile, Packet, Model, Pix3D, Pix2D, AnimFrame, LocType, FloType, SeqType, World, ClientBuild, CollisionMap, PixFont } =
+  const { JagFile, Packet, Model, Pix3D, Pix2D, AnimFrame, LocType, FloType, SeqType, World, ClientBuild, CollisionMap, PixFont, ModelSource } =
     await pinned(async () => ({
       JagFile: await client<new (src: Uint8Array) => Jag>("io/JagFile.ts"),
       Packet: await client<PacketClass>("io/Packet.ts"),
@@ -230,6 +252,7 @@ export async function openStudio(clientDir: string, engineDir: string, outDir: s
       ClientBuild: await client<ClientBuildClass>("client/ClientBuild.ts"),
       CollisionMap: await client<new () => Collision>("dash3d/CollisionMap.ts"),
       PixFont: await client<PixFontClass>("graphics/PixFont.ts"),
+      ModelSource: await client<ModelSourceClass>("dash3d/ModelSource.ts"),
     }));
   const source: Client = { Model, Pix3D, Pix2D, AnimFrame };
 
@@ -470,6 +493,20 @@ export async function openStudio(clientDir: string, engineDir: string, outDir: s
     return body;
   }
 
+  /**
+   * A figure the world builds as it reaches it, the way it draws a player:
+   * any number of these can stand in one pass, which the one scratch model
+   * `figure` returns cannot. `minY` is set to the body's own, as a player's
+   * is after its first frame, for `World`'s occlusion test
+   * (`spriteOccluded2`).
+   */
+  function sitter(look: Look): Sitter {
+    const sprite = new ModelSource();
+    sprite.minY = (figure(look) as unknown as { minY: number }).minY;
+    sprite.getTempModel = () => figure(look);
+    return sprite;
+  }
+
   // --- a shot ----------------------------------------------------------------
 
   /**
@@ -629,7 +666,98 @@ export async function openStudio(clientDir: string, engineDir: string, outDir: s
         throw new Error(`${input.key}: the figure is not in the frame; aim the camera at it`);
       }
 
-      return { spot, backdrop, samePass: reference.samePass, figureBox: box, proofs, failures, dropped, hashes };
+      // --- the clan photo --------------------------------------------------
+      //
+      // Slots for 7, then 5, then 3 in a row across the frame, centred on the
+      // figure's spot, PHOTO_SPACING apart along the camera's right. Screen x
+      // is `z * sin(yaw) + x * cos(yaw)` from the eye (Model.worldRender), so
+      // the camera's right is (cos yaw, sin yaw). Each slot stands on the
+      // ground and faces the way the figure does, toward the camera.
+      //
+      // A count is clean when the bulky look in every slot, added to the
+      // world in one pass, is the site's `drawPhoto` over the backdrop pixel
+      // for pixel, and no figure touches the frame's sides. The first clean
+      // count is the spot's photo.
+      //
+      // A known limit, accepted as the single figure's reference looks are:
+      // only that full row in the bulky look is proved. A clan with fewer
+      // sitters stands on its centred run, and members wear their own
+      // outfits; neither is proved as such.
+      const photoTried: string[] = [];
+      let photo: Shot["photo"] = null;
+      for (const count of PHOTO_COUNTS) {
+        const half = (count - 1) / 2;
+        const placed = Array.from({ length: count }, (_, i) => {
+          const along = (i - half) * PHOTO_SPACING;
+          const dx = (along * cosYaw) >> 16;
+          const dz = (along * sinYaw) >> 16;
+          const x = fx + dx;
+          const z = fz + dz;
+          const y = groundHeight(region.groundh, region.mapl, x, z, input.level);
+          const slot: PhotoSlot = { x: spot.figure.x + dx, y, z: spot.figure.z + dz, yaw: spot.figure.yaw };
+          return { local: { x, y, z }, slot };
+        });
+        if (placed.some(({ local }) => local.x < 0 || local.z < 0 || local.x >= SIZE * 128 || local.z >= SIZE * 128)) {
+          photoTried.push(`${count}: off the build area`);
+          continue;
+        }
+        // As the figure's own depth check: the site draws with the game's far clip.
+        const tooDeep = placed.some(({ local }) => {
+          const zPrime = ((local.z - eye.z) * cosYaw - (local.x - eye.x) * sinYaw) >> 16;
+          const depth = ((local.y - eye.y) * sinPitch + zPrime * cosPitch) >> 16;
+          return depth >= GAME_FAR;
+        });
+        if (tooDeep) {
+          photoTried.push(`${count}: past the game's far clip`);
+          continue;
+        }
+
+        // The game's picture: every one of them in the world at once.
+        const drawn = sky();
+        Pix2D.setPixels(drawn, DRAWN, HEIGHT);
+        Pix3D.setClipping(DRAWN, HEIGHT);
+        for (const { local, slot } of placed) {
+          region.world.addDynamic(input.level, local.x, local.y, local.z, sitter(BULKY), 0, slot.yaw, 60, false);
+        }
+        region.world.renderAll(eye.x, eye.y, eye.z, 3, input.yaw, input.pitch);
+        region.world.removeSprites();
+        const samePass = frame(drawn);
+
+        // The site's: drawPhoto, far to near over the backdrop.
+        const candidate: SceneSpot = { ...spot, photo: placed.map(({ slot }) => slot) };
+        const composite = drawPhoto(source, bodies, candidate, backdrop, placed.map(() => BULKY));
+
+        let differing = 0;
+        for (let i = 0; i < composite.length; i++) if (composite[i] !== samePass[i]) differing++;
+        if (differing > 0) {
+          photoTried.push(`${count}: ${differing} px differ`);
+          continue;
+        }
+        let edge = 0;
+        for (let y = 0; y < HEIGHT; y++) {
+          for (const x of [0, WIDTH - 1]) if (composite[x + y * WIDTH] !== backdrop[x + y * WIDTH]) edge++;
+        }
+        if (edge > 0) {
+          photoTried.push(`${count}: touches the frame's side (${edge} px)`);
+          continue;
+        }
+
+        photo = { slots: candidate.photo ?? [], hash: hash(composite) };
+        break;
+      }
+
+      return {
+        spot: photo ? { ...spot, photo: photo.slots } : spot,
+        backdrop,
+        samePass: reference.samePass,
+        figureBox: box,
+        proofs,
+        failures,
+        dropped,
+        hashes,
+        photo,
+        photoTried,
+      };
     });
   }
 
