@@ -1,4 +1,5 @@
 import { checkText } from "@/lib/adventurer-log/format";
+import { parseId } from "@/lib/messages/queries";
 
 import { isCrest } from "./crests";
 import { CLAN_LIMITS, clanNameOk, clanNameShapeOk } from "./names";
@@ -58,6 +59,20 @@ export function checkClanFields(raw: Record<string, unknown> | null, mode: "crea
   }
 
   return { ok: true, value: { name: name.value, motto: motto.value, crest, world, about } };
+}
+
+/**
+ * An answer to an invitation: `accept` must be a boolean. A `clanId` that is
+ * not a row id (0, -1, 1.5, past int4, text) is an invitation that cannot
+ * exist, the same answer as one that does not (`no_invite`), as the gz and
+ * pin routes read theirs (`parseId`): past int4, Postgres would refuse the
+ * call before the function ran, and the route would answer 503.
+ */
+export function checkAnswerInput(raw: Record<string, unknown> | null): Checked<{ clanId: number; accept: boolean }> {
+  if (!raw || typeof raw.accept !== "boolean") return BAD_REQUEST;
+  const clanId = typeof raw.clanId === "number" ? parseId(String(raw.clanId)) : null;
+  if (clanId === null) return { ok: false, error: "no_invite" };
+  return { ok: true, value: { clanId, accept: raw.accept } };
 }
 
 /** The Leader's four "Who can…" levels, each 0 (Leader only) to 6 (every member). */

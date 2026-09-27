@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { type ClanAction, CLAN_MESSAGES, clanMessages } from "./client";
+import { type ClanAction, CLAN_MESSAGES, clanFieldOf, clanMessages } from "./client";
 import { CLAN_WRITE_RESULTS, type ClanWriteResult } from "./queries";
 
 /**
@@ -69,6 +69,30 @@ describe("clanMessages", () => {
         expect(codes.has(code), `${action} ${code}`).toBe(true);
         if (sentence !== CLAN_MESSAGES[code]) expect(own.has(code), `${action} overrides ${code}`).toBe(true);
       }
+    }
+  });
+});
+
+describe("the crest and the world", () => {
+  it("say to pick again from the list, the only place a crest or world comes from", () => {
+    expect(CLAN_MESSAGES.bad_crest).toBe("That crest cannot be used: pick another from the list.");
+    expect(CLAN_MESSAGES.bad_world).toBe("That world is not on the list: pick one of the worlds, or None.");
+  });
+});
+
+describe("clanFieldOf", () => {
+  it("names the field of Start a clan or the Clan page that a refusal was about", () => {
+    expect(clanFieldOf("bad_name")).toBe("name");
+    expect(clanFieldOf("taken")).toBe("name");
+    expect(clanFieldOf("bad_motto")).toBe("motto");
+    expect(clanFieldOf("bad_crest")).toBe("crest");
+    expect(clanFieldOf("bad_world")).toBe("world");
+    expect(clanFieldOf("bad_about")).toBe("about");
+  });
+
+  it("names none for a refusal about the player, or a sentence from the route", () => {
+    for (const code of ["muted", "forbidden", "not_member", "unavailable", "The motto must be one line."]) {
+      expect(clanFieldOf(code), code).toBeNull();
     }
   });
 });

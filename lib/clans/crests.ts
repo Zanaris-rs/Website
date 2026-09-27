@@ -5,8 +5,9 @@ import { allItemIds, isNote } from "@/lib/items/objects";
 /**
  * A clan's crest: any item in the game, drawn on a shield (`Crest.tsx`).
  * Migration 17 only checks the range (0-65535); the site says which items
- * can be one - not a bank note, and with an icon to draw - with the same two
- * checks the post picker's search uses (`lib/adventurer-log/assets.ts`).
+ * can be one - a named item, not a bank note, and with an icon to draw - the
+ * post picker's two checks (`lib/adventurer-log/assets.ts`) over the search's
+ * own domain, so a route takes exactly what the picker can offer.
  *
  * Server-side only in practice: the item tables are big, so the browser
  * asks `/api/clans/crests` instead of loading this module.
@@ -72,8 +73,17 @@ export const CURATED_CRESTS: readonly number[] = [
 /** The most a search answers; the picker's grid scrolls past a few rows. */
 export const CREST_RESULTS = 48;
 
+/** Every item with a name: the domain the search runs over, built once. */
+let named: ReadonlySet<number> | null = null;
+
+/**
+ * An item the picker could offer: named (so a search can find it), not a
+ * note, and with an icon. A few placeholders have an icon and no name; no
+ * search shows them, so no route takes them either.
+ */
 export function isCrest(id: number): boolean {
-  return Number.isInteger(id) && id >= 0 && id <= 65535 && !isNote(id) && itemIconSrc(id) !== null;
+  named ??= new Set(allItemIds());
+  return named.has(id) && id <= 65535 && !isNote(id) && itemIconSrc(id) !== null;
 }
 
 export function crestName(id: number): string {

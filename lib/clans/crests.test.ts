@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { itemIconSrc } from "@/lib/items/icons";
-import { isNote } from "@/lib/items/objects";
+import { allItemIds, isNote } from "@/lib/items/objects";
 
 import { CREST_RESULTS, CURATED_CRESTS, crestName, isCrest, searchCrests } from "./crests";
 
@@ -20,11 +20,26 @@ describe("CURATED_CRESTS", () => {
 });
 
 describe("isCrest", () => {
-  it("is any item that is not a note and has an icon", () => {
+  it("is any named item that is not a note and has an icon", () => {
     expect(isCrest(1333)).toBe(true);
     expect(isCrest(1334)).toBe(false); // Rune scimitar (noted)
     expect(isCrest(798)).toBe(false); // an id the client draws as nothing
     for (const bad of [-1, 65536, 1.5, Number.NaN]) expect(isCrest(bad)).toBe(false);
+  });
+
+  it("refuses a placeholder with an icon but no name, which no search can offer", () => {
+    // Not in allItemIds(), so the picker never shows them, and a route must not take them.
+    for (const placeholder of [599, 3667]) {
+      expect(itemIconSrc(placeholder)).not.toBeNull();
+      expect(isCrest(placeholder)).toBe(false);
+    }
+  });
+
+  it("takes exactly the ids a search can offer: named, not a note, with an icon", () => {
+    const named = new Set(allItemIds());
+    for (let id = 0; id <= 4000; id++) {
+      expect(isCrest(id), String(id)).toBe(named.has(id) && !isNote(id) && itemIconSrc(id) !== null);
+    }
   });
 
   it("names a crest by its item", () => {

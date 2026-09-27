@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { checkClanFields, checkNoticeInput, checkPermsInput } from "./input";
+import { checkAnswerInput, checkClanFields, checkNoticeInput, checkPermsInput } from "./input";
 import { CLAN_WORLDS } from "./worlds";
 
 const GOOD = { name: "  Varrock Knights ", motto: " For the King! ", crest: 1333, world: null, about: " We guard Varrock.\n" };
@@ -27,6 +27,7 @@ describe("checkClanFields", () => {
     ["a name staff keep", { ...GOOD, name: "Clan 12" }, "bad_name"],
     ["a note for a crest", { ...GOOD, crest: 1334 }, "bad_crest"],
     ["an item with no icon", { ...GOOD, crest: 798 }, "bad_crest"],
+    ["a placeholder with an icon but no name", { ...GOOD, crest: 599 }, "bad_crest"],
     ["a crest that is text", { ...GOOD, crest: "1333" }, "bad_crest"],
     ["a world the site does not list", { ...GOOD, world: 255 }, "bad_world"],
   ])("refuses %s at the start with the database's own code", (_what, raw, error) => {
@@ -52,6 +53,34 @@ describe("checkClanFields", () => {
       ok: false,
       error: "About can be at most 600 characters.",
     });
+  });
+});
+
+describe("checkAnswerInput", () => {
+  it("takes a clan id and a yes or no", () => {
+    expect(checkAnswerInput({ clanId: 1, accept: true })).toEqual({ ok: true, value: { clanId: 1, accept: true } });
+    expect(checkAnswerInput({ clanId: 2147483647, accept: false })).toEqual({
+      ok: true,
+      value: { clanId: 2147483647, accept: false },
+    });
+  });
+
+  it("refuses a request with no yes or no as one it cannot read", () => {
+    expect(checkAnswerInput(null)).toEqual({ ok: false, error: "bad_request" });
+    expect(checkAnswerInput({ clanId: 1 })).toEqual({ ok: false, error: "bad_request" });
+    expect(checkAnswerInput({ clanId: 1, accept: "yes" })).toEqual({ ok: false, error: "bad_request" });
+  });
+
+  it.each([
+    ["zero", 0],
+    ["a negative id", -1],
+    ["a fraction", 1.5],
+    ["one past int4, which Postgres would refuse before the function runs", 2147483648],
+    ["a huge number", 1e21],
+    ["an id as text", "1"],
+    ["no id", undefined],
+  ])("reads %s as an invitation that is not there", (_what, clanId) => {
+    expect(checkAnswerInput({ clanId, accept: true })).toEqual({ ok: false, error: "no_invite" });
   });
 });
 

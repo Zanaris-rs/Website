@@ -32,8 +32,8 @@ export const CLAN_MESSAGES: Readonly<Record<string, string>> = {
   bad_name:
     'A clan\'s name is 1 to 20 letters, digits and single spaces, starting and ending with a letter or digit, and cannot look like "Clan 123".',
   bad_motto: "The motto is at most 80 characters, on one line.",
-  bad_crest: "Pick a crest: any item that is not a note.",
-  bad_world: "Pick one of the worlds, or none.",
+  bad_crest: "That crest cannot be used: pick another from the list.",
+  bad_world: "That world is not on the list: pick one of the worlds, or None.",
   bad_about: "About is at most 600 characters.",
   bad_perm: "Pick who can do each thing from the list.",
   bad_rank: "Pick a rank below your own.",
@@ -75,4 +75,24 @@ const OVERRIDES: Record<ClanAction, Readonly<Record<string, string>>> = {
 
 export function clanMessages(action: ClanAction): Readonly<Record<string, string>> {
   return { ...CLAN_MESSAGES, ...OVERRIDES[action] };
+}
+
+export type ClanField = "name" | "motto" | "crest" | "world" | "about";
+
+const FIELD_OF: Readonly<Record<string, ClanField>> = {
+  bad_name: "name",
+  taken: "name",
+  bad_motto: "motto",
+  bad_crest: "crest",
+  bad_world: "world",
+  bad_about: "about",
+};
+
+/**
+ * The field of "Start a clan" or the Clan page form that a refusal was
+ * about, for its `aria-invalid`; null for one about the player (muted,
+ * forbidden) or a route's own sentence.
+ */
+export function clanFieldOf(code: string): ClanField | null {
+  return Object.hasOwn(FIELD_OF, code) ? FIELD_OF[code] : null;
 }

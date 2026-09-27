@@ -27,6 +27,16 @@ export function isClanWorld(id: unknown): id is number {
   return CLAN_WORLDS.some((world) => world.id === id);
 }
 
+/**
+ * A stored world as the Clan page form holds it: itself when the site still
+ * lists it, else none. The page route takes only listed worlds, so a clan
+ * whose world was taken off the list saves as "None" rather than being
+ * refused with `bad_world` for a pick it never made.
+ */
+export function listedWorld(id: number | null): number | null {
+  return isClanWorld(id) ? id : null;
+}
+
 /** "World 2 (EU-Central)", or null for none or a world no longer listed. */
 export function clanWorldName(id: number | null): string | null {
   const world = CLAN_WORLDS.find((entry) => entry.id === id);
