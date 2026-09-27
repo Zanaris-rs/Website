@@ -12,8 +12,8 @@ import { query } from "@/lib/db";
  * top of their log, and the kinds of adventure it does not show (for
  * everyone, the owner included). Both or neither: they are one statement.
  * A mute refuses it, because the words are public text. The headline moved
- * to `/api/adventurer-log/persona`; this route no longer touches it (the
- * statement's headline argument is null, which keeps the stored one).
+ * to `/api/adventurer-log/persona/words`; this route no longer touches it
+ * (the statement's headline argument is null, which keeps the stored one).
  */
 
 export const runtime = "nodejs";

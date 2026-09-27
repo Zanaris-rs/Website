@@ -222,7 +222,7 @@ ${FENCE}
 
 - One column on a phone. From 900px wide there are two: \`.al-side\` is 280px on the left and \`.al-main\` takes the rest (a CSS grid on \`.al-page\`).
 - \`.al-chat--c<0-11>\` is the headline's colour and \`.al-chat--e<0-2>\` its effect. The colour is set by the page every frame, so a \`color\` rule won't stick.
-- \`.al-sheet--<home|hangout|god|clan|style|goals>\` is one row of the character sheet.
+- \`.al-sheet--<home|hangout|god|clan|goals>\` is one row of the character sheet.
 - \`.al-skill--<id>\` is one skill's row: ${skills}.
 - \`.al-event--<kind>\` is one kind of adventure: ${kinds}.
 - \`.al-record--<seconds>\` is one record length, shown only when I hold a place on it: ${durations}.

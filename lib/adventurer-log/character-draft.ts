@@ -2,20 +2,20 @@ import { CHAT_COLOUR_NAMES } from "@/lib/game-chat/effects";
 import { parseChatPrefix } from "@/lib/game-chat/prefix";
 
 import { type Persona, PERSONA_LIMITS } from "./persona";
-import type { PersonaInput } from "./persona-input";
+import type { SheetInput, StageInput, WordsInput } from "./persona-input";
 
 /**
- * The Character tab's draft, step by step: what typing, reordering and
- * saving do to it, kept out of the editor component so each can be tested.
+ * The Character tabs' drafts, step by step: what typing, reordering and
+ * saving do to them, kept out of the components so each can be tested.
  * Browser-safe: nothing here reaches the server.
  */
 
 /**
  * Typing into the headline. A prefix typed the in-game way (`glow1:wave:hi`)
- * moves into the colour and effect pickers, leaving the text; only what the
+ * moves into the colour and effect pickers, leaving the text. Only what the
  * prefix names changes, so `wave:` keeps the colour already picked.
  */
-export function typeHeadline(draft: PersonaInput, value: string): PersonaInput {
+export function typeHeadline<T extends { headline: string; colour: number; effect: number }>(draft: T, value: string): T {
   const found = parseChatPrefix(value);
   if (found.text === value) return { ...draft, headline: value };
   const prefix = value.slice(0, value.length - found.text.length);
@@ -57,32 +57,35 @@ export function goalsWith(goals: readonly string[], index: number, value: string
   return next;
 }
 
-/** The draft as the card draws it: blank goals are not saved, so not shown. */
-export function previewPersona(draft: PersonaInput): Persona {
-  return { ...draft, goals: draft.goals.filter((goal) => goal.trim() !== "") };
+/** A persona with a draft in it, as the card draws it: blank goals are not saved, so not shown. */
+export function previewPersona(persona: Persona): Persona {
+  return { ...persona, goals: persona.goals.filter((goal) => goal.trim() !== "") };
 }
 
-type Field = keyof PersonaInput;
+/** A field of any of the three tabs' drafts. */
+export type DraftField = keyof WordsInput | keyof SheetInput | keyof StageInput;
 
 /**
- * Which of the tab's fields each of migration 16's refusals is about, to
- * highlight them. `bad_key` is a home town, playstyle or scene key; the
- * database does not say which.
+ * Which fields each of migration 17's refusals is about, so they can be
+ * highlighted. `bad_key` is a home town or a scene key; the database does
+ * not say which. Each tab marks only the fields it has.
  */
-export const BAD_FIELDS: Readonly<Record<string, readonly Field[]>> = {
+export const BAD_FIELDS: Readonly<Record<string, readonly DraftField[]>> = {
   bad_headline: ["headline"],
+  bad_colour: ["colour"],
+  bad_effect: ["effect"],
+  bad_emote: ["signatureEmote", "dialogue"],
+  bad_dialogue: ["dialogue"],
   bad_title: ["title"],
   bad_examine: ["examine"],
   bad_hangout: ["hangout"],
-  bad_clan: ["clan"],
   bad_goals: ["goals"],
   bad_god: ["god"],
-  bad_key: ["homeTown", "playstyle", "scene"],
-  bad_emote: ["signatureEmote", "dialogue"],
-  bad_dialogue: ["dialogue"],
+  bad_key: ["homeTown", "scene"],
+  bad_facing: ["facing"],
 };
 
-/** The save's refusals as sentences, ahead of the log's shared ones (`send`). */
+/** The saves' refusals as sentences, ahead of the log's shared ones (`send`). */
 export const SAVE_MESSAGES: Readonly<Record<string, string>> = {
   muted: "You're muted, so you can change picks but not words.",
   ...Object.fromEntries(

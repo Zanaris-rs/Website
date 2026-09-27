@@ -11,9 +11,9 @@ import {
   typeHeadline,
 } from "./character-draft";
 import { EMPTY_PERSONA } from "./persona";
-import type { PersonaInput } from "./persona-input";
+import type { WordsInput } from "./persona-input";
 
-const draft: PersonaInput = { ...EMPTY_PERSONA, headline: "", colour: 3, effect: 2 };
+const draft: WordsInput = { headline: "", colour: 3, effect: 2, signatureEmote: null, dialogue: [] };
 
 describe("typeHeadline", () => {
   it("moves a typed prefix into the pickers and keeps the text", () => {
@@ -69,7 +69,7 @@ describe("goalsWith", () => {
 
 describe("previewPersona", () => {
   it("shows only the goals that will be saved", () => {
-    expect(previewPersona({ ...draft, goals: ["a", " ", "c"] }).goals).toEqual(["a", "c"]);
+    expect(previewPersona({ ...EMPTY_PERSONA, goals: ["a", " ", "c"] }).goals).toEqual(["a", "c"]);
   });
 });
 
@@ -80,12 +80,13 @@ describe("the save's refusals", () => {
       expect(SAVE_MESSAGES[code]).toBe("Something didn't save; check the highlighted field.");
     }
   });
-  it("cover every bad_ answer migration 16's save gives", () => {
+  it("cover every bad_ answer the three persona writers give", () => {
     expect(Object.keys(BAD_FIELDS).sort()).toEqual(
       [
-        "bad_headline", "bad_title", "bad_examine", "bad_hangout", "bad_clan", "bad_goals",
-        "bad_god", "bad_key", "bad_emote", "bad_dialogue",
+        "bad_headline", "bad_colour", "bad_effect", "bad_emote", "bad_dialogue",
+        "bad_title", "bad_examine", "bad_hangout", "bad_goals", "bad_god", "bad_key", "bad_facing",
       ].sort(),
     );
+    expect(BAD_FIELDS).not.toHaveProperty("bad_clan");
   });
 });
