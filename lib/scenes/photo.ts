@@ -2,6 +2,7 @@ import { type BodyTables, buildBody } from "../chathead/body.ts";
 import type { Client } from "../chathead/client.ts";
 import type { Look } from "../chathead/look.ts";
 import { type Rank, rankLevel } from "../clans/ranks.ts";
+import { renderAtEye, sceneCanvas } from "./draw.ts";
 import { type PhotoSlot, type SceneSpot, sceneOf } from "./spots.ts";
 
 /**
@@ -109,8 +110,8 @@ export function farToNear(spot: SceneSpot, slots: readonly PhotoSlot[]): number[
  * The photo: `looks`, left to right, each built and drawn by the game
  * client's own `Model.worldRender` from the spot's eye into one copy of the
  * backdrop, far to near, as `drawAtEye` draws the card's figure
- * (World.ts:1476). A look with no body leaves its slot empty. The backdrop
- * is left as it was.
+ * (`renderAtEye`, World.ts:1476). A look with no body leaves its slot empty.
+ * The backdrop is left as it was.
  */
 export function drawPhoto(
   client: Client,
@@ -119,30 +120,12 @@ export function drawPhoto(
   backdrop: Int32Array,
   looks: readonly Look[],
 ): Int32Array {
-  if (backdrop.length !== spot.width * spot.height) {
-    throw new Error(`${spot.key}: the backdrop is not ${spot.width}x${spot.height}`);
-  }
+  const pixels = sceneCanvas(client, spot, backdrop);
   const slots = photoSlots(spot, looks.length);
-  const pixels = backdrop.slice();
-  const { eye } = spot;
-  const { sinTable, cosTable } = client.Pix3D;
   for (const i of farToNear(spot, slots)) {
+    // Building a body draws nothing, so the picture stays the canvas.
     const body = buildBody(client, tables, looks[i]);
-    if (!body) continue;
-    client.Pix2D.setPixels(pixels, spot.width, spot.height);
-    client.Pix3D.setRenderClipping();
-    const slot = slots[i];
-    body.worldRender(
-      slot.yaw,
-      sinTable[eye.pitch],
-      cosTable[eye.pitch],
-      sinTable[eye.yaw],
-      cosTable[eye.yaw],
-      slot.x - eye.x,
-      slot.y - eye.y,
-      slot.z - eye.z,
-      0,
-    );
+    if (body) renderAtEye(client, body, spot, slots[i], slots[i].yaw);
   }
   return pixels;
 }
