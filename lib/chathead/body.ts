@@ -1,5 +1,6 @@
 import type { Client, ClientModel } from "./client.ts";
 import { type Camera, drawModel, type Frame } from "./draw.ts";
+import { plainYaw } from "./facing.ts";
 import { KIT, OBJ, type Look, toAppearance } from "./look.ts";
 
 /**
@@ -69,6 +70,19 @@ export type BodyTables = {
  * figure faces the same way as its chathead beside it.
  */
 export const FIGURE_CAMERA: Camera = { zoom: 650, xan: 150, yan: 166 };
+
+/** The figure's camera turned to a yaw: the one place a turned camera is made. */
+function cameraAt(yaw: number): Camera {
+  return { ...FIGURE_CAMERA, yan: yaw };
+}
+
+/**
+ * The plain figure's camera at a facing (`plainYaw`, facing.ts): a copy of
+ * `FIGURE_CAMERA` whose `yan` is turned, so facing 0 is the camera itself.
+ */
+export function plainCamera(facing: number): Camera {
+  return cameraAt(plainYaw(facing));
+}
 
 /** `IdkType.getModelNoCheck`: a kit's body models, joined and recoloured. */
 function kitBody(client: Client, tables: BodyTables, id: number): ClientModel | null {
@@ -220,5 +234,5 @@ export function renderFigure(
 ): Int32Array | null {
   const body = buildBody(client, tables, look);
   if (!body) return null;
-  return drawModel(client, body, frame, { ...FIGURE_CAMERA, yan: yaw });
+  return drawModel(client, body, frame, cameraAt(yaw));
 }

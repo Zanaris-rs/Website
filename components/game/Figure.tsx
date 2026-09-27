@@ -35,9 +35,11 @@ function paint(canvas: HTMLCanvasElement | null, image: ImageData | null, x = 0,
  * reduced motion included: a replay asked for is played.
  *
  * With `facing` (`lib/chathead/facing.ts`) it is turned to that angle,
- * standing and acting alike, in the turn frame: wide enough for every
- * angle and centred on the figure's axis, so turning never moves it.
- * Without one it is the plain figure in its own frame, the picture the
+ * standing and acting alike, in the turn frame: centred on the figure's
+ * axis, so turning never moves it, and wide enough for every golden look
+ * standing at every angle. An emote with a long weapon - a staff, a spear -
+ * can still reach its edge at some angles, as some reach the plain frame's.
+ * Without a facing it is the plain figure in its own frame, the picture the
  * golden tests hold.
  *
  * As `<Chathead>`: the canvas is the frame's size from the first paint, so

@@ -4,10 +4,10 @@ import path from "node:path";
 
 import type { AnimTables } from "../../lib/chathead/anims.ts";
 import { encodeBodies } from "../../lib/chathead/bodies-file.ts";
-import { type BodyTables, buildBody, FIGURE_CAMERA } from "../../lib/chathead/body.ts";
+import { type BodyTables, buildBody, FIGURE_CAMERA, plainCamera } from "../../lib/chathead/body.ts";
 import type { Client, ClientModel } from "../../lib/chathead/client.ts";
-import { BACKGROUND, drawModel, type Frame } from "../../lib/chathead/draw.ts";
-import { FACINGS, plainYaw } from "../../lib/chathead/facing.ts";
+import { BACKGROUND, type Camera, drawModel, type Frame } from "../../lib/chathead/draw.ts";
+import { FACINGS } from "../../lib/chathead/facing.ts";
 import { type Look, toAppearance } from "../../lib/chathead/look.ts";
 import type FileCache from "../game-icons/cache.ts";
 import { figurePoses, LOOKS } from "../scenes/looks.ts";
@@ -114,6 +114,37 @@ const ANIM_ARCHIVE = 2;
 
 /** A box every figure fits in with room to spare, to measure them in. */
 const PROBE: Frame = { width: 400, height: 520, originX: 200, originY: 440 };
+
+/** Where pictures' pixels reach, relative to their frame's origin. */
+type Reach = { left: number; top: number; right: number; bottom: number };
+
+/**
+ * Grow `reach` to take in every pixel of a picture drawn in `PROBE`; a
+ * pixel on the probe's edge throws `edge`, since the figure may go on past it.
+ */
+function reachOf(reach: Reach, pixels: Int32Array, edge: string): void {
+  for (let y = 0; y < PROBE.height; y++) {
+    for (let x = 0; x < PROBE.width; x++) {
+      if (pixels[x + y * PROBE.width] === BACKGROUND) continue;
+      if (x === 0 || y === 0 || x === PROBE.width - 1 || y === PROBE.height - 1) {
+        throw new Error(edge);
+      }
+      reach.left = Math.min(reach.left, x - PROBE.originX);
+      reach.right = Math.max(reach.right, x - PROBE.originX);
+      reach.top = Math.min(reach.top, y - PROBE.originY);
+      reach.bottom = Math.max(reach.bottom, y - PROBE.originY);
+    }
+  }
+}
+
+/** A picture's hash as the golden tests take it; null for a blank one. */
+function hash(pixels: Int32Array): string | null {
+  if (pixels.every((rgb) => rgb === BACKGROUND)) return null;
+  return createHash("sha256")
+    .update(new Uint8Array(pixels.buffer))
+    .digest("hex")
+    .slice(0, 16);
+}
 
 export function exportBodies(input: BodyInputs) {
   const { source, IdkType, ObjType, SeqType, ClientPlayer, cache, wearpos } = input;
@@ -377,37 +408,24 @@ export function exportBodies(input: BodyInputs) {
     return player;
   }
 
-  /**
-   * The client's own figure for a look: `ClientPlayer.getTempModel2`, for a
-   * player standing still, drawn at the figure's camera.
-   */
-  function reference(entry: Look, frame: Frame): Int32Array {
+  /** The client's own body for a look: `ClientPlayer.getTempModel2`, for a player standing still. */
+  function clientBody(entry: Look): ClientModel {
     const body = standing(entry).getTempModel2();
     if (!body) throw new Error("the client built no body");
-    return drawModel(source, body, frame, FIGURE_CAMERA);
+    return body;
   }
 
-  type Extent = { left: number; top: number; right: number; bottom: number };
+  /**
+   * The client's own figure for a look, standing still, drawn at the
+   * figure's camera, or at `camera` (`plainCamera`: a turned figure's).
+   */
+  function reference(entry: Look, frame: Frame, camera: Camera = FIGURE_CAMERA): Int32Array {
+    return drawModel(source, clientBody(entry), frame, camera);
+  }
 
-  function measure(entry: Look): Extent | null {
-    const pixels = reference(entry, PROBE);
-    let extent: Extent | null = null;
-    for (let y = 0; y < PROBE.height; y++) {
-      for (let x = 0; x < PROBE.width; x++) {
-        if (pixels[x + y * PROBE.width] === BACKGROUND) continue;
-        if (x === 0 || y === 0 || x === PROBE.width - 1 || y === PROBE.height - 1) {
-          throw new Error("a figure reached the edge of the probe box; make it bigger");
-        }
-        const dx = x - PROBE.originX;
-        const dy = y - PROBE.originY;
-        extent ??= { left: dx, top: dy, right: dx, bottom: dy };
-        extent.left = Math.min(extent.left, dx);
-        extent.right = Math.max(extent.right, dx);
-        extent.top = Math.min(extent.top, dy);
-        extent.bottom = Math.max(extent.bottom, dy);
-      }
-    }
-    return extent;
+  /** Grow `reach` to take in a look's figure, as the client draws it. */
+  function measure(reach: Reach, entry: Look): void {
+    reachOf(reach, reference(entry, PROBE), "a figure reached the edge of the probe box; make it bigger");
   }
 
   /**
@@ -417,15 +435,8 @@ export function exportBodies(input: BodyInputs) {
    * pixels above the head, the widest (a square shield) 25 to its side — so
    * cutting the few that do would buy a frame barely smaller.
    */
-  const bounds: Extent = { left: 0, top: 0, right: 0, bottom: 0 };
-  for (const { look: entry } of golden) {
-    const extent = measure(entry);
-    if (!extent) continue;
-    bounds.left = Math.min(bounds.left, extent.left);
-    bounds.top = Math.min(bounds.top, extent.top);
-    bounds.right = Math.max(bounds.right, extent.right);
-    bounds.bottom = Math.max(bounds.bottom, extent.bottom);
-  }
+  const bounds: Reach = { left: 0, top: 0, right: 0, bottom: 0 };
+  for (const { look: entry } of golden) measure(bounds, entry);
 
   // A pixel of air on every side.
   const frame: Frame = {
@@ -435,13 +446,6 @@ export function exportBodies(input: BodyInputs) {
     originY: 1 - bounds.top,
   };
 
-  function hash(pixels: Int32Array): string | null {
-    if (pixels.every((rgb) => rgb === BACKGROUND)) return null;
-    return createHash("sha256")
-      .update(new Uint8Array(pixels.buffer))
-      .digest("hex")
-      .slice(0, 16);
-  }
   const goldenFile = golden.map(({ name, look: entry }) => ({
     name,
     look: entry,
@@ -506,35 +510,14 @@ export function exportBodies(input: BodyInputs) {
     /** The client's own player standing in a look, for `anims.ts` to play
      * an emote on for its reference pictures. */
     standing,
+    /** The client's own body for a look, standing, for `exportTurns` to turn. */
+    clientBody,
+    /** The client's own figure for a look at a camera, for `exportTurns`'s goldens. */
+    reference,
   };
 }
 
 // --- turning ----------------------------------------------------------------
-
-/** Where a picture's pixels reach, relative to its frame's origin. */
-type Reach = { left: number; top: number; right: number; bottom: number };
-
-/** Grow `reach` to take in every pixel of a picture drawn in `PROBE`. */
-function reachOf(reach: Reach, pixels: Int32Array): void {
-  for (let y = 0; y < PROBE.height; y++) {
-    for (let x = 0; x < PROBE.width; x++) {
-      if (pixels[x + y * PROBE.width] === BACKGROUND) continue;
-      if (x === 0 || y === 0 || x === PROBE.width - 1 || y === PROBE.height - 1) {
-        throw new Error("a turned figure reached the edge of the probe box; make PROBE bigger");
-      }
-      reach.left = Math.min(reach.left, x - PROBE.originX);
-      reach.right = Math.max(reach.right, x - PROBE.originX);
-      reach.top = Math.min(reach.top, y - PROBE.originY);
-      reach.bottom = Math.max(reach.bottom, y - PROBE.originY);
-    }
-  }
-}
-
-/** A picture's hash as the golden tests take it; null for a blank one. */
-function pictureHash(pixels: Int32Array): string | null {
-  if (pixels.every((rgb) => rgb === BACKGROUND)) return null;
-  return createHash("sha256").update(new Uint8Array(pixels.buffer)).digest("hex").slice(0, 16);
-}
 
 /** The facings `turn-golden.json` checks: a quarter turn apart. */
 const TURN_GOLDEN_FACINGS = [0, 4, 8, 12];
@@ -549,8 +532,10 @@ export type TurnInputs = {
   bodyTables: BodyTables;
   /** Every golden look (`exportBodies`). */
   looks: readonly { name: string; look: Look }[];
-  /** The client's own player standing in a look (`exportBodies`). */
-  standing(look: Look): StandingPlayer;
+  /** The client's own body for a look, standing (`exportBodies`). */
+  clientBody(look: Look): ClientModel;
+  /** The client's own figure for a look, drawn at a camera (`exportBodies`). */
+  reference(look: Look, frame: Frame, camera?: Camera): Int32Array;
   /** The emotes as `anims.json` has them (`exportAnims`): every frame a figure is posed in. */
   emotes: AnimTables["emotes"];
   /** `figure.json`'s version and frame, written again unchanged. */
@@ -586,22 +571,21 @@ export type TurnInputs = {
  * unpacked, so the emote frames can be posed.
  */
 export function exportTurns(input: TurnInputs) {
-  const { source, standing } = input;
-  const camera = (facing: number) => ({ ...FIGURE_CAMERA, yan: plainYaw(facing) });
+  const { source, clientBody, reference } = input;
 
   const reach: Reach = { left: 0, top: 0, right: 0, bottom: 0 };
   /** One built body drawn at every facing: drawing leaves the model as it was. */
   const everyFacing = (body: ClientModel) => {
     for (let facing = 0; facing < FACINGS; facing++) {
-      reachOf(reach, drawModel(source, body, PROBE, camera(facing)));
+      reachOf(
+        reach,
+        drawModel(source, body, PROBE, plainCamera(facing)),
+        "a turned figure reached the edge of the probe box; make PROBE bigger",
+      );
     }
   };
 
-  for (const { look } of input.looks) {
-    const body = standing(look).getTempModel2();
-    if (!body) throw new Error("the client built no body");
-    everyFacing(body);
-  }
+  for (const { look } of input.looks) everyFacing(clientBody(look));
 
   const poses = figurePoses(input.emotes);
   for (const { name, look } of LOOKS) {
@@ -624,11 +608,12 @@ export function exportTurns(input: TurnInputs) {
   // a quarter turn apart, as the client draws them.
   const named = input.looks.filter(({ name }) => !/^(kit|colour|obj) /.test(name));
   const golden = named.flatMap(({ name, look }) =>
-    TURN_GOLDEN_FACINGS.map((facing) => {
-      const body = standing(look).getTempModel2();
-      if (!body) throw new Error("the client built no body");
-      return { name, look, facing, hash: pictureHash(drawModel(source, body, turnFrame, camera(facing))) };
-    }),
+    TURN_GOLDEN_FACINGS.map((facing) => ({
+      name,
+      look,
+      facing,
+      hash: hash(reference(look, turnFrame, plainCamera(facing))),
+    })),
   );
 
   writeFileSync(

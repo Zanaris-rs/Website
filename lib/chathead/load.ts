@@ -4,10 +4,10 @@ import { type Clip, emoteClip, lineCount, moodClip } from "./animate.ts";
 import { decodeAnims, loadAnims } from "./anims-file.ts";
 import type { AnimTables } from "./anims.ts";
 import { decodeBodies, loadBodies } from "./bodies-file.ts";
-import { type BodyTables, FIGURE_CAMERA, renderFigure } from "./body.ts";
+import { type BodyTables, FIGURE_CAMERA, plainCamera, renderFigure } from "./body.ts";
 import { type Client, prepare } from "./client.ts";
 import { BACKGROUND, type Camera, drawModel, type Frame, renderChathead, toRgba } from "./draw.ts";
-import { plainYaw } from "./facing.ts";
+import { nearestFacing } from "./facing.ts";
 import figureJson from "./figure.json";
 import type { HeadTables } from "./head.ts";
 import tablesJson from "./heads.json";
@@ -40,10 +40,22 @@ export const tables = tablesJson as HeadTables;
 /**
  * The figure's frames and version; its tables load with `bodies.bin`. A
  * figure is drawn in `frame` at the one angle it has always had, or turned
- * in `turnFrame`, which every angle fits and which is centred on the
- * figure's axis.
+ * in `turnFrame`, which is centred on the figure's axis and holds every
+ * golden look standing at every angle (`exportTurns`,
+ * scripts/chathead/bodies.ts). An emote with a long weapon - a staff, a
+ * spear - can still reach its edge at some angles, as some reach the plain
+ * frame's.
  */
 export const figure = figureJson as { version: string; frame: Frame; turnFrame: Frame };
+
+/**
+ * A facing as a figure is drawn and kept by: 0-15, the way `plainYaw` reads
+ * it (`nearestFacing`: 17 is 1, -1 is 15), so one angle is one drawing; no
+ * facing stays none, the plain figure.
+ */
+function drawnFacing(facing: number | undefined): number | undefined {
+  return facing === undefined ? undefined : nearestFacing(facing);
+}
 
 /** The frame a figure is drawn in: the plain one with no facing, else the turn frame. */
 function figureFrame(facing: number | undefined): Frame {
@@ -52,7 +64,7 @@ function figureFrame(facing: number | undefined): Frame {
 
 /** The camera a figure is drawn from: the figure's own, turned to the facing when there is one. */
 function figureCamera(facing: number | undefined): Camera {
-  return facing === undefined ? FIGURE_CAMERA : { ...FIGURE_CAMERA, yan: plainYaw(facing) };
+  return facing === undefined ? FIGURE_CAMERA : plainCamera(facing);
 }
 
 const RENDERER_SRC = `/game/chathead/renderer.js?v=${tables.version}`;
@@ -229,17 +241,17 @@ export type Figures = {
 /** The figure renderer, loading it on first use. A failed load is retried. */
 export const loadFigures = once(async (): Promise<Figures> => {
   const { client, bodyTables } = await loadBodyTables();
+  const draw = drawnOnce(
+    (look: Look, facing: number | undefined) =>
+      facing === undefined ? lookKey(look) : `${lookKey(look)}/${facing}`,
+    (_look: Look, facing: number | undefined) => figureFrame(facing),
+    (look: Look, facing: number | undefined) =>
+      renderFigure(client, bodyTables, look, figureFrame(facing), figureCamera(facing).yan),
+  );
   return {
     frame: figure.frame,
     turnFrame: figure.turnFrame,
-    draw: drawnOnce(
-      (look: Look, facing?: number) => (facing === undefined ? lookKey(look) : `${lookKey(look)}/${facing}`),
-      (_look: Look, facing?: number) => figureFrame(facing),
-      (look: Look, facing?: number) =>
-        facing === undefined
-          ? renderFigure(client, bodyTables, look, figure.frame)
-          : renderFigure(client, bodyTables, look, figure.turnFrame, plainYaw(facing)),
-    ),
+    draw: (look, facing) => draw(look, drawnFacing(facing)),
   };
 });
 
@@ -353,19 +365,20 @@ export const loadFigureClips = once(async (): Promise<FigureClips> => {
     loadBodyTables(),
     loadAnimTables(),
   ]);
+  const emote = clipsOnce(
+    (look: Look, act: Emote, facing: number | undefined) =>
+      facing === undefined ? `${lookKey(look)}/${act}` : `${lookKey(look)}/${act}/${facing}`,
+    (_look: Look, _act: Emote, facing: number | undefined) => figureFrame(facing),
+    (look: Look, act: Emote, facing: number | undefined) => {
+      const frame = figureFrame(facing);
+      const camera = figureCamera(facing);
+      return emoteClip(client, bodyTables, anims, look, act, frame, (body) =>
+        drawModel(client, body, frame, camera),
+      );
+    },
+  );
   return {
-    emote: clipsOnce(
-      (look: Look, emote: Emote, facing?: number) =>
-        facing === undefined ? `${lookKey(look)}/${emote}` : `${lookKey(look)}/${emote}/${facing}`,
-      (_look: Look, _emote: Emote, facing?: number) => figureFrame(facing),
-      (look: Look, emote: Emote, facing?: number) => {
-        const frame = figureFrame(facing);
-        const camera = figureCamera(facing);
-        return emoteClip(client, bodyTables, anims, look, emote, frame, (body) =>
-          drawModel(client, body, frame, camera),
-        );
-      },
-    ),
+    emote: (look, act, facing) => emote(look, act, drawnFacing(facing)),
   };
 });
 

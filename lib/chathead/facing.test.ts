@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { FIGURE_CAMERA } from "./body";
+import { FIGURE_CAMERA, plainCamera } from "./body";
 import { FACING_NAMES, FACINGS, nearestFacing, plainYaw, sceneYaw, stepFacing } from "./facing";
 
 describe("facings", () => {
@@ -11,6 +11,14 @@ describe("facings", () => {
     expect(plainYaw(15)).toBe((166 + 15 * 128) & 2047);
     expect(plainYaw(16)).toBe(plainYaw(0));
     expect(plainYaw(-1)).toBe(plainYaw(15));
+  });
+
+  it("turn the plain figure's camera to a facing, facing 0 the camera itself", () => {
+    expect(plainCamera(0)).toEqual(FIGURE_CAMERA);
+    expect(plainCamera(4)).toEqual({ ...FIGURE_CAMERA, yan: plainYaw(4) });
+    expect(plainCamera(17)).toEqual(plainCamera(1));
+    expect(plainCamera(-1).yan).toBe(plainYaw(15));
+    expect(plainCamera(3)).not.toBe(FIGURE_CAMERA);
   });
 
   it("turn a scene's figure from the spot's own yaw", () => {
