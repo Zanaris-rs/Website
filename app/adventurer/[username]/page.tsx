@@ -8,7 +8,7 @@ import Panel from "@/components/site/Panel";
 import TitleBox from "@/components/site/TitleBox";
 import { readSession } from "@/lib/account/session-server";
 import { sanitizeCss } from "@/lib/adventurer-log/css";
-import { DIRECTORY_HREF } from "@/lib/adventurer-log/href";
+import { CHARACTER_HREF, CLAN_TAB_HREF, DIRECTORY_HREF, LOG_SETTINGS_HREF } from "@/lib/adventurer-log/href";
 import { nameFrom } from "@/lib/adventurer-log/name";
 import { loadLogPage, type LogPageData } from "@/lib/adventurer-log/page-data";
 import { toDisplayName } from "@/lib/base37";
@@ -99,9 +99,9 @@ export default async function AdventurerLog({ params, searchParams }: Params) {
     { href: DIRECTORY_HREF, text: "All Adventurer Logs" },
     ...(data.header.isOwner
       ? [
-          { href: "/account/adventurer-log", text: "Edit your log", br: true },
-          { href: "/account/adventurer-log/character", text: "Your character" },
-          { href: "/account/adventurer-log/outfits", text: "Outfits" },
+          { href: CHARACTER_HREF, text: "Character", br: true },
+          { href: CLAN_TAB_HREF, text: "Clan" },
+          { href: LOG_SETTINGS_HREF, text: "Log settings" },
         ]
       : []),
   ];

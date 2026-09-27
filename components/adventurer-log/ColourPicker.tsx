@@ -3,7 +3,7 @@
 import ChatText from "@/components/game/ChatText";
 import { CHAT_COLOUR_NAMES, CHAT_EFFECT_NAMES } from "@/lib/game-chat/effects";
 
-import styles from "./CharacterEditor.module.css";
+import styles from "./Character.module.css";
 
 const EFFECT_LABELS: Record<(typeof CHAT_EFFECT_NAMES)[number], string> = {
   none: "None",

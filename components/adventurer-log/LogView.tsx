@@ -9,6 +9,7 @@ import type { Filter } from "@/lib/adventurer-log/filters";
 import type { LogHeader } from "@/lib/adventurer-log/queries";
 import type { LogRecord } from "@/lib/adventurer-log/records";
 import type { PinnedView, TimelinePage } from "@/lib/adventurer-log/view";
+import { nearestFacing } from "@/lib/chathead/facing";
 import type { Look } from "@/lib/chathead/look";
 import type { PlayerSkill } from "@/lib/hiscores/api";
 import { sceneOf } from "@/lib/scenes/spots";
@@ -80,11 +81,9 @@ export default function LogView({
   // choice from being papered over by it (PersonaStage's `emote` fallback).
   const signatureEmote = persona.dialogue.length === 0 ? persona.signatureEmote : null;
   // The figure turns through the facings the owner's scene proved (all
-  // sixteen with no scene).
+  // sixteen with no scene), and opens facing the way the owner keeps (the
+  // Look tab's "Face this way"), or the nearest of those facings.
   const turns = sceneOf(persona.scene)?.turns ?? null;
-  // TASK 8 (W4): pass persona.facing here. Before migration 017 a persona has
-  // no facing, so every log opens facing you.
-  const initialFacing = 0;
   return (
     <>
       {bar ? <div className={styles.bar}>{bar}</div> : null}
@@ -93,7 +92,12 @@ export default function LogView({
             hoists only a <style> with href and precedence. Its text is the
             sanitiser's output, which has no "<" in it. */}
         {css ? <style>{css}</style> : null}
-        <PersonaStage pages={pages} signatureEmote={signatureEmote} initialFacing={initialFacing} turns={turns}>
+        <PersonaStage
+          pages={pages}
+          signatureEmote={signatureEmote}
+          initialFacing={nearestFacing(persona.facing, turns)}
+          turns={turns}
+        >
           <div className="al-page">
             <aside className="al-side">
               <Card

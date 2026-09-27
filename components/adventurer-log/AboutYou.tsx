@@ -5,6 +5,7 @@ import { useState } from "react";
 import { ADVENTURE_CATEGORIES, isHidden } from "@/lib/adventurer-log/categories";
 import { send } from "@/lib/adventurer-log/client";
 import { ABOUT_MAX, PUBLIC_DELAY_MINUTES } from "@/lib/adventurer-log/format";
+import { WORDS_HREF } from "@/lib/adventurer-log/href";
 
 import styles from "./Settings.module.css";
 
@@ -14,8 +15,8 @@ type About = { about: string; hidden: number };
  * The settings page's "About you" box: what the log says about its owner,
  * and which kinds of adventure it shows. Nothing is saved until Save, which
  * sends both at once (`/api/adventurer-log/about`), so the page and the log
- * never disagree about half of them. The headline is on the Character tab
- * now (`/account/adventurer-log/character`).
+ * never disagree about half of them. The headline is on the Character › Words
+ * tab now (`/account/adventurer-log/character/words`).
  */
 export default function AboutYou({ initial }: { initial: About }) {
   const [saved, setSaved] = useState(initial);
@@ -58,7 +59,7 @@ export default function AboutYou({ initial }: { initial: About }) {
 
   return (
     <form onSubmit={save} className={styles.form}>
-      <p className={styles.hint}>Your headline is now on the Your character tab.</p>
+      <p className={styles.hint}>Your headline is on <a href={WORDS_HREF}>Character › Words</a>.</p>
       <label>
         About <span className={styles.count}>{draft.about.length}/{ABOUT_MAX}</span>
         <textarea

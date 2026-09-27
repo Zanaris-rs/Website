@@ -60,6 +60,14 @@ const nextConfig: NextConfig = {
         destination: "/adventurer/:username",
         permanent: true,
       },
+      {
+        // Sprint 5 folded the Outfits page into Character › Look (clicking
+        // an outfit there wears it); the editor itself moved to
+        // /account/adventurer-log/character/outfit/<1-10>.
+        source: "/account/adventurer-log/outfits",
+        destination: "/account/adventurer-log/character",
+        permanent: true,
+      },
     ];
   },
 
@@ -237,19 +245,29 @@ const nextConfig: NextConfig = {
           },
         ],
       },
-      {
-        // The Character tab draws the log's own card and dialogue box, with
-        // the owner's words in them, so it takes the log's policy - and,
-        // for the same reason as the entry above, repeats the account pages'
-        // frame-ancestors, which this entry would otherwise replace.
-        source: "/account/adventurer-log/character",
+      // Character (Look, Words, Sheet and the outfit editor under
+      // /character/outfit/<n>) draws the log's own card and dialogue box,
+      // with the owner's words in them, so it takes the log's policy; the
+      // Clan tab draws the same chatheads and crests. Each exact path has
+      // its own entry, and the editor's dynamic path is covered by
+      // /character/:path*. Like the entry above, each repeats the account
+      // pages' frame-ancestors, which it would otherwise replace: the later
+      // entry wins.
+      ...[
+        "/account/adventurer-log/character",
+        "/account/adventurer-log/character/words",
+        "/account/adventurer-log/character/sheet",
+        "/account/adventurer-log/character/:path*",
+        "/account/adventurer-log/clan",
+      ].map((source) => ({
+        source,
         headers: [
           {
             key: "Content-Security-Policy",
             value: "frame-ancestors 'none'; img-src 'self'; font-src 'self'; style-src 'self' 'unsafe-inline'",
           },
         ],
-      },
+      })),
     ];
   },
 };

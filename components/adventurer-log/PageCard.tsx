@@ -6,7 +6,7 @@ import { longLines, pageLines } from "@/lib/adventurer-log/character-draft";
 import { type DialoguePage, PERSONA_LIMITS } from "@/lib/adventurer-log/persona";
 import { type Emote, EMOTE_NAMES, EMOTES, type Mood, MOOD_NAMES, MOODS } from "@/lib/chathead/vocab";
 
-import styles from "./CharacterEditor.module.css";
+import styles from "./Character.module.css";
 
 /**
  * One page of the dialogue: the mood the chathead talks in, the emote the

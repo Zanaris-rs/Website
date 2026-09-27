@@ -2,6 +2,7 @@ import Chathead from "@/components/game/Chathead";
 import ChatText from "@/components/game/ChatText";
 import { cardMode, sheetRows } from "@/lib/adventurer-log/card";
 import { formatMonth } from "@/lib/adventurer-log/format";
+import { CHARACTER_HREF } from "@/lib/adventurer-log/href";
 import type { Persona } from "@/lib/adventurer-log/persona";
 import type { WardrobeOutfit } from "@/lib/adventurer-log/wardrobe";
 import type { Look } from "@/lib/chathead/look";
@@ -96,7 +97,7 @@ export default function Card({
         {viewerIsOwner ? (
           <>
             {" - "}
-            <a href="/account/adventurer-log/character">Edit your character</a>
+            <a href={CHARACTER_HREF}>Edit your character</a>
           </>
         ) : null}
       </p>

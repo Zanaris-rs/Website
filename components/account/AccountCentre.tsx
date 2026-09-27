@@ -12,7 +12,7 @@ import frame from "@/components/site/Frame.module.css";
 import Panel from "@/components/site/Panel";
 import TitleBox from "@/components/site/TitleBox";
 import { colourClass } from "@/components/site/colour";
-import { DIRECTORY_HREF, logHref } from "@/lib/adventurer-log/href";
+import { CHARACTER_HREF, CLAN_TAB_HREF, DIRECTORY_HREF, LOG_SETTINGS_HREF, logHref } from "@/lib/adventurer-log/href";
 import type { Look } from "@/lib/chathead/look";
 import { formatCitizen } from "@/lib/invite/format";
 import type { Citizen } from "@/lib/invite/queries";
@@ -151,8 +151,8 @@ export default function AccountCentre({
       </Panel>
 
       {/* Two panels side by side (stacked on a phone): the account's own
-          services, and "Your Adventurer" - the log, its settings and the
-          outfits its picture comes from. Each panel sits in a column div so
+          services, and "Your Adventurer" - the log, the character, the clan
+          and the log's settings. Each panel sits in a column div so
           the two are not sibling panels, which would push the second down
           by the stack gap. */}
       <div className={styles.services}>
@@ -240,18 +240,18 @@ export default function AccountCentre({
                     </a>
                   </li>
                   <li>
-                    <a className={frame.link} href="/account/adventurer-log">
-                      Edit your log
-                    </a>
-                  </li>
-                  <li>
-                    <a className={frame.link} href="/account/adventurer-log/character">
+                    <a className={frame.link} href={CHARACTER_HREF}>
                       Your character
                     </a>
                   </li>
                   <li>
-                    <a className={frame.link} href="/account/adventurer-log/outfits">
-                      Outfits and your chathead
+                    <a className={frame.link} href={CLAN_TAB_HREF}>
+                      Your clan
+                    </a>
+                  </li>
+                  <li>
+                    <a className={frame.link} href={LOG_SETTINGS_HREF}>
+                      Log settings
                     </a>
                   </li>
                   <li>
