@@ -2,7 +2,15 @@ import { describe, expect, it } from "vitest";
 
 import type { Rank } from "@/lib/clans/ranks";
 
-import { farToNear, PHOTO_COUNTS, PHOTO_SPACING, photoOrder, photoSlots } from "./photo";
+import {
+  farToNear,
+  PHOTO_COUNTS,
+  PHOTO_FALLBACK,
+  PHOTO_SPACING,
+  photoOrder,
+  photoSitters,
+  photoSlots,
+} from "./photo";
 import { SCENES, type SceneSpot } from "./spots";
 
 const sitter = (name: string, rank: Rank) => ({ name, rank });
@@ -57,6 +65,38 @@ describe("photoSlots", () => {
   });
 });
 
+describe("photoSitters", () => {
+  const ranks: Rank[] = ["recruit", "corporal", "sergeant", "lieutenant", "captain", "general", "leader"];
+  const seven = ranks.map((rank) => sitter(rank, rank));
+  const three: SceneSpot = { ...base, photo: row.photo!.slice(2, 5) };
+
+  it("caps the sitters at the spot's own slot count, keeping the top ranks, the Leader in the middle", () => {
+    expect(photoSitters(three, seven).map((s) => s.name)).toEqual(["general", "leader", "captain"]);
+    expect(photoSitters(row, seven).map((s) => s.name)).toEqual([
+      "corporal",
+      "lieutenant",
+      "general",
+      "leader",
+      "captain",
+      "sergeant",
+      "recruit",
+    ]);
+  });
+
+  it("keeps the given order within a rank at the cap, and stands fewer than the slots on the centre run", () => {
+    const recruits = [sitter("l", "leader"), sitter("r1", "recruit"), sitter("r2", "recruit"), sitter("r3", "recruit")];
+    expect(photoSitters(three, recruits).map((s) => s.name)).toEqual(["r1", "l", "r2"]);
+    const two = photoSitters(three, [sitter("r", "recruit"), sitter("l", "leader")]);
+    expect(two.map((s) => s.name)).toEqual(["r", "l"]);
+    // The Leader stands on the 3-slot spot's centre slot.
+    expect(photoSlots(three, two.length)[1]).toEqual(three.photo![1]);
+  });
+
+  it("stands no one where there are no slots", () => {
+    expect(photoSitters({ ...base, photo: undefined }, seven)).toEqual([]);
+  });
+});
+
 describe("farToNear", () => {
   it("draws the outer slots first and the middle last, ties left first", () => {
     const facing: SceneSpot = { ...row, eye: { ...base.eye, x: 192, z: -1000 } };
@@ -64,7 +104,8 @@ describe("farToNear", () => {
   });
 });
 
-it("tries seven, then five, then three, half a tile apart", () => {
+it("tries seven, then five, then three, half a tile apart, and falls back to Varrock square", () => {
   expect(PHOTO_COUNTS).toEqual([7, 5, 3]);
   expect(PHOTO_SPACING).toBe(64);
+  expect(PHOTO_FALLBACK).toBe("varrock");
 });

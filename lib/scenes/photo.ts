@@ -5,16 +5,22 @@ import { type Rank, rankLevel } from "../clans/ranks.ts";
 import { type PhotoSlot, type SceneSpot, sceneOf } from "./spots.ts";
 
 /**
- * A clan photo: up to seven members in their worn outfits, standing in a row
- * in a scene. The top rank stands in the middle, on the figure's own spot,
- * and the others stand out to either side. There are no emotes, and it can't
- * be turned.
+ * A clan photo: as many members as the scene has slots for (7, 5 or 3), in
+ * their worn outfits, standing in a row in a scene. The top rank stands in
+ * the middle, on the figure's own spot, and the others stand out to either
+ * side. There are no emotes, and it can't be turned.
  *
  * The build proves each spot's slots (`scripts/scenes/render.ts`): the bulky
  * reference look in every slot, all added to the world in one pass, is
  * pixel for pixel what `drawPhoto` draws, one body after another, far to
  * near, onto the backdrop. A page draws with the same `drawPhoto`
  * (`ClanPhoto`), so what the build proved is what a reader sees.
+ *
+ * A known limit, accepted as the single figure's is: the proof is the full
+ * row in the bulky look. Fewer sitters (the centred run `photoSlots` picks)
+ * and other outfits are not proved as such. Each slot of a proved row is
+ * half a tile from the next, so bodies barely overlap, and a shorter run
+ * leaves out only outer slots.
  *
  * Relative imports with extensions: bun loads this file in the build.
  */
@@ -25,13 +31,30 @@ export const PHOTO_COUNTS = [7, 5, 3] as const;
 /** Half a tile between neighbours, along the camera's right. */
 export const PHOTO_SPACING = 64;
 
-/** Where a clan's photo is taken: the Leader's scene when it holds one, else Falador park. */
+/**
+ * Where a photo is taken when the Leader's scene holds none: Varrock square,
+ * whose row of 7 the build proves. The build fails unless this spot holds at
+ * least 5 (`scripts/scenes/build.ts`). Falador park proves only 3.
+ */
+export const PHOTO_FALLBACK = "varrock";
+
+/** Where a clan's photo is taken: the Leader's scene when it holds one, else `PHOTO_FALLBACK`. */
 export function photoSpot(leaderScene: string | null): SceneSpot {
   const own = sceneOf(leaderScene);
   if (own?.photo?.length) return own;
-  const park = sceneOf("falador");
-  if (!park?.photo?.length) throw new Error("falador has no clan photo slots: re-run npm run scenes:update");
-  return park;
+  const fallback = sceneOf(PHOTO_FALLBACK);
+  if (!fallback?.photo?.length) {
+    throw new Error(`${PHOTO_FALLBACK} has no clan photo slots: re-run npm run scenes:update`);
+  }
+  return fallback;
+}
+
+/** By rank, highest first; a rank keeps the order it was given. */
+function byRank<T extends { rank: Rank }>(members: readonly T[]): T[] {
+  return members
+    .map((member, index) => ({ member, index }))
+    .sort((a, b) => rankLevel(a.member.rank) - rankLevel(b.member.rank) || a.index - b.index)
+    .map(({ member }) => member);
 }
 
 /**
@@ -40,10 +63,7 @@ export function photoSpot(leaderScene: string | null): SceneSpot {
  * outward.
  */
 export function photoOrder<T extends { rank: Rank }>(members: readonly T[]): T[] {
-  const ranked = members
-    .map((member, index) => ({ member, index }))
-    .sort((a, b) => rankLevel(a.member.rank) - rankLevel(b.member.rank) || a.index - b.index)
-    .map(({ member }) => member);
+  const ranked = byRank(members);
   const placed = new Array<T>(ranked.length);
   const middle = Math.floor(ranked.length / 2);
   ranked.forEach((member, i) => {
@@ -51,6 +71,15 @@ export function photoOrder<T extends { rank: Rank }>(members: readonly T[]): T[]
     placed[middle + offset] = member;
   });
   return placed;
+}
+
+/**
+ * Who stands in the photo at `spot`, left to right: the highest-ranked
+ * members, as many as the spot has slots (a rank keeps the order it was
+ * given), placed by `photoOrder`. The rest of the roster is left out.
+ */
+export function photoSitters<T extends { rank: Rank }>(spot: SceneSpot, members: readonly T[]): T[] {
+  return photoOrder(byRank(members).slice(0, spot.photo?.length ?? 0));
 }
 
 /**
