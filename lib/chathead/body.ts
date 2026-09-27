@@ -133,9 +133,26 @@ export function stanceFrame(tables: BodyTables, look: Look): number {
 }
 
 /**
+ * One frame of a seq a standing player plays (an emote) in place of their
+ * stance: the frame id, and whether the seq empties either hand.
+ */
+export type Pose = { frame: number; hideLeft: boolean; hideRight: boolean };
+
+/**
  * The body the client draws a standing player with
  * (`ClientPlayer.getTempModel2`), lit and posed, or null when there is
  * nothing to draw.
+ *
+ * With no `pose` the player stands in their stance. With one they play it
+ * as their primary animation, as an emote plays. Their secondary animation
+ * is then their `readyanim`, which the client leaves out
+ * (`ClientPlayer.ts:433`), so the pose's frame is applied alone, with
+ * `animate`, never `maskAnimate` (`:551`). A seq's `replaceheldright`
+ * stands in for appearance slot 3 and its `replaceheldleft` for slot 5
+ * (`:441`, `:446`, `:498`, `:502`); in this game's seqs it is only ever 0,
+ * nothing, which is what `hideRight`/`hideLeft` say. The slots are emptied
+ * after the server's own hiding, as the client replaces them in the
+ * appearance it was sent.
  *
  * The result is the client's one scratch model (`Model.tempModel`), as it is
  * in the client: draw it before building another.
@@ -144,8 +161,11 @@ export function buildBody(
   client: Client,
   tables: BodyTables,
   look: Look,
+  pose?: Pose,
 ): ClientModel | null {
   const appearance = toAppearance(look, tables.hides);
+  if (pose?.hideRight) appearance[3] = 0;
+  if (pose?.hideLeft) appearance[5] = 0;
 
   const models: ClientModel[] = [];
   for (const value of appearance) {
@@ -176,7 +196,7 @@ export function buildBody(
   body.prepareAnim();
   body.calculateNormals(64, 850, -30, -50, -30, true);
 
-  const frame = stanceFrame(tables, look);
+  const frame = pose ? pose.frame : stanceFrame(tables, look);
   const posed = client.Model.tempModel;
   // Only "no frame" leaves the alpha shared (`AnimFrame.animateTransparencies`):
   // a frame may fade faces, so the copy gets alpha of its own.

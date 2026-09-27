@@ -17,13 +17,24 @@ export interface ClientModel {
   recolour(src: number, dst: number): void;
   /** Move every point; the arguments are y, x, z, in that order. */
   translate(y: number, x: number, z: number): void;
-  /** Group the points and faces by their animation labels. */
+  /**
+   * Group the points and faces by their animation labels. A chathead's copy
+   * is prepared before each animated draw (`IfType.ts:382`).
+   */
   prepareAnim(): void;
-  /** Pose the model with one `AnimFrame`, by frame id. */
+  /**
+   * Pose the model with one `AnimFrame`, by frame id; -1, or a frame not in
+   * the table, leaves it as it is. A chathead is posed with the seq's frame,
+   * then its `iframes` frame (`IfType.ts:386`, `:390`).
+   */
   animate(frame: number): void;
   /** Become a copy of `src` that an animation can move without moving it. */
   set(src: ClientModel, shareAlpha: boolean): void;
   calcBoundingCylinder(): void;
+  /**
+   * Light the model. A model component lights its copy last, after the
+   * animation (`IfType.ts:393`, `light()` in `draw.ts`).
+   */
   calculateNormals(
     ambient: number,
     contrast: number,
@@ -48,6 +59,22 @@ export interface ClientModelClass {
   unpack(id: number, src: Uint8Array | null): void;
   load(id: number): ClientModel | null;
   combineForAnim(models: (ClientModel | null)[], count: number): ClientModel;
+  /**
+   * A new model that an animation can move without moving `src`: its points
+   * copied unless `shareVertices`, its colours and alpha copied unless
+   * shared, the rest (faces, labels, textures) shared. A model component
+   * copies its model with it every time it draws an animated one
+   * (`IfType.getTempModel`, `IfType.ts:380`: colours shared, vertices not,
+   * alpha shared only when neither frame is set), then prepares, animates
+   * and lights the copy (`:382`, `:386`, `:390`, `:393`) with the members
+   * above.
+   */
+  copyForAnim(
+    src: ClientModel,
+    shareColours: boolean,
+    shareAlpha: boolean,
+    shareVertices: boolean,
+  ): ClientModel;
   /** The one scratch model the client animates players in. */
   tempModel: ClientModel;
 }
