@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { type ClanAction, CLAN_MESSAGES, clanFieldOf, clanMessages } from "./client";
+import { CLAN_LIMITS } from "./names";
 import { CLAN_WRITE_RESULTS, type ClanWriteResult } from "./queries";
 
 /**
@@ -34,6 +35,12 @@ describe("CLAN_MESSAGES", () => {
       if (result === "ok") continue;
       expect(CLAN_MESSAGES[result], result).toMatch(/^[A-Z].*\.$/);
     }
+  });
+
+  it("gives the member and invitation limits from CLAN_LIMITS", () => {
+    expect(CLAN_MESSAGES.full).toBe(`The clan is full: ${CLAN_LIMITS.members} members.`);
+    expect(CLAN_MESSAGES.too_many).toBe(`Your clan already has ${CLAN_LIMITS.invites} invitations waiting for an answer.`);
+    expect(clanMessages("answer").full).toBe(`That clan is full: ${CLAN_LIMITS.members} members.`);
   });
 
   it("reads not_found as the caller's own account: every write asks who is writing first", () => {

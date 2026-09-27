@@ -1241,7 +1241,9 @@ async function checkAdventurerLog(): Promise<void> {
     ["clan_notice_post", clanNoticePostStatement("__db_check__", "db check", "db check")],
     ["clan_notice_delete", clanNoticeDeleteStatement("__db_check__", 0)],
     // 017 widens adventure_report's kinds to 'clan', whose target is the
-    // clan's id. Written out: the site's ReportKind gains "clan" only in W7.
+    // clan's id. Written out: on this branch the site's ReportKind
+    // (lib/adventurer-log/queries.ts) has no "clan" yet, as nothing on the
+    // site reports a clan until the public clan page does.
     [
       "adventure_report",
       {
