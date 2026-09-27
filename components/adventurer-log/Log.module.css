@@ -148,6 +148,16 @@
   font-size: 11px;
 }
 
+/* Which way the figure faces after a turn: said to a screen reader, never drawn. */
+.root :global(.al-turn-said) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
 /* "Trying on <outfit> · back to usual", while a reader tries one on. */
 .root :global(.al-tryon) {
   margin: 6px 8px 0;
