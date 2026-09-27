@@ -2,6 +2,7 @@
 
 import { useRef } from "react";
 
+import { nearestFacing } from "@/lib/chathead/facing";
 import { loadScene, loadSceneClips, type Scene } from "@/lib/chathead/load";
 import type { Look } from "@/lib/chathead/look";
 import type { Emote } from "@/lib/chathead/vocab";
@@ -16,6 +17,13 @@ type Props = {
   emote?: Emote | null;
   /** Change it to act out `emote` once. */
   replay?: number;
+  /**
+   * Turn it this many steps from the spot's own angle, which faces the
+   * camera (`lib/chathead/facing.ts`); 0 unless given. Only the facings the
+   * build proved here (`spot.turns`) are drawn: any other draws as the
+   * nearest of them.
+   */
+  facing?: number;
   label?: string;
   className?: string;
   /**
@@ -30,8 +38,10 @@ type Props = {
  * A player's figure standing in a pre-rendered scene: the spot's backdrop,
  * with the figure drawn into it by the game client's own renderer from the
  * spot's eye (`lib/scenes/draw.ts`), as the game's `World` draws a player
- * on a tile. The build proved, for every spot, that this is the game's own
- * picture of the scene with the figure in it (`scripts/scenes/render.ts`).
+ * on a tile. Turned (`facing`), it stands at another angle the build proved
+ * clean at the spot. The build proved, for every spot, that this is the
+ * game's own picture of the scene with the figure in it
+ * (`scripts/scenes/render.ts`).
  *
  * As `<Figure>`, and through the same `useEmotePlayback`: only for a saved
  * outfit; it acts out `emote` once each time `replay` changes after it
@@ -66,18 +76,19 @@ function paint(
 /** A failed scene is logged once a page, however many spots fail after it. */
 let failureLogged = false;
 
-function SceneCanvas({ spot, look, emote = null, replay, label = "Figure", className, onFail }: Props) {
+function SceneCanvas({ spot, look, emote = null, replay, facing = 0, label = "Figure", className, onFail }: Props) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const backdrop = useRef<ImageData | null>(null);
   /** The scene the standing figure is drawn in, or null if it failed. */
   const loaded = useRef<Promise<Scene | null> | null>(null);
+  const turned = nearestFacing(facing, spot.turns);
 
   useEmotePlayback({
     canvas,
     look,
     emote,
     replay,
-    source: spot,
+    source: `${spot.key}/${turned}`,
     loadStanding: async () => {
       // A failure is answered here, not thrown: the caller swaps in the
       // plain figure, and one line in the console says why.
@@ -94,7 +105,7 @@ function SceneCanvas({ spot, look, emote = null, replay, label = "Figure", class
       if (!scene) return () => null;
       return (actor) => {
         backdrop.current = scene.backdrop;
-        const still = actor ? scene.stand(actor) : null;
+        const still = actor ? scene.stand(actor, turned) : null;
         return still && { image: still.frames[0], x: still.x, y: still.y };
       };
     },
@@ -107,7 +118,7 @@ function SceneCanvas({ spot, look, emote = null, replay, label = "Figure", class
       }
       const clips = await loading;
       return (actor, act) => {
-        const clip = clips.emote(actor, act);
+        const clip = clips.emote(actor, act, turned);
         if (clip) backdrop.current ??= clips.backdrop;
         return clip;
       };

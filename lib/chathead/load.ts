@@ -31,9 +31,10 @@ import type { Emote, Mood } from "./vocab.ts";
  * (`public/game/scenes`, `lib/scenes/draw.ts`), fetched when first shown.
  *
  * A figure can be turned (`facing`, `lib/chathead/facing.ts`): drawn at
- * another angle in the turn frame, standing or acting out an emote. Every
- * drawing is kept by look and angle, the most recently used few of each
- * kind (`recent`).
+ * another angle in the turn frame, or in its scene at an angle the spot
+ * proved (`spot.turns`), standing or acting out an emote. Every drawing is
+ * kept by look and angle, the most recently used few of each kind
+ * (`recent`).
  */
 
 export const tables = tablesJson as HeadTables;
@@ -113,8 +114,8 @@ async function fetchBytes(src: string): Promise<Uint8Array> {
  * forgotten past `limit`. Every drawing is kept this way: still chatheads
  * and figures (one per look, and per angle for a turned figure), emote and
  * mood clips (per look, emote or mood, line count and angle), and a scene's
- * per spot as well - a page shows a handful at once, and the character
- * editor lets its owner try every one.
+ * per spot and angle as well - a page shows a handful at once, and the
+ * character editor lets its owner try every one.
  */
 function recent<V>(limit: number) {
   const entries = new Map<string, V>();
@@ -408,11 +409,11 @@ function loadBackdrop(spot: SceneSpot): Promise<Backdrop> {
 
 /**
  * The last few figures drawn into scenes: a look standing, and a look
- * acting out an emote, at a spot. A log page shows one look at one spot:
- * standing and up to five page emotes. Null is kept too, for a look with
- * no body.
+ * acting out an emote, at a spot and an angle. A log page shows one look at
+ * one spot: standing at each angle it is turned to (up to sixteen), and up
+ * to five page emotes. Null is kept too, for a look with no body.
  */
-const sceneDraws = recent<ImageClip | null>(12);
+const sceneDraws = recent<ImageClip | null>(32);
 
 function sceneDraw(key: string, frame: Frame, backdrop: Int32Array, draw: () => Clip | null) {
   let clip = sceneDraws.get(key);
@@ -428,10 +429,12 @@ export type Scene = {
   /** The backdrop, to paint first; every figure frame is painted over it. */
   backdrop: ImageData;
   /**
-   * A look standing in the scene, as a one-frame clip cut to the box the
-   * figure changes; null if the look has no body.
+   * A look standing in the scene, turned `facing` steps from the spot's own
+   * angle (0 unless given), as a one-frame clip cut to the box the figure
+   * changes; null if the look has no body. Only the facings the spot proved
+   * (`spot.turns`) are drawn: any other draws as the nearest of them.
    */
-  stand(look: Look): ImageClip | null;
+  stand(look: Look, facing?: number): ImageClip | null;
 };
 
 /**
@@ -443,19 +446,26 @@ export async function loadScene(spot: SceneSpot): Promise<Scene> {
   const frame = sceneFrame(spot);
   return {
     backdrop: backdrop.image,
-    stand: (look) =>
-      sceneDraw(`${spot.key}/${lookKey(look)}`, frame, backdrop.pixels, () => {
-        const pixels = drawAtSpot(client, bodyTables, look, spot, backdrop.pixels);
+    stand: (look, facing = 0) => {
+      // Only a proved facing is drawn, and one angle is one drawing.
+      const turned = nearestFacing(facing, spot.turns);
+      return sceneDraw(`${spot.key}/${lookKey(look)}/${turned}`, frame, backdrop.pixels, () => {
+        const pixels = drawAtSpot(client, bodyTables, look, spot, backdrop.pixels, undefined, turned);
         return pixels ? { frames: [pixels], delays: [1], loop: null } : null;
-      }),
+      });
+    },
   };
 }
 
 export type SceneClips = {
   /** The backdrop, as `Scene` has it. */
   backdrop: ImageData;
-  /** A look acting out an emote in the scene; null if the look has no body. */
-  emote(look: Look, emote: Emote): ImageClip | null;
+  /**
+   * A look acting out an emote in the scene, turned `facing` steps (0
+   * unless given, the nearest proved as `Scene.stand`); null if the look
+   * has no body.
+   */
+  emote(look: Look, emote: Emote, facing?: number): ImageClip | null;
 };
 
 /**
@@ -471,12 +481,14 @@ export async function loadSceneClips(spot: SceneSpot): Promise<SceneClips> {
   const frame = sceneFrame(spot);
   return {
     backdrop: backdrop.image,
-    emote: (look, emote) =>
-      sceneDraw(`${spot.key}/${lookKey(look)}/${emote}`, frame, backdrop.pixels, () =>
+    emote: (look, emote, facing = 0) => {
+      const turned = nearestFacing(facing, spot.turns);
+      return sceneDraw(`${spot.key}/${lookKey(look)}/${turned}/${emote}`, frame, backdrop.pixels, () =>
         emoteClip(client, bodyTables, anims, look, emote, frame, (body) =>
-          drawAtEye(client, body, spot, backdrop.pixels),
+          drawAtEye(client, body, spot, backdrop.pixels, turned),
         ),
-      ),
+      );
+    },
   };
 }
 
