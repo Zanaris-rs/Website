@@ -9,6 +9,9 @@ import Crest from "./Crest";
 
 type CrestOption = { id: number; name: string };
 
+/** How long typing must pause before the search is sent, in ms. */
+const SEARCH_DELAY = 200;
+
 /** One search: the curated list for "", else the server's matches. Throws when it fails. */
 async function fetchCrests(q: string): Promise<CrestOption[]> {
   const response = await fetch(`/api/clans/crests?q=${encodeURIComponent(q.trim())}`);
@@ -31,7 +34,10 @@ function withNames(known: Record<number, string>, found: readonly CrestOption[])
  * current crest's name, when the page knows it; `invalid` marks the search
  * box when the last save refused the crest.
  *
- * Enter in the search box searches and nothing else: it never submits the
+ * `describedBy` is the status line that says why, when it did.
+ *
+ * A search waits until typing pauses (`SEARCH_DELAY`), so a word is one
+ * request, not one per letter. Enter in the search box never submits the
  * form the picker sits in. Only the newest search's answer is shown, the
  * first curated list included, so a slow answer never replaces a newer one.
  */
@@ -40,17 +46,20 @@ export default function CrestPicker({
   onChange,
   name,
   invalid,
+  describedBy,
 }: {
   value: number;
   onChange(id: number): void;
   name?: string;
   invalid?: boolean;
+  describedBy?: string;
 }) {
   const [query, setQuery] = useState("");
   const [options, setOptions] = useState<CrestOption[]>([]);
   const [names, setNames] = useState<Record<number, string>>(name ? { [value]: name } : {});
   const [failed, setFailed] = useState(false);
   const searchSeq = useRef(0);
+  const pending = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   useEffect(() => {
     let current = true;
@@ -70,11 +79,20 @@ export default function CrestPicker({
     };
   }, []);
 
-  async function search(next: string) {
+  // A search not yet sent is dropped with the picker.
+  useEffect(() => () => clearTimeout(pending.current), []);
+
+  function search(next: string) {
     setQuery(next);
+    // Counted now, so the first curated answer and any older search lose.
     const seq = ++searchSeq.current;
+    clearTimeout(pending.current);
+    pending.current = setTimeout(() => void answer(next, seq), SEARCH_DELAY);
+  }
+
+  async function answer(q: string, seq: number) {
     try {
-      const found = await fetchCrests(next);
+      const found = await fetchCrests(q);
       if (seq !== searchSeq.current) return;
       setOptions(found);
       setFailed(false);
@@ -101,9 +119,10 @@ export default function CrestPicker({
           placeholder="Search every item"
           aria-label="Search for a crest"
           aria-invalid={invalid || undefined}
+          aria-describedby={describedBy}
           maxLength={40}
           value={query}
-          onChange={(event) => void search(event.target.value)}
+          onChange={(event) => search(event.target.value)}
           onKeyDown={(event) => {
             if (event.key === "Enter") event.preventDefault();
           }}

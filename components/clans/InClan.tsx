@@ -5,16 +5,16 @@ import { type FormEvent, useState } from "react";
 import ChatheadFace from "@/components/game/ChatheadFace";
 import ChatText from "@/components/game/ChatText";
 import Panel from "@/components/site/Panel";
-import { send } from "@/lib/adventurer-log/client";
 import { formatMonth, formatWhen } from "@/lib/adventurer-log/format";
 import { logHref } from "@/lib/adventurer-log/href";
 import { INVALID_NAME, toDisplayName, toSafeName } from "@/lib/base37";
 import type { Look } from "@/lib/chathead/look";
-import { type ClanAction, type ClanField, clanFieldOf, clanMessages } from "@/lib/clans/client";
+import { clanMessages } from "@/lib/clans/client";
 import { clanHref } from "@/lib/clans/href";
 import { CLAN_LIMITS } from "@/lib/clans/names";
 import type { ClanNotice, ClanPage, SentInvite } from "@/lib/clans/queries";
 import {
+  isRank,
   may,
   outranks,
   PERM_ACTIONS,
@@ -32,6 +32,7 @@ import ClanFields, { type ClanFieldsValue } from "./ClanFields";
 import styles from "./Clans.module.css";
 import Crest from "./Crest";
 import RankIcon from "./RankIcon";
+import { useClanWrite } from "./useClanWrite";
 
 export type TabMember = { username: string; rank: Rank; joinedAt: string; look: Look | null };
 
@@ -43,12 +44,14 @@ type Box = "members" | "invites" | "notices" | "page" | "perms" | "leadership" |
  * and refuses the rest). Everyone sees the roster, the pending invitations
  * and the notices. The Leader also sees "Who can…" and Leadership. Every
  * write reads the page again when it succeeds; a refusal stays in its box's
- * status line.
+ * status line (`useClanWrite`).
  *
- * While a request is out, every button and rank select is `aria-disabled`
- * and ignores presses (it keeps its focus); a confirm is asked only when
- * nothing is out. `disabled` is only for what cannot be done at all (Send
- * with no name, Post with no title or text).
+ * A rank select only picks a rank; its "Set" button sends it, so moving
+ * through the options with the keyboard saves nothing. While a request is
+ * out, every button is `aria-disabled` and ignores presses (it keeps its
+ * focus); a confirm is asked only when nothing is out. `disabled` is only
+ * for what cannot be done at all: Set on the rank a member already has,
+ * Send with no name, Post with no title or text.
  */
 export default function InClan({
   me,
@@ -68,8 +71,8 @@ export default function InClan({
   sent: SentInvite[];
 }) {
   const others = members.filter((member) => member.username !== me);
-  const [busy, setBusy] = useState(false);
-  const [status, setStatus] = useState<{ box: Box; text: string; field: ClanField | null } | null>(null);
+  const { busy, act, refuse, said, statusId, invalidFor, clearFor } = useClanWrite<Box>();
+  const [ranks, setRanks] = useState<Readonly<Record<string, Rank>>>({});
   const [target, setTarget] = useState("");
   const [notice, setNotice] = useState({ title: "", body: "" });
   // A world the site no longer lists reads as None: the route takes only listed worlds.
@@ -90,43 +93,12 @@ export default function InClan({
   const mayPage = may("page", myRank, clan.perms);
   const unlistedWorld = clan.world !== null && listedWorld(clan.world) === null ? clan.world : null;
 
-  /**
-   * One write. Nothing happens while another is out; `question`, when
-   * given, is asked first and a "no" sends nothing.
-   */
-  async function act(
-    box: Box,
-    action: ClanAction,
-    url: string,
-    body: unknown,
-    method: "POST" | "DELETE" = "POST",
-    question?: string,
-  ) {
-    if (busy) return;
-    if (question !== undefined && !window.confirm(question)) return;
-    setBusy(true);
-    setStatus(null);
-    const result = await send(url, body, method, clanMessages(action));
-    if (result.ok) {
-      window.location.reload();
-      return;
-    }
-    setBusy(false);
-    setStatus({ box, text: result.message, field: clanFieldOf(result.code) });
-  }
-
-  const said = (box: Box) => (
-    <p role="status" className={styles.error}>
-      {status?.box === box ? status.text : ""}
-    </p>
-  );
-
   function invite(event: FormEvent) {
     event.preventDefault();
     if (busy) return;
     const username = toSafeName(target);
     if (username === INVALID_NAME) {
-      setStatus({ box: "invites", text: clanMessages("invite").no_such_player, field: null });
+      refuse("invites", clanMessages("invite").no_such_player);
       return;
     }
     void act("invites", "invite", "/api/clans/invites", { target: username });
@@ -161,6 +133,7 @@ export default function InClan({
             const name = toDisplayName(member.username);
             const canRank = mayRanks && outranks(myRank, member.rank);
             const canRemove = mayRemove && outranks(myRank, member.rank);
+            const picked = ranks[member.username] ?? member.rank;
             return (
               <li key={member.username} className={styles.rosterRow}>
                 <ChatheadFace look={member.look} size={32} label={`${name}'s chathead`} className={styles.face} />
@@ -170,23 +143,38 @@ export default function InClan({
                 <span className={styles.rank}>
                   <RankIcon rank={member.rank} className={styles.rankIcon} />{" "}
                   {canRank ? (
-                    <select
-                      aria-label={`${name}'s rank`}
-                      aria-disabled={busy || undefined}
-                      value={member.rank}
-                      onChange={(event) =>
-                        void act("members", "rank", "/api/clans/members/rank", {
-                          target: member.username,
-                          rank: event.target.value,
-                        })
-                      }
-                    >
-                      {ranksBelow(myRank).map((rank) => (
-                        <option key={rank} value={rank}>
-                          {RANK_NAMES[rank]}
-                        </option>
-                      ))}
-                    </select>
+                    <>
+                      <select
+                        aria-label={`${name}'s rank`}
+                        value={picked}
+                        onChange={(event) => {
+                          const next = event.target.value;
+                          if (!isRank(next)) return;
+                          setRanks({ ...ranks, [member.username]: next });
+                          clearFor("members");
+                        }}
+                      >
+                        {ranksBelow(myRank).map((rank) => (
+                          <option key={rank} value={rank}>
+                            {RANK_NAMES[rank]}
+                          </option>
+                        ))}
+                      </select>{" "}
+                      <button
+                        type="button"
+                        aria-label={`Set ${name}'s rank`}
+                        disabled={picked === member.rank}
+                        aria-disabled={busy || undefined}
+                        onClick={() =>
+                          void act("members", "rank", "/api/clans/members/rank", {
+                            target: member.username,
+                            rank: picked,
+                          })
+                        }
+                      >
+                        Set
+                      </button>
+                    </>
                   ) : (
                     RANK_NAMES[member.rank]
                   )}
@@ -195,6 +183,7 @@ export default function InClan({
                 {canRemove ? (
                   <button
                     type="button"
+                    aria-label={`Remove ${name}`}
                     aria-disabled={busy || undefined}
                     onClick={() =>
                       void act(
@@ -202,8 +191,7 @@ export default function InClan({
                         "remove",
                         "/api/clans/members",
                         { target: member.username },
-                        "DELETE",
-                        `Remove ${name} from ${clan.name}?`,
+                        { method: "DELETE", confirm: `Remove ${name} from ${clan.name}?` },
                       )
                     }
                   >
@@ -240,25 +228,35 @@ export default function InClan({
           <p className={styles.hint}>Nobody.</p>
         ) : (
           <ul className={styles.people}>
-            {sent.map((pending) => (
-              <li key={pending.username}>
-                <a href={logHref(pending.username)}>{toDisplayName(pending.username)}</a>{" "}
-                <span className={styles.muted}>
-                  invited by {toDisplayName(pending.invitedBy)} &middot; {formatWhen(pending.createdAt)}
-                </span>
-                {mayInvite ? (
-                  <button
-                    type="button"
-                    aria-disabled={busy || undefined}
-                    onClick={() =>
-                      void act("invites", "cancel", "/api/clans/invites", { target: pending.username }, "DELETE")
-                    }
-                  >
-                    Cancel
-                  </button>
-                ) : null}
-              </li>
-            ))}
+            {sent.map((pending) => {
+              const name = toDisplayName(pending.username);
+              return (
+                <li key={pending.username}>
+                  <a href={logHref(pending.username)}>{name}</a>{" "}
+                  <span className={styles.muted}>
+                    invited by {toDisplayName(pending.invitedBy)} &middot; {formatWhen(pending.createdAt)}
+                  </span>
+                  {mayInvite ? (
+                    <button
+                      type="button"
+                      aria-label={`Cancel the invitation to ${name}`}
+                      aria-disabled={busy || undefined}
+                      onClick={() =>
+                        void act(
+                          "invites",
+                          "cancel",
+                          "/api/clans/invites",
+                          { target: pending.username },
+                          { method: "DELETE" },
+                        )
+                      }
+                    >
+                      Cancel
+                    </button>
+                  ) : null}
+                </li>
+              );
+            })}
           </ul>
         )}
         {said("invites")}
@@ -281,16 +279,13 @@ export default function InClan({
                   {mayPage || item.author === me ? (
                     <button
                       type="button"
+                      aria-label={`Delete the notice "${item.title}"`}
                       aria-disabled={busy || undefined}
                       onClick={() =>
-                        void act(
-                          "notices",
-                          "unnotice",
-                          `/api/clans/notices/${item.id}`,
-                          undefined,
-                          "DELETE",
-                          `Delete the notice "${item.title}"?`,
-                        )
+                        void act("notices", "unnotice", `/api/clans/notices/${item.id}`, undefined, {
+                          method: "DELETE",
+                          confirm: `Delete the notice "${item.title}"?`,
+                        })
                       }
                     >
                       Delete
@@ -315,8 +310,10 @@ export default function InClan({
               Your clan can post 10 notices a day, and a deleted notice still counts towards them. The newest 20
               stay on the board.
             </p>
-            <label className={styles.field} htmlFor="clan-notice-title">
-              <span className={styles.fieldLabel}>Title</span>
+            <div className={styles.field}>
+              <label className={styles.fieldLabel} htmlFor="clan-notice-title">
+                Title
+              </label>
               <input
                 id="clan-notice-title"
                 type="text"
@@ -324,20 +321,23 @@ export default function InClan({
                 value={notice.title}
                 onChange={(event) => setNotice({ ...notice, title: event.target.value })}
               />
-            </label>
-            <label className={styles.field} htmlFor="clan-notice-body">
-              <span className={styles.fieldLabel}>Notice</span>
+            </div>
+            <div className={styles.field}>
+              <label className={styles.fieldLabel} htmlFor="clan-notice-body">
+                Notice
+              </label>
               <textarea
                 id="clan-notice-body"
                 rows={3}
                 maxLength={CLAN_LIMITS.noticeBody}
+                aria-describedby="clan-notice-body-count"
                 value={notice.body}
                 onChange={(event) => setNotice({ ...notice, body: event.target.value })}
               />
-              <span className={styles.count}>
+              <span id="clan-notice-body-count" className={styles.count}>
                 {notice.body.length}/{CLAN_LIMITS.noticeBody}
               </span>
-            </label>
+            </div>
             <button
               type="submit"
               disabled={notice.title.trim() === "" || notice.body.trim() === ""}
@@ -374,12 +374,12 @@ export default function InClan({
               value={page}
               onChange={(next) => {
                 setPage(next);
-                // A mark is about what was sent; editing clears it, as on the Sheet.
-                if (status?.box === "page") setStatus(null);
+                clearFor("page");
               }}
               withAbout
               crestName={crestName}
-              invalid={status?.box === "page" ? status.field : null}
+              invalid={invalidFor("page")}
+              errorId={statusId("page")}
             />
             <button type="submit" aria-disabled={busy || undefined}>
               Save
@@ -400,8 +400,10 @@ export default function InClan({
             }}
           >
             {PERM_KEYS.map((key) => (
-              <label key={key} className={styles.field} htmlFor={`clan-perm-${key}`}>
-                <span className={styles.fieldLabel}>{PERM_ACTIONS[key]}</span>
+              <div key={key} className={styles.field}>
+                <label className={styles.fieldLabel} htmlFor={`clan-perm-${key}`}>
+                  {PERM_ACTIONS[key]}
+                </label>
                 <select
                   id={`clan-perm-${key}`}
                   value={perms[key]}
@@ -413,7 +415,7 @@ export default function InClan({
                     </option>
                   ))}
                 </select>
-              </label>
+              </div>
             ))}
             <button type="submit" aria-disabled={busy || undefined}>
               Save
@@ -447,8 +449,7 @@ export default function InClan({
                     "handOver",
                     "/api/clans/hand-over",
                     { target: heir },
-                    "POST",
-                    `Hand ${clan.name} to ${toDisplayName(heir)}? They take the key, and you become a General.`,
+                    { confirm: `Hand ${clan.name} to ${toDisplayName(heir)}? They take the key, and you become a General.` },
                   )
                 }
               >
@@ -467,8 +468,9 @@ export default function InClan({
                   "disband",
                   "/api/clans/disband",
                   {},
-                  "POST",
-                  `Disband ${clan.name}? Everyone leaves, its invitations and notices are deleted, and its page is gone. This cannot be undone.`,
+                  {
+                    confirm: `Disband ${clan.name}? Everyone leaves, its invitations and notices are deleted, and its page is gone. This cannot be undone.`,
+                  },
                 )
               }
             >
@@ -482,12 +484,16 @@ export default function InClan({
       <Panel align="left" width="100%" className={styles.tab}>
         <h2 className={styles.tabTitle}>Leave the clan</h2>
         {leader ? (
-          <p className={styles.hint}>You lead {clan.name}: hand over or disband first.</p>
+          <p className={styles.hint}>
+            {others.length === 0
+              ? `You're the only member of ${clan.name}: disband the clan to leave it.`
+              : `You lead ${clan.name}: hand over or disband first.`}
+          </p>
         ) : (
           <button
             type="button"
             aria-disabled={busy || undefined}
-            onClick={() => void act("leave", "leave", "/api/clans/leave", {}, "POST", `Leave ${clan.name}?`)}
+            onClick={() => void act("leave", "leave", "/api/clans/leave", {}, { confirm: `Leave ${clan.name}?` })}
           >
             Leave {clan.name}
           </button>

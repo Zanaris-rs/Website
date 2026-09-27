@@ -4,11 +4,12 @@ import { redirect } from "next/navigation";
 import CharacterSheet from "@/components/adventurer-log/CharacterSheet";
 import CharacterUnavailable from "@/components/adventurer-log/CharacterUnavailable";
 import OwnerNav from "@/components/adventurer-log/OwnerNav";
+import type { SheetClan } from "@/components/clans/SheetClanRow";
 import Frame from "@/components/site/Frame";
 import Panel from "@/components/site/Panel";
 import { loadCharacterPage } from "@/lib/adventurer-log/character-data";
 import { sheetOf } from "@/lib/adventurer-log/persona-input";
-import { loadClanOf } from "@/lib/clans/page-data";
+import { readClanOf } from "@/lib/clans/page-data";
 import { displayName } from "@/lib/hiscores/format";
 
 export const metadata: Metadata = {
@@ -25,8 +26,15 @@ export default async function CharacterSheetPage() {
   if (page.status === "unavailable") return <CharacterUnavailable />;
 
   const { header, persona, headLook } = page.data;
-  // The Clan row: forgiving, as the card's is - a failed read shows no clan.
-  const clan = await loadClanOf(header.username);
+  // The Clan row. A failed read says so, rather than "Not in a clan": the
+  // rest of the Sheet still works.
+  let clan: SheetClan;
+  try {
+    clan = await readClanOf(header.username);
+  } catch (error) {
+    console.error("[clans] the Sheet's clan read failed", error);
+    clan = "unavailable";
+  }
   return (
     <Frame>
       <OwnerNav title="Character" username={header.username} current="character" />

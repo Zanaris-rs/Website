@@ -3,6 +3,7 @@
 import type { ClanField } from "@/lib/clans/client";
 import { CLAN_LIMITS } from "@/lib/clans/names";
 import { CLAN_WORLDS } from "@/lib/clans/worlds";
+import { describedBy } from "@/lib/clans/write-status";
 
 import styles from "./Clans.module.css";
 import CrestPicker from "./CrestPicker";
@@ -14,10 +15,14 @@ export type ClanFieldsValue = { name: string; motto: string; crest: number; worl
  * when `withAbout`. It is shared by "Start a clan" and the Clan page form.
  * The limits are the database's (`CLAN_LIMITS`); the route checks the rest.
  *
+ * Each label is only the field's name; its hint or count sits outside the
+ * label and describes the control (`aria-describedby`). `invalid` is the
+ * field the last refusal was about (`clanFieldOf`): it is `aria-invalid`,
+ * and also described by the box's status line, `errorId`.
+ *
  * The World select offers the site's list and None, nothing else: the route
  * takes no other world, so a caller whose stored world is off the list
- * passes None (`listedWorld`). `invalid` is the field the last refusal was
- * about (`clanFieldOf`), marked `aria-invalid`.
+ * passes None (`listedWorld`).
  */
 export default function ClanFields({
   idPrefix,
@@ -26,6 +31,7 @@ export default function ClanFields({
   withAbout,
   crestName,
   invalid = null,
+  errorId,
 }: {
   idPrefix: string;
   value: ClanFieldsValue;
@@ -34,41 +40,53 @@ export default function ClanFields({
   /** The current crest's name, for the picker's label. */
   crestName?: string;
   invalid?: ClanField | null;
+  /** The id of the status line that says what `invalid` is about. */
+  errorId?: string;
 }) {
   const set = <K extends keyof ClanFieldsValue>(key: K, next: ClanFieldsValue[K]) => onChange({ ...value, [key]: next });
+  const id = (field: ClanField) => `${idPrefix}-${field}`;
   const marked = (field: ClanField) => (invalid === field ? true : undefined);
+  const error = (field: ClanField) => invalid === field && errorId;
 
   return (
     <div className={styles.fields}>
-      <label className={styles.field} htmlFor={`${idPrefix}-name`}>
-        <span className={styles.fieldLabel}>Name</span>
+      <div className={styles.field}>
+        <label className={styles.fieldLabel} htmlFor={id("name")}>
+          Name
+        </label>
         <input
-          id={`${idPrefix}-name`}
+          id={id("name")}
           type="text"
           maxLength={CLAN_LIMITS.name}
           autoComplete="off"
           aria-invalid={marked("name")}
+          aria-describedby={describedBy(`${id("name")}-hint`, error("name"))}
           value={value.name}
           onChange={(event) => set("name", event.target.value)}
         />
-        <span className={styles.count}>Letters, digits and single spaces, up to {CLAN_LIMITS.name}.</span>
-      </label>
+        <span id={`${id("name")}-hint`} className={styles.count}>
+          Letters, digits and single spaces, up to {CLAN_LIMITS.name}.
+        </span>
+      </div>
 
-      <label className={styles.field} htmlFor={`${idPrefix}-motto`}>
-        <span className={styles.fieldLabel}>Motto</span>
+      <div className={styles.field}>
+        <label className={styles.fieldLabel} htmlFor={id("motto")}>
+          Motto
+        </label>
         <input
-          id={`${idPrefix}-motto`}
+          id={id("motto")}
           type="text"
           maxLength={CLAN_LIMITS.motto}
           autoComplete="off"
           aria-invalid={marked("motto")}
+          aria-describedby={describedBy(`${id("motto")}-count`, error("motto"))}
           value={value.motto}
           onChange={(event) => set("motto", event.target.value)}
         />
-        <span className={styles.count}>
+        <span id={`${id("motto")}-count`} className={styles.count}>
           {value.motto.length}/{CLAN_LIMITS.motto}
         </span>
-      </label>
+      </div>
 
       <div className={styles.field}>
         <span className={styles.fieldLabel}>Crest</span>
@@ -76,15 +94,19 @@ export default function ClanFields({
           value={value.crest}
           name={crestName}
           invalid={invalid === "crest"}
-          onChange={(id) => set("crest", id)}
+          describedBy={describedBy(error("crest"))}
+          onChange={(crest) => set("crest", crest)}
         />
       </div>
 
-      <label className={styles.field} htmlFor={`${idPrefix}-world`}>
-        <span className={styles.fieldLabel}>World</span>
+      <div className={styles.field}>
+        <label className={styles.fieldLabel} htmlFor={id("world")}>
+          World
+        </label>
         <select
-          id={`${idPrefix}-world`}
+          id={id("world")}
           aria-invalid={marked("world")}
+          aria-describedby={describedBy(error("world"))}
           value={value.world ?? ""}
           onChange={(event) => set("world", event.target.value === "" ? null : Number(event.target.value))}
         >
@@ -95,23 +117,26 @@ export default function ClanFields({
             </option>
           ))}
         </select>
-      </label>
+      </div>
 
       {withAbout ? (
-        <label className={styles.field} htmlFor={`${idPrefix}-about`}>
-          <span className={styles.fieldLabel}>About</span>
+        <div className={styles.field}>
+          <label className={styles.fieldLabel} htmlFor={id("about")}>
+            About
+          </label>
           <textarea
-            id={`${idPrefix}-about`}
+            id={id("about")}
             rows={5}
             maxLength={CLAN_LIMITS.about}
             aria-invalid={marked("about")}
+            aria-describedby={describedBy(`${id("about")}-count`, error("about"))}
             value={value.about}
             onChange={(event) => set("about", event.target.value)}
           />
-          <span className={styles.count}>
+          <span id={`${id("about")}-count`} className={styles.count}>
             {value.about.length}/{CLAN_LIMITS.about}
           </span>
-        </label>
+        </div>
       ) : null}
     </div>
   );
