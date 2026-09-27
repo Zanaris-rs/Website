@@ -2,12 +2,13 @@
 
 import { useMemo } from "react";
 
+import SheetClanRow from "@/components/clans/SheetClanRow";
 import { goalsWith, previewPersona } from "@/lib/adventurer-log/character-draft";
-import { CLAN_TAB_HREF } from "@/lib/adventurer-log/href";
 import { type God, GOD_NAMES, GODS, type Persona, PERSONA_LIMITS } from "@/lib/adventurer-log/persona";
 import { checkSheetInput, type SheetInput } from "@/lib/adventurer-log/persona-input";
 import { PLACES } from "@/lib/adventurer-log/places";
 import type { Look } from "@/lib/chathead/look";
+import type { ClanOf } from "@/lib/clans/queries";
 
 import styles from "./Character.module.css";
 import CharacterTabs from "./CharacterTabs";
@@ -27,7 +28,8 @@ const WORDS: Record<WordField, { label: string; max: number }> = {
  * Character › Sheet: who the adventurer is - title, examine, home town,
  * hangout, god and three goals - with one Save
  * (`/api/adventurer-log/persona/sheet`), the card beside it drawing the
- * draft. The Clan row is read-only: membership is the Clan tab's.
+ * draft. The Clan row is read-only (`SheetClanRow`, from `clan_of`): it
+ * saves nothing, and membership is the Clan tab's, which it links to.
  */
 export default function CharacterSheet({
   name,
@@ -38,6 +40,7 @@ export default function CharacterSheet({
   initial,
   outfitLook,
   headLook,
+  clan,
 }: {
   name: string;
   username: string;
@@ -48,6 +51,8 @@ export default function CharacterSheet({
   initial: SheetInput;
   outfitLook: Look | null;
   headLook: Look | null;
+  /** The owner's clan and rank, or null when they are in none. */
+  clan: ClanOf | null;
 }) {
   const { draft, set, dirty, busy, message, refused, marked, save } = useTabDraft(
     initial,
@@ -120,9 +125,7 @@ export default function CharacterSheet({
           </label>
           <div className={styles.row}>
             <span className={styles.label}>Clan</span>
-            <span className={styles.clanRow}>
-              Not in a clan · <a href={CLAN_TAB_HREF}>Start or join one</a>
-            </span>
+            <SheetClanRow clan={clan} className={styles.clanRow} />
           </div>
           <div className={styles.row} role="group" aria-label="Goals">
             <span className={styles.label} aria-hidden="true">

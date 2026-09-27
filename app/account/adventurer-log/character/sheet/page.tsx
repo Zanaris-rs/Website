@@ -8,6 +8,7 @@ import Frame from "@/components/site/Frame";
 import Panel from "@/components/site/Panel";
 import { loadCharacterPage } from "@/lib/adventurer-log/character-data";
 import { sheetOf } from "@/lib/adventurer-log/persona-input";
+import { loadClanOf } from "@/lib/clans/page-data";
 import { displayName } from "@/lib/hiscores/format";
 
 export const metadata: Metadata = {
@@ -24,6 +25,8 @@ export default async function CharacterSheetPage() {
   if (page.status === "unavailable") return <CharacterUnavailable />;
 
   const { header, persona, headLook } = page.data;
+  // The Clan row: forgiving, as the card's is - a failed read shows no clan.
+  const clan = await loadClanOf(header.username);
   return (
     <Frame>
       <OwnerNav title="Character" username={header.username} current="character" />
@@ -37,6 +40,7 @@ export default async function CharacterSheetPage() {
           initial={sheetOf(persona)}
           outfitLook={header.look}
           headLook={headLook}
+          clan={clan}
         />
       </Panel>
     </Frame>
