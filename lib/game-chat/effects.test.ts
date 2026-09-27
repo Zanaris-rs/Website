@@ -81,6 +81,46 @@ describe("scrollOffset", () => {
     expect(scrollOffset(80, 75)).toBe(90);
     expect(scrollOffset(80, 149)).toBe(Math.trunc((149 * 180) / 150));
   });
+
+  it("is the client's own scroll through the game's 100 px window", () => {
+    for (const width of [0, 37, 80, 400]) {
+      for (let cycle = 0; cycle < 300; cycle++) {
+        expect(scrollOffset(width, cycle, 100)).toBe(Math.trunc(((cycle % 150) * (width + 100)) / 150));
+      }
+    }
+  });
+
+  it("keeps the game's pixel speed through a wider window, which takes longer to cross", () => {
+    // 80 px of text moves 1.2 px a cycle, whatever the window.
+    expect(scrollOffset(80, 75, 240)).toBe(90);
+    for (let cycle = 0; cycle < 150; cycle++) {
+      expect(scrollOffset(80, cycle, 240)).toBe(scrollOffset(80, cycle));
+    }
+    // (80 + 240) / 1.2 = 266.7 cycles: at 266 the text's last column is still in.
+    expect(scrollOffset(80, 266, 240)).toBe(319);
+    expect(scrollOffset(80, 267, 240)).toBe(0);
+  });
+
+  it("crosses the whole window: in at its right edge, out past its left, then again", () => {
+    for (const width of [0, 1, 37, 80, 400]) {
+      for (const frame of [100, 160, 240, 280]) {
+        const offsets = Array.from({ length: 2000 }, (_, cycle) => scrollOffset(width, cycle, frame));
+        // The text's left edge is at frame - offset: it starts just past the right edge.
+        expect(offsets[0]).toBe(0);
+        // It moves steadily left until the pass ends, then starts again.
+        const life = offsets.findIndex((offset, cycle) => cycle > 0 && offset < offsets[cycle - 1]);
+        expect(life).toBeGreaterThan(0);
+        expect(offsets[life]).toBe(0);
+        for (let cycle = 1; cycle < life; cycle++) {
+          expect(offsets[cycle]).toBeGreaterThanOrEqual(offsets[cycle - 1]);
+        }
+        // Its last position still shows a column of it; one more step and it would be gone.
+        expect(offsets[life - 1]).toBeLessThan(width + frame);
+        expect((life * (width + 100)) / 150).toBeGreaterThanOrEqual(width + frame);
+        if (frame === 100) expect(life).toBe(150);
+      }
+    }
+  });
 });
 
 describe("cssColour", () => {
