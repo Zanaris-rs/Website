@@ -86,6 +86,29 @@ import {
   updateEditStatement,
   updatePostStatement,
 } from "../lib/adventurer-log/queries.ts";
+import {
+  clanCreateStatement,
+  clanDirectoryStatement,
+  clanDisbandStatement,
+  clanHandOverStatement,
+  clanInviteAnswerStatement,
+  clanInviteCancelStatement,
+  clanInvitesForStatement,
+  clanInvitesSentStatement,
+  clanInviteStatement,
+  clanLeaveStatement,
+  clanMembersStatement,
+  clanNoticeDeleteStatement,
+  clanNoticePostStatement,
+  clanNoticesStatement,
+  clanOfStatement,
+  clanPageStatement,
+  clanRemoveStatement,
+  clanSavePageStatement,
+  clanSetPermsStatement,
+  clanSetRankStatement,
+  parseClanDirectory,
+} from "../lib/clans/queries.ts";
 import { RECORD_DURATIONS } from "../lib/records/durations.ts";
 import {
   parseRecordBoardRow,
@@ -1177,6 +1200,79 @@ async function checkAdventurerLog(): Promise<void> {
     console.log("accounts.staff_adventure_reports / resolve('__db_check__'): empty, forbidden (expected)");
   } else {
     console.error(`FAIL: the staff adventure functions answered a non-staff name (${staffRows.length} rows, ${JSON.stringify(resolved?.result)}).`);
+    process.exitCode = 1;
+  }
+
+  // 17_adventure_clans, against a name nobody has, with the values Task 1's
+  // rehearsal used. Every read is empty and every write answers not_found:
+  // each asks who is writing first (adventure_author), so none writes
+  // anything. Clan and notice ids start at 1, so 0 is one nobody has.
+  const shown = (values: readonly unknown[]) =>
+    values.map((value) => (typeof value === "string" ? `'${value}'` : String(value))).join(", ");
+  for (const [name, statement] of [
+    ["clan_page", clanPageStatement("__db_check__")],
+    ["clan_members", clanMembersStatement(0)],
+    ["clan_notices", clanNoticesStatement(0)],
+    ["clan_of", clanOfStatement("__db_check__")],
+    ["clan_invites_for", clanInvitesForStatement("__db_check__")],
+    ["clan_invites_sent", clanInvitesSentStatement("__db_check__")],
+  ] as const) {
+    const rows = await query(statement.text, statement.values);
+    if (rows.length === 0) {
+      console.log(`accounts.${name}(${shown(statement.values)}): 0 rows (expected)`);
+    } else {
+      console.error(`FAIL: ${name} returned ${rows.length} rows for a clan or name nobody has.`);
+      process.exitCode = 1;
+    }
+  }
+
+  const clanWrites: [string, { text: string; values: readonly unknown[] }][] = [
+    ["clan_create", clanCreateStatement("__db_check__", "Db Check", "", 0, null)],
+    ["clan_save_page", clanSavePageStatement("__db_check__", "Db Check", "", 0, null, "")],
+    ["clan_set_perms", clanSetPermsStatement("__db_check__", 4, 1, 1, 2)],
+    ["clan_invite", clanInviteStatement("__db_check__", "__db_check__")],
+    ["clan_invite_cancel", clanInviteCancelStatement("__db_check__", "__db_check__")],
+    ["clan_invite_answer", clanInviteAnswerStatement("__db_check__", 0, false)],
+    ["clan_set_rank", clanSetRankStatement("__db_check__", "__db_check__", "recruit")],
+    ["clan_remove", clanRemoveStatement("__db_check__", "__db_check__")],
+    ["clan_leave", clanLeaveStatement("__db_check__")],
+    ["clan_hand_over", clanHandOverStatement("__db_check__", "__db_check__")],
+    ["clan_disband", clanDisbandStatement("__db_check__")],
+    ["clan_notice_post", clanNoticePostStatement("__db_check__", "db check", "db check")],
+    ["clan_notice_delete", clanNoticeDeleteStatement("__db_check__", 0)],
+    // 017 widens adventure_report's kinds to 'clan', whose target is the
+    // clan's id. Written out: the site's ReportKind gains "clan" only in W7.
+    [
+      "adventure_report",
+      {
+        text: "select accounts.adventure_report($1, $2, $3, $4, $5) as result",
+        values: ["__db_check__", "clan", 0, null, "db check"],
+      },
+    ],
+  ];
+  for (const [name, statement] of clanWrites) {
+    const [row] = await query<{ result: unknown }>(statement.text, statement.values);
+    if (row?.result === "not_found") {
+      console.log(`accounts.${name}(${shown(statement.values)}): not_found (expected)`);
+    } else {
+      console.error(`FAIL: ${name} answered ${JSON.stringify(row?.result)}; expected not_found.`);
+      process.exitCode = 1;
+    }
+  }
+
+  // The clan directory lists every clan, so it is checked for shape instead:
+  // parsed as /clans parses it, and no longer than its 200.
+  try {
+    const clans = clanDirectoryStatement();
+    const listed = parseClanDirectory(await query<Record<string, unknown>>(clans.text, clans.values));
+    if (listed.length <= 200) {
+      console.log(`accounts.clan_directory(): ${listed.length} clans, parsed (expected)`);
+    } else {
+      console.error(`FAIL: clan_directory returned ${listed.length} clans; at most 200.`);
+      process.exitCode = 1;
+    }
+  } catch (error) {
+    console.error(`FAIL: clan_directory did not parse. ${error instanceof Error ? error.message : String(error)}`);
     process.exitCode = 1;
   }
 
