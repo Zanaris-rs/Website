@@ -210,7 +210,7 @@
   outline: 2px solid var(--link-green);
 }
 
-/* --- what you say: one card per page --- */
+/* --- what you say: one row per page --- */
 
 .pages {
   list-style: none;
@@ -218,52 +218,15 @@
   padding: 0;
 }
 
-.pageCard {
-  border: 1px dashed var(--panel-border);
-  padding: 6px 8px 8px;
-  margin-bottom: 8px;
-}
-
-.pageHead {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
-  font-weight: bold;
-}
-
 .tools {
   display: flex;
   gap: 4px;
-}
-
-.picks {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px;
-  margin-bottom: 6px;
-}
-
-.picks label {
-  display: grid;
-  gap: 2px;
-}
-
-.lines textarea {
-  resize: vertical;
-  line-height: 1.4;
 }
 
 .counter {
   margin: 2px 0 0;
   color: var(--text-muted);
   font-size: 11px;
-}
-
-.warn {
-  display: block;
-  color: #ff5a5a;
 }
 
 /* --- save --- */
@@ -288,14 +251,7 @@
   margin: 0;
 }
 
-/* --- the stage's extras: the pager (Words) and "Face this way" (Look) --- */
-
-.pager {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  margin-top: 6px;
-}
+/* --- the stage's extra: "Face this way" (Look) --- */
 
 .facing {
   display: grid;
@@ -460,4 +416,225 @@
     height: auto;
     aspect-ratio: 4 / 5;
   }
+}
+
+/* --- Words: one row per dialogue page (PageRow) --- */
+
+/* The pickers' overlays are placed in the row (see .overlay). */
+.pageRow {
+  position: relative;
+  margin-bottom: 8px;
+  padding: 6px 8px 8px;
+  border: 1px solid var(--panel-border);
+  cursor: pointer;
+}
+
+/* The page the stage is playing. */
+.pageRowCurrent {
+  border-color: var(--link-green);
+}
+
+.pageRowHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-weight: bold;
+}
+
+.pageRowBody {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  cursor: auto;
+}
+
+.pageFigure {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+}
+
+/* On a phone the figure and its emote make a strip above the parchment,
+   which takes the row's whole width, so the lines have room. */
+@media (max-width: 599px) {
+  .pageRowBody {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pageFigure {
+    grid-template-columns: 64px max-content;
+    justify-content: start;
+    align-items: end;
+    gap: 8px;
+  }
+}
+
+/* The figure at half size; the same box with no outfit, so rows line up. */
+.figureBox {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 128px;
+  background: #000;
+}
+
+.noFigure {
+  padding: 2px;
+  color: var(--text-muted);
+  font-size: 10px;
+  text-align: center;
+}
+
+/* A picker's button and its overlay. The overlay is out of the flow, so
+   opening it moves nothing: just under its button (top: auto keeps it where
+   the flow would have put it), from the row's left edge, never wider than
+   the row. On a phone it is a sheet at the foot of the screen instead. */
+.pickerWrap {
+  position: static;
+}
+
+.workspace .pickButton {
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.overlay {
+  position: absolute;
+  z-index: 20;
+  top: auto;
+  left: 8px;
+  max-width: calc(100% - 16px);
+  margin-top: 4px;
+  padding: 6px;
+  background: #111;
+  border: 1px solid var(--panel-border);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 60%);
+  cursor: auto;
+}
+
+/* Five choices a row where the row is wide enough; fewer where it is not. */
+.emoteOverlay {
+  width: 310px;
+}
+
+.moodOverlay {
+  width: 410px;
+}
+
+.choices {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.moodOverlay .choices {
+  grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+}
+
+/* A row is too narrow on a phone for more than two moods across: the
+   overlay is a sheet the screen's width at its foot, scrolling if it must. */
+@media (max-width: 599px) {
+  .overlay {
+    position: fixed;
+    top: auto;
+    right: 8px;
+    bottom: 8px;
+    left: 8px;
+    width: auto;
+    max-width: none;
+    max-height: 70vh;
+    margin: 0;
+    overflow-y: auto;
+  }
+}
+
+.workspace .choice {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  width: 100%;
+  padding: 2px;
+  background: #000;
+  border: 2px solid var(--panel-border);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.workspace .choice[aria-pressed="true"] {
+  border-color: var(--link-green);
+}
+
+.choiceName {
+  font-size: 10px;
+}
+
+.noStill {
+  display: block;
+  width: 48px;
+  height: 99px;
+  background: #1a1a1a;
+}
+
+.noHead {
+  display: block;
+  width: 66px;
+  height: 100px;
+  background: #1a1a1a;
+}
+
+/* The dialogue's parchment, as the log draws it (Log.module.css). */
+.parchment {
+  display: grid;
+  grid-template-columns: 70px minmax(0, 1fr);
+  gap: 4px;
+  align-items: center;
+  padding: 4px 6px;
+  background: #c9b891;
+  border: 2px solid #5b4b32;
+}
+
+.workspace .moodButton {
+  padding: 0;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  line-height: 0;
+}
+
+.workspace .moodButton:focus-visible {
+  outline: 2px solid #800000;
+}
+
+.parchmentText {
+  display: grid;
+  gap: 2px;
+}
+
+.speaker {
+  margin: 0;
+  font: 12px "Zanaris b12";
+  color: #800000;
+  text-align: center;
+}
+
+.workspace input.lineInput {
+  width: 100%;
+  padding: 1px 2px;
+  background: rgb(255 255 255 / 25%);
+  border: 0;
+  border-bottom: 1px dotted #5b4b32;
+  font: 12px "Zanaris p12";
+  color: #000;
+  text-align: center;
+}
+
+.parchment .counter {
+  color: #5b4b32;
+  text-align: right;
 }

@@ -24,10 +24,10 @@ import PersonaStage from "./PersonaStage";
  * facing, play a page) and `below` can put controls under the card.
  *
  * `resetKey` starts the stage afresh when it changes (`PersonaStage`): the
- * Words tab passes the page count (a new conversation from its first page),
- * the Look tab the scene (the saved facing, or the nearest the scene
+ * Look tab passes the scene (the saved facing, or the nearest the scene
  * allows). It is not a React `key`: the tab beside the stage stays mounted,
- * so the control just pressed keeps its focus.
+ * so the control just pressed keeps its focus. The Words tab passes none:
+ * its rows choose the stage's page (`goTo`).
  *
  * The looks are passed through untouched: `Chathead` and `Figure` redraw
  * whenever a look is a new object.

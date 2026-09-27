@@ -2,7 +2,13 @@
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 
-import { moved, pageAfterRemove, typeHeadline } from "@/lib/adventurer-log/character-draft";
+import {
+  followMove,
+  followRemove,
+  moved,
+  pageAfterRemove,
+  typeHeadline,
+} from "@/lib/adventurer-log/character-draft";
 import { HEADLINE_MAX } from "@/lib/adventurer-log/format";
 import { type DialoguePage, type Persona, PERSONA_LIMITS } from "@/lib/adventurer-log/persona";
 import { checkWordsInput, type WordsInput } from "@/lib/adventurer-log/persona-input";
@@ -13,7 +19,7 @@ import styles from "./Character.module.css";
 import CharacterTabs from "./CharacterTabs";
 import CharacterWorkspace from "./CharacterWorkspace";
 import ColourPicker from "./ColourPicker";
-import PageCard from "./PageCard";
+import PageRow from "./PageRow";
 import { usePersonaStage } from "./PersonaStage";
 import { useTabDraft } from "./useTabDraft";
 
@@ -21,15 +27,19 @@ const NEW_PAGE: DialoguePage = { mood: "neutral", emote: null, lines: [""] };
 
 /**
  * Character › Words: what the adventurer says - the headline as overhead
- * chat, and the dialogue visitors click through (or, with no pages, the one
- * signature emote) - with one Save (`/api/adventurer-log/persona/words`).
- * The stage beside it draws the draft as it is typed. The browser checks
- * the draft as the server will (`checkWordsInput`); the database has the
- * last word, and draws a mute's line: picks may change, words may not.
+ * chat, and the dialogue as rows (`PageRow`), each page's emote, mood and
+ * lines together, the way it plays - with one Save
+ * (`/api/adventurer-log/persona/words`). Choosing a row plays it on the
+ * stage beside it. With no pages, the one signature emote.
  *
- * Adding or removing a page starts the stage's conversation again
- * (`resetKey`), without remounting the tab: focus stays on "Add a page", and
- * after a Remove it moves to the page that took the removed one's place.
+ * The browser checks the draft as the server will (`checkWordsInput`); the
+ * database has the last word, and draws a mute's line: picks may change,
+ * words may not.
+ *
+ * The stage is never reset from here: the rows choose its page (`goTo`),
+ * and it clamps a page that has gone. The tab stays mounted throughout, so
+ * after a Remove the focus moves to the page that took the removed one's
+ * place.
  */
 export default function CharacterWords({
   name,
@@ -54,16 +64,11 @@ export default function CharacterWords({
     "/api/adventurer-log/persona/words",
     checkWordsInput,
   );
-  // A key per page that follows it when it moves, so a page's textarea
-  // keeps its focus and caret through a reorder.
+  // A key per page that follows it when it moves, so a row keeps its focus
+  // and caret through a reorder.
   const [pageKeys, setPageKeys] = useState(() => initial.dialogue.map((_, index) => index));
   const headlineId = useId();
   const headlineCountId = useId();
-  const pagesRef = useRef<HTMLOListElement>(null);
-  const addRef = useRef<HTMLButtonElement>(null);
-  // Which page takes the focus once a Remove has rendered (`pageAfterRemove`;
-  // null is "Add a page"), or undefined when nothing is waiting.
-  const refocus = useRef<number | null | undefined>(undefined);
   const pageCount = draft.dialogue.length;
   const shown = useMemo<Persona>(
     () => ({
@@ -75,15 +80,6 @@ export default function CharacterWords({
     }),
     [persona, draft],
   );
-
-  useEffect(() => {
-    if (refocus.current === undefined) return;
-    const target = refocus.current;
-    refocus.current = undefined;
-    const card = target === null ? null : pagesRef.current?.children[target];
-    const button = card?.querySelector<HTMLButtonElement>("button[aria-label^='Remove']") ?? addRef.current;
-    button?.focus();
-  });
 
   function setPage(index: number, page: DialoguePage) {
     set("dialogue", draft.dialogue.map((current, i) => (i === index ? page : current)));
@@ -97,11 +93,9 @@ export default function CharacterWords({
   function removePage(index: number) {
     set("dialogue", draft.dialogue.filter((_, i) => i !== index));
     setPageKeys(pageKeys.filter((_, i) => i !== index));
-    refocus.current = pageAfterRemove(index, pageCount - 1);
   }
 
   function addPage() {
-    if (pageCount >= PERSONA_LIMITS.pages) return;
     set("dialogue", [...draft.dialogue, NEW_PAGE]);
     setPageKeys([...pageKeys, Math.max(-1, ...pageKeys) + 1]);
   }
@@ -115,10 +109,6 @@ export default function CharacterWords({
       persona={shown}
       outfitLook={outfitLook}
       headLook={headLook}
-      // Adding or removing a page starts the conversation again from its
-      // first page, emote and all.
-      resetKey={pageCount}
-      below={<Pager />}
     >
       <CharacterTabs current="words" />
       <form onSubmit={save} className={styles.form}>
@@ -158,32 +148,21 @@ export default function CharacterWords({
         <fieldset className={styles.section}>
           <legend>What you say</legend>
           <p className={styles.hint}>
-            Up to {PERSONA_LIMITS.pages} pages that visitors click through, like talking to an NPC. Each line you
-            type is a line of the dialogue box: up to {PERSONA_LIMITS.lines} lines of {PERSONA_LIMITS.line}{" "}
-            characters. With no pages, your headline fills the dialogue box.
+            Up to {PERSONA_LIMITS.pages} pages that visitors click through, like talking to an NPC. Click a page,
+            or type in it, to see your card play it. With no pages, your headline fills the dialogue box.
           </p>
-          {pageCount > 0 ? (
-            <ol ref={pagesRef} className={styles.pages}>
-              {draft.dialogue.map((page, index) => (
-                <PageCard
-                  key={pageKeys[index]}
-                  index={index}
-                  count={pageCount}
-                  page={page}
-                  invalid={marked("dialogue") ?? false}
-                  onChange={(next) => setPage(index, next)}
-                  onMove={(by) => movePage(index, by)}
-                  onRemove={() => removePage(index)}
-                />
-              ))}
-            </ol>
-          ) : null}
-          <button ref={addRef} type="button" onClick={addPage} disabled={pageCount >= PERSONA_LIMITS.pages}>
-            Add a page
-          </button>
-          {pageCount >= PERSONA_LIMITS.pages ? (
-            <span className={styles.count}> {PERSONA_LIMITS.pages} pages is the most.</span>
-          ) : null}
+          <DialogueRows
+            dialogue={draft.dialogue}
+            pageKeys={pageKeys}
+            name={name}
+            outfitLook={outfitLook}
+            headLook={headLook}
+            invalid={marked("dialogue") ?? false}
+            onChange={setPage}
+            onMove={movePage}
+            onRemove={removePage}
+            onAdd={addPage}
+          />
           {pageCount === 0 ? (
             <>
               <label className={styles.row}>
@@ -224,18 +203,101 @@ export default function CharacterWords({
   );
 }
 
-/** Back and forward through the pages, under the stage. */
-function Pager() {
+/**
+ * The rows, and "Add a page". Inside the stage, so that adding, moving or
+ * removing a page keeps the stage on the page it was playing
+ * (`followMove`, `followRemove`): the added page is chosen, a moved one is
+ * followed, and a removed one gives way to the page in its place.
+ */
+function DialogueRows({
+  dialogue,
+  pageKeys,
+  name,
+  outfitLook,
+  headLook,
+  invalid,
+  onChange,
+  onMove,
+  onRemove,
+  onAdd,
+}: {
+  dialogue: readonly DialoguePage[];
+  pageKeys: readonly number[];
+  name: string;
+  outfitLook: Look | null;
+  headLook: Look | null;
+  invalid: boolean;
+  onChange(index: number, page: DialoguePage): void;
+  onMove(index: number, by: -1 | 1): void;
+  onRemove(index: number): void;
+  onAdd(): void;
+}) {
   const stage = usePersonaStage();
-  if (stage.pageCount < 2) return null;
+  const count = dialogue.length;
+  const pagesRef = useRef<HTMLOListElement>(null);
+  const addRef = useRef<HTMLButtonElement>(null);
+  // Which page takes the focus once a Remove has rendered (`pageAfterRemove`;
+  // null is "Add a page"), or undefined when nothing is waiting.
+  const refocus = useRef<number | null | undefined>(undefined);
+
+  useEffect(() => {
+    if (refocus.current === undefined) return;
+    const target = refocus.current;
+    refocus.current = undefined;
+    const row = target === null ? null : pagesRef.current?.children[target];
+    const button = row?.querySelector<HTMLButtonElement>("button[aria-label^='Remove']") ?? addRef.current;
+    button?.focus();
+  });
+
+  function move(index: number, by: -1 | 1) {
+    onMove(index, by);
+    const next = followMove(stage.page, count, index, index + by);
+    if (next !== stage.page) stage.goTo(next);
+  }
+
+  function remove(index: number) {
+    onRemove(index);
+    refocus.current = pageAfterRemove(index, count - 1);
+    // The page being played, followed; if it is the one removed, the page in
+    // its place is played, as its row now shows.
+    const next = followRemove(stage.page, index, count - 1);
+    if (next !== null && index <= stage.page) stage.goTo(next);
+  }
+
+  function add() {
+    if (count >= PERSONA_LIMITS.pages) return;
+    onAdd();
+    // One past today's last: the page being added, once it renders.
+    stage.goTo(count);
+  }
+
   return (
-    <div className={styles.pager}>
-      <button type="button" onClick={stage.prev}>
-        ◀ Previous page
+    <>
+      {count > 0 ? (
+        <ol ref={pagesRef} className={styles.pages}>
+          {dialogue.map((page, index) => (
+            <PageRow
+              key={pageKeys[index]}
+              index={index}
+              count={count}
+              page={page}
+              name={name}
+              outfitLook={outfitLook}
+              headLook={headLook}
+              invalid={invalid}
+              onChange={(next) => onChange(index, next)}
+              onMove={(by) => move(index, by)}
+              onRemove={() => remove(index)}
+            />
+          ))}
+        </ol>
+      ) : null}
+      <button ref={addRef} type="button" onClick={add} disabled={count >= PERSONA_LIMITS.pages}>
+        Add a page
       </button>
-      <button type="button" onClick={stage.next}>
-        Next page ▶
-      </button>
-    </div>
+      {count >= PERSONA_LIMITS.pages ? (
+        <span className={styles.count}> {PERSONA_LIMITS.pages} pages is the most.</span>
+      ) : null}
+    </>
   );
 }

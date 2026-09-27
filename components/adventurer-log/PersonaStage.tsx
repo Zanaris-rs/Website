@@ -21,6 +21,13 @@ export type Stage = {
   /** Back a page, to the last from the first; the editor preview's arrow. */
   prev(): void;
   /**
+   * Make `page` the current page and play its emote - the Words tab's rows,
+   * when one is chosen, typed in or played. Not clamped here: `page` above
+   * is clamped on read, so a row added in the same update (one past today's
+   * last) is shown once it exists.
+   */
+  goTo(page: number): void;
+  /**
    * The emote the figure acts out now: the current page's own emote, or -
    * only when there is no current page at all - the signature one. A page
    * that explicitly has no emote (`emote: null`) leaves the figure still;
@@ -59,7 +66,7 @@ export type Stage = {
 const NOT_YET = Symbol("not yet");
 
 const StageContext = createContext<Stage>({
-  page: 0, pageCount: 0, next() {}, prev() {}, emote: null, replay: 0, replayEmote() {},
+  page: 0, pageCount: 0, next() {}, prev() {}, goTo() {}, emote: null, replay: 0, replayEmote() {},
   facing: 0, turn() {}, setFacing() {}, tryOn: null, setTryOn() {},
 });
 
@@ -101,7 +108,7 @@ export default function PersonaStage({
   initialFacing?: number;
   /** The facings the figure may turn to, in order (its scene's `turns`), or null for all sixteen. */
   turns?: readonly number[] | null;
-  /** A change starts the conversation and the turn afresh (the Character tabs: a scene, a page count). */
+  /** A change starts the conversation and the turn afresh (the Look tab: a scene). */
   resetKey?: string | number;
   children: ReactNode;
 }) {
@@ -121,7 +128,9 @@ export default function PersonaStage({
     setFacingState(nearestFacing(initialFacing, turns));
   }
   // Clamped once, here, rather than by each reader: `pages` can shrink under
-  // an unchanged `pageState` (W5's live editor preview), and an out-of-range
+  // an unchanged `pageState` (W5's live editor preview, a page removed in
+  // Words), and `goTo` stores the page asked for as it is - a page added in
+  // the same update is one past the last until then - so an out-of-range
   // page would print wrong wherever it was read raw (e.g. "5 / 3").
   const page = pages.length === 0 ? 0 : Math.min(pageState, pages.length - 1);
   const currentPage = pages.length > 0 ? pages[page] : undefined;
@@ -156,6 +165,10 @@ export default function PersonaStage({
     setPageState((page + pages.length - 1) % pages.length);
     setReplay((count) => count + 1);
   }, [pages.length, page]);
+  const goTo = useCallback((to: number) => {
+    setPageState(Math.max(0, to));
+    setReplay((count) => count + 1);
+  }, []);
   const replayEmote = useCallback(() => setReplay((count) => count + 1), []);
   const turn = useCallback(
     (delta: 1 | -1) => setFacingState((current) => stepFacing(current, delta, turns)),
@@ -165,8 +178,8 @@ export default function PersonaStage({
   const setTryOn = useCallback((look: Look | null) => setTryOnState(look), []);
 
   const value = useMemo(
-    () => ({ page, pageCount: pages.length, next, prev, emote, replay, replayEmote, facing, turn, setFacing, tryOn, setTryOn }),
-    [page, pages.length, next, prev, emote, replay, replayEmote, facing, turn, setFacing, tryOn, setTryOn],
+    () => ({ page, pageCount: pages.length, next, prev, goTo, emote, replay, replayEmote, facing, turn, setFacing, tryOn, setTryOn }),
+    [page, pages.length, next, prev, goTo, emote, replay, replayEmote, facing, turn, setFacing, tryOn, setTryOn],
   );
   return <StageContext.Provider value={value}>{children}</StageContext.Provider>;
 }
