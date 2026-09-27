@@ -3,6 +3,7 @@
 import Figure from "@/components/game/Figure";
 import type { WardrobeOutfit } from "@/lib/adventurer-log/wardrobe";
 import { type Look, lookKey } from "@/lib/chathead/look";
+import { prefersReducedMotion } from "@/lib/game-chat/clock";
 
 import { usePersonaStage } from "./PersonaStage";
 
@@ -16,7 +17,8 @@ import { usePersonaStage } from "./PersonaStage";
  *
  * When the card draws the owner's figure (`interactive`), each outfit is a
  * button. Clicking one has the card's figure and the dialogue's chathead
- * wear it (`PersonaStage`'s `tryOn`) and plays the current emote in it, and
+ * wear it (`PersonaStage`'s `tryOn`) and plays the current emote in it
+ * (unless the reader prefers reduced motion), and
  * the card says so, with a way back (`CardFigure`). Clicking the outfit they
  * usually wear, or the one being tried on, goes back to usual. Nothing is
  * saved. Without a figure on the card there is nothing to try an outfit on,
@@ -54,14 +56,19 @@ export default function Wardrobe({
       return;
     }
     stage.setTryOn(look);
-    stage.replayEmote();
+    // A pick only plays the emote for a reader who has not asked for less motion.
+    if (!prefersReducedMotion()) stage.replayEmote();
   };
 
   return (
     <section className="al-wardrobe al-box">
       <h2>{name}&rsquo;s Wardrobe</h2>
       <div className="al-box-body">
-        {interactive ? <p className="al-wardrobe-hint">Click an outfit to see {name} wear it.</p> : null}
+        {interactive ? (
+          <p className="al-wardrobe-hint">
+            Click an outfit to see {name} wear it. Click it again, or the usual one, to go back.
+          </p>
+        ) : null}
         <ul className="al-outfits">
           {outfits.map((outfit) => {
             const isShown = interactive && lookKey(outfit.look) === shownKey;
