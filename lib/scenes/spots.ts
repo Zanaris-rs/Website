@@ -3,6 +3,13 @@ import type { PlaceKey } from "@/lib/adventurer-log/places";
 import data from "./spots.json";
 
 /**
+ * Where one member of a clan photo stands: world scene units, like
+ * `figure`, and the model's yaw. Every slot faces the way the figure does,
+ * toward the camera.
+ */
+export type PhotoSlot = { x: number; y: number; z: number; yaw: number };
+
+/**
  * A pre-rendered scene a figure can stand in, as `npm run scenes:update`
  * writes it (`scripts/scenes/`): the backdrop is `sceneSrc(spot)`, and the
  * figure goes into it with `Model.worldRender`, as the game's `World` draws a
@@ -26,6 +33,13 @@ export type SceneSpot = {
    * in. Always holds 0, the spot's own angle; a turn walks this list.
    */
   turns: number[];
+  /**
+   * The clan photo's slots, left to right as the camera sees them: 7, 5
+   * or 3 in a row, centred on `figure` (the middle one is `figure`), half a
+   * tile apart along the camera's right. Only on a spot whose photo the
+   * build proved (`scripts/scenes/render.ts`); absent on the rest.
+   */
+  photo?: PhotoSlot[];
 };
 
 export const SCENES = data as { version: string; spots: SceneSpot[] };
