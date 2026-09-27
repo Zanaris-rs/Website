@@ -19,7 +19,9 @@ import styles from "./Outfits.module.css";
  * editor is about the outfit, not the log's saved facing.
  *
  * As on the card, the figure is a button whose arrow keys are announced
- * (`aria-keyshortcuts`); clicking it does nothing more.
+ * (`aria-keyshortcuts`); clicking it does nothing more. And as on the card,
+ * a hidden polite live line says which way it faces after each turn by hand
+ * (`useTurnGesture`'s `said`).
  */
 export default function TurnableFigure({ look, label }: { look: Look; label: string }) {
   const [facing, setFacing] = useState(0);
@@ -44,6 +46,9 @@ export default function TurnableFigure({ look, label }: { look: Look; label: str
           ▶
         </button>
       </div>
+      <span className={styles.turnSaid} aria-live="polite">
+        {gesture.said}
+      </span>
     </div>
   );
 }

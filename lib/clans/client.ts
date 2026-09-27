@@ -6,6 +6,8 @@
  * signed out, another site, unavailable.
  */
 
+import { CLAN_LIMITS } from "./names";
+
 export type ClanAction =
   | "create"
   | "page"
@@ -47,8 +49,8 @@ export const CLAN_MESSAGES: Readonly<Record<string, string>> = {
   taken: "Another clan already has that name.",
   in_clan: "That player is already in a clan.",
   already: "That player already has an invitation from your clan.",
-  full: "The clan is full: 50 members.",
-  too_many: "Your clan already has 20 invitations waiting for an answer.",
+  full: `The clan is full: ${CLAN_LIMITS.members} members.`,
+  too_many: `Your clan already has ${CLAN_LIMITS.invites} invitations waiting for an answer.`,
   // Deleted notices still count towards the ten, so this never says to delete one.
   rate_limited: "Your clan has posted 10 notices today. Try again tomorrow.",
 };
@@ -62,7 +64,7 @@ const OVERRIDES: Record<ClanAction, Readonly<Record<string, string>>> = {
   perms: { forbidden: "Only the Leader sets who can do what." },
   invite: { self: "You cannot invite yourself." },
   cancel: {},
-  answer: { in_clan: "You are already in a clan. Leave it before joining another.", full: "That clan is full: 50 members." },
+  answer: { in_clan: "You are already in a clan. Leave it before joining another.", full: `That clan is full: ${CLAN_LIMITS.members} members.` },
   // clan_set_rank has no `self`: your own rank is not below you, so it is `forbidden`.
   rank: { forbidden: "You can only change the rank of members below you." },
   remove: { self: "You cannot remove yourself: use Leave the clan.", forbidden: "You can only remove members below your rank." },
