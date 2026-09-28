@@ -1,4 +1,5 @@
 import { decodeBackdrop, drawAtEye, drawAtSpot, sceneFrame } from "../scenes/draw.ts";
+import { drawPhoto } from "../scenes/photo.ts";
 import { type SceneSpot, sceneSrc } from "../scenes/spots.ts";
 import { type Clip, emoteClip, emoteStill, lineCount, moodClip, moodStill } from "./animate.ts";
 import { decodeAnims, loadAnims } from "./anims-file.ts";
@@ -38,6 +39,9 @@ import type { Emote, Mood } from "./vocab.ts";
  *
  * A still (`loadEmoteStill`, `loadMoodStill`) is one frame of an emote or a
  * mood, for the pickers that show a dozen at once.
+ *
+ * A clan photo (`loadClanPhoto`) is a row of figures drawn into one copy of
+ * a spot's backdrop, once, and kept by nobody.
  */
 
 export const tables = tablesJson as HeadTables;
@@ -566,4 +570,25 @@ export async function loadMoodStill(look: Look, mood: Mood): Promise<ImageData |
     stills.set(key, image);
   }
   return image;
+}
+
+// --- a clan photo -----------------------------------------------------------
+
+export type PhotoDrawer = {
+  /** The members, left to right, drawn far to near into one copy of the backdrop (`drawPhoto`). */
+  draw(looks: readonly Look[]): ImageData;
+};
+
+/**
+ * A spot's backdrop and the figure renderer, for a clan photo: `renderer.js`,
+ * `bodies.bin` and the spot's PNG, fetched on first use and shared with the
+ * scenes. A failed load is retried. A photo is drawn once and painted once,
+ * so nothing is kept.
+ */
+export async function loadClanPhoto(spot: SceneSpot): Promise<PhotoDrawer> {
+  const [{ client, bodyTables }, backdrop] = await Promise.all([loadBodyTables(), loadBackdrop(spot)]);
+  return {
+    draw: (looks) =>
+      new ImageData(toRgba(drawPhoto(client, bodyTables, spot, backdrop.pixels, looks)), spot.width, spot.height),
+  };
 }

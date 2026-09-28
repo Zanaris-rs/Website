@@ -4,8 +4,9 @@
 # card, with the game client's own World, ClientBuild, Pix3D and Model:
 #
 #   public/game/scenes/<key>.png     each spot's backdrop, 240x300, no one in it
-#   lib/scenes/spots.json            each spot's eye, figure and turns, and the version
-#   lib/scenes/composite-golden.json the proved composites, for lib/scenes/composite.test.ts
+#   lib/scenes/spots.json            each spot's eye, figure, turns and clan photo slots, and the version
+#   lib/scenes/composite-golden.json the proved composites and clan photos, for
+#                                    lib/scenes/composite.test.ts and photo-golden.test.ts
 #
 # All of them are committed. Re-run after a content bump (the map or its
 # locs), once the engine has been repacked, and commit the result. Also writes
@@ -16,7 +17,9 @@
 # facings. The build fails, naming the spot, wherever a figure facing the
 # camera drawn over the backdrop would differ from one drawn in the scene;
 # any other facing where one differs is left out of the spot's turns and
-# printed. scripts/scenes/render.ts says why.
+# printed. Each spot also tries a clan photo row (7, 5, then 3), and the
+# build fails unless the fallback, Varrock square, holds at least 5.
+# scripts/scenes/render.ts says why.
 #
 # Usage:  npm run scenes:update
 #         ENGINE_DIR=/path/to/engine bash scripts/update-scenes.sh

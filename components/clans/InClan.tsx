@@ -354,8 +354,9 @@ export default function InClan({
         <Panel align="left" width="100%" className={styles.tab}>
           <h2 className={styles.tabTitle}>Clan page</h2>
           <p className={styles.hint}>
-            The clan photo shows members in their worn outfits, standing in the Leader&rsquo;s scene. A new name is a
-            new address: the old one stops working.
+            The clan photo shows members in their worn outfits, standing in the Leader&rsquo;s scene, or in Varrock
+            square when that scene has no room for a photo or there is no scene. A new name is a new address: the old
+            one stops working.
           </p>
           {unlistedWorld !== null ? (
             <p className={styles.hint}>
