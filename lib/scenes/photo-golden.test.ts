@@ -85,6 +85,15 @@ describe("drawPhoto", () => {
     expect(empty).toEqual(backdrop);
     expect(() => drawPhoto(client, bodyTables, spot, backdrop, Array.from({ length: 8 }, () => bulky))).toThrow();
   });
+
+  it("never places anyone, so a slot behind the eye draws nothing there rather than throwing", () => {
+    const spot = photoSpot(null);
+    const backdrop = backdrops.get(spot.key)!;
+    const behind: SceneSpot = { ...spot, photo: [{ ...spot.photo![3], z: spot.eye.z - 500 }] };
+    // Placing refuses the slot (`projectSitter`); drawing it, as the build's candidates are, does not.
+    expect(() => drawPlacedPhoto(client, bodyTables, behind, backdrop, [bulky])).toThrow(/behind the eye/);
+    expect(drawPhoto(client, bodyTables, behind, backdrop, [bulky])).toEqual(backdrop);
+  });
 });
 
 describe("drawPlacedPhoto", () => {
@@ -165,5 +174,18 @@ describe("drawPlacedPhoto", () => {
     row.forEach((look, i) => expectPlacedOn(placed[i], drawnAlone(spot, backdrop, look, slots[i]), `sitter ${i}`));
     for (let i = 1; i < placed.length; i++) expect(placed[i].head.x).toBeGreaterThan(placed[i - 1].head.x);
     expect(drawPlacedPhoto(client, bodyTables, spot, backdrop, []).placed).toEqual([]);
+  });
+
+  it("places a look with no body at its slot's foot, with an empty box, between two that have one", () => {
+    const spot = photoSpot(null);
+    const backdrop = backdrops.get(spot.key)!;
+    const nobody: Look = { ...bulky, kits: bulky.kits.map(() => -1), worn: bulky.worn.map(() => -1) };
+    const slots = photoSlots(spot, 3);
+    const { placed } = drawPlacedPhoto(client, bodyTables, spot, backdrop, [bulky, nobody, bulky]);
+    expectPlacedOn(placed[0], drawnAlone(spot, backdrop, bulky, slots[0]), "left");
+    expectPlacedOn(placed[2], drawnAlone(spot, backdrop, bulky, slots[2]), "right");
+    // The centre slot's foot, worked by hand in photo.test.ts: the base of
+    // its post, the bottom row of the box {110, 164, 21, 97}.
+    expect(placed[1]).toEqual({ head: { x: 120, y: 260 }, box: { x: 120, y: 260, w: 0, h: 0 } });
   });
 });

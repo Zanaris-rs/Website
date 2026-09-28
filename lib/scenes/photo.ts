@@ -167,8 +167,8 @@ export type SitterBody = {
  * spot's eye as `renderAtEye` draws it: the same integer arithmetic, step
  * for step, as `Model.worldRender` (Client-TS `dash3d/Model.ts`) and
  * `Client.getOverlayPos`, about Pix3D's origin at the picture's centre
- * (`sceneFrame`). A point nearer the eye than 50 is not drawn, and not
- * counted.
+ * (`sceneFrame`). A point nearer the eye than 50 is not counted (the
+ * renderer clips the faces it touches).
  */
 export function projectSitter(trig: Trig, spot: SceneSpot, slot: PhotoSlot, body: SitterBody): PlacedSitter {
   const { eye } = spot;
@@ -242,13 +242,53 @@ function clamp(value: number, min: number, max: number): number {
 }
 
 /**
- * The photo, and where everyone in it stands: `looks`, left to right, each
- * built and drawn by the game client's own `Model.worldRender` from the
- * spot's eye into one copy of the backdrop, far to near, as `drawAtEye`
- * draws the card's figure (`renderAtEye`, World.ts:1476); and each one's
- * `PlacedSitter`, left to right, projected from the body just drawn. A look
- * with no body leaves its slot empty and an empty box at the slot's foot.
- * The backdrop is left as it was.
+ * `looks` on `slots`, each built and drawn by the game client's own
+ * `Model.worldRender` from the spot's eye into the current picture
+ * (`sceneCanvas`), far to near, as `drawAtEye` draws the card's figure
+ * (`renderAtEye`, World.ts:1476). A look with no body leaves its slot empty.
+ * `place`, when given, sees each sitter's body (null for none) before it is
+ * drawn: the body is the client's one scratch model, so it must be read
+ * before the next one is built.
+ */
+function drawFarToNear(
+  client: Client,
+  tables: BodyTables,
+  spot: SceneSpot,
+  slots: readonly PhotoSlot[],
+  looks: readonly Look[],
+  place?: (i: number, body: SitterBody | null) => void,
+): void {
+  for (const i of farToNear(spot, slots)) {
+    // Building a body draws nothing, so the picture stays the canvas.
+    const body = buildBody(client, tables, looks[i]);
+    place?.(i, body);
+    if (body) renderAtEye(client, body, spot, slots[i], slots[i].yaw);
+  }
+}
+
+/**
+ * The photo: `looks`, left to right, drawn far to near into one copy of the
+ * backdrop (`drawFarToNear`). The backdrop is left as it was. This is what
+ * the build proves (`scripts/scenes/render.ts`), and it places no one, so
+ * it draws any slot it is given, even one `projectSitter` would refuse.
+ */
+export function drawPhoto(
+  client: Client,
+  tables: BodyTables,
+  spot: SceneSpot,
+  backdrop: Int32Array,
+  looks: readonly Look[],
+): Int32Array {
+  const pixels = sceneCanvas(client, spot, backdrop);
+  drawFarToNear(client, tables, spot, photoSlots(spot, looks.length), looks);
+  return pixels;
+}
+
+/**
+ * The photo, as `drawPhoto` draws it, and where everyone in it stands: each
+ * one's `PlacedSitter`, left to right, projected from the body just built.
+ * A look with no body leaves its slot empty and an empty box at the slot's
+ * foot. A slot whose head is behind the eye throws (`projectSitter`).
  */
 export function drawPlacedPhoto(
   client: Client,
@@ -259,26 +299,9 @@ export function drawPlacedPhoto(
 ): { pixels: Int32Array; placed: PlacedSitter[] } {
   const pixels = sceneCanvas(client, spot, backdrop);
   const slots = photoSlots(spot, looks.length);
-  const placed: PlacedSitter[] = slots.map((slot) => projectSitter(client.Pix3D, spot, slot, NO_BODY));
-  for (const i of farToNear(spot, slots)) {
-    // Building a body draws nothing, so the picture stays the canvas. The
-    // body is the client's one scratch model, so it is placed before the
-    // next one is built.
-    const body = buildBody(client, tables, looks[i]);
-    if (!body) continue;
-    placed[i] = projectSitter(client.Pix3D, spot, slots[i], body);
-    renderAtEye(client, body, spot, slots[i], slots[i].yaw);
-  }
+  const placed = new Array<PlacedSitter>(slots.length);
+  drawFarToNear(client, tables, spot, slots, looks, (i, body) => {
+    placed[i] = projectSitter(client.Pix3D, spot, slots[i], body ?? NO_BODY);
+  });
   return { pixels, placed };
-}
-
-/** `drawPlacedPhoto`'s picture alone: what the build proves (`scripts/scenes/render.ts`). */
-export function drawPhoto(
-  client: Client,
-  tables: BodyTables,
-  spot: SceneSpot,
-  backdrop: Int32Array,
-  looks: readonly Look[],
-): Int32Array {
-  return drawPlacedPhoto(client, tables, spot, backdrop, looks).pixels;
 }
