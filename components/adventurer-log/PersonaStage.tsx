@@ -19,6 +19,9 @@ import type { Look } from "@/lib/chathead/look";
 import type { Emote } from "@/lib/chathead/vocab";
 import { onCycle, prefersReducedMotion, subscribeReducedMotion } from "@/lib/game-chat/clock";
 
+/** One line of one page, in that page's colour and effect: overhead chat holds room for it. */
+export type HeldLine = { key: string; text: string; colour: number; effect: number };
+
 /** The line said overhead now, in its page's colour and effect. */
 export type Said = {
   /** The line being said now: blank while that line is blank (one not yet typed on the Words tab). */
@@ -28,11 +31,11 @@ export type Said = {
   /** Changes whenever a line is said afresh, so its `ChatText` starts a new pass. */
   key: string;
   /**
-   * All of the page's lines, the one being said among them (`Stage.line`):
-   * overhead chat keeps room for the tallest, so nothing under it moves as
-   * a short line follows one that wraps.
+   * Every line of every page with something in it, the one being said among
+   * them: overhead chat keeps room for the tallest, so nothing under it
+   * moves as a short line follows one that wraps, or as the pages turn.
    */
-  lines: readonly string[];
+  held: readonly HeldLine[];
 };
 
 export type Stage = {
@@ -90,9 +93,9 @@ export type Stage = {
    */
   line: number;
   /**
-   * That line as overhead chat draws it (`Overhead`), with its page's other
-   * lines: null with no pages, and while none of the page's lines has
-   * anything in it (a new page on the Words tab).
+   * That line as overhead chat draws it (`Overhead`), with every page's
+   * lines to hold room for: null with no pages, and while none of the
+   * page's lines has anything in it (a new page on the Words tab).
    */
   said: Said | null;
   /** The width of overhead chat's scroll window, as `ChatText` measured it (`onScrollWindow`). */
@@ -219,12 +222,23 @@ export default function PersonaStage({
   const saying = `${page}:${spoken}`;
   const line = reduced ? 0 : heard.key === saying ? Math.min(heard.line, Math.max(0, lines.length - 1)) : 0;
   const text = lines[line] ?? "";
+  // The room overhead chat holds: every page's lines, not only this page's,
+  // so the card is as tall on every page and turning one moves nothing.
+  const held = useMemo<readonly HeldLine[]>(
+    () =>
+      pages.flatMap((each, p) =>
+        each.lines.flatMap((words, l) =>
+          words.trim() === "" ? [] : [{ key: `${p}:${l}`, text: words, colour: each.colour, effect: each.effect }],
+        ),
+      ),
+    [pages],
+  );
   const said = useMemo<Said | null>(
     () =>
       currentPage && currentPage.lines.some((each) => each.trim() !== "")
-        ? { text, colour: currentPage.colour, effect: currentPage.effect, key: `${saying}:${line}`, lines: currentPage.lines }
+        ? { text, colour: currentPage.colour, effect: currentPage.effect, key: `${saying}:${line}`, held }
         : null,
-    [currentPage, text, saying, line],
+    [currentPage, text, saying, line, held],
   );
 
   useEffect(() => {
