@@ -24,6 +24,7 @@ import path from "node:path";
 import FileCache from "./cache.ts";
 import { drawCommunityTile } from "./community.ts";
 import { encodePng } from "./png.ts";
+import { BLACK, boxAverage } from "./sample.ts";
 
 // --- the slice of Client-TS this uses -------------------------------------
 
@@ -172,9 +173,6 @@ const WEB_COLOURS: ReadonlyMap<number, number> = new Map([
   [16, 0x564b3a], // agility, brown
   [17, 0x6b0000], // thieving, dark red
 ]);
-
-/** The client's black: palette black is stored as 1, since 0 is transparent. */
-const BLACK = 1;
 
 /** A sprite at its full cell size, trimmed margins restored as transparency. */
 function uncrop(sprite: Sprite): Int32Array {
@@ -416,34 +414,10 @@ function drawTile(spec: TileSpec): Int32Array {
   return pixels;
 }
 
-/** Average each SUPERSAMPLE x SUPERSAMPLE block down to one pixel. */
+/** Average each SUPERSAMPLE x SUPERSAMPLE block down to one pixel (`sample.ts`). */
 function shrink(pixels: Int32Array): Int32Array {
   const width = TILE_WIDTH * SUPERSAMPLE;
-  const block = SUPERSAMPLE * SUPERSAMPLE;
-  const out = new Int32Array(TILE_WIDTH * TILE_HEIGHT);
-  for (let y = 0; y < TILE_HEIGHT; y++) {
-    for (let x = 0; x < TILE_WIDTH; x++) {
-      let red = 0;
-      let green = 0;
-      let blue = 0;
-      for (let dy = 0; dy < SUPERSAMPLE; dy++) {
-        const row = (y * SUPERSAMPLE + dy) * width + x * SUPERSAMPLE;
-        for (let dx = 0; dx < SUPERSAMPLE; dx++) {
-          const rgb = pixels[row + dx];
-          red += (rgb >> 16) & 0xff;
-          green += (rgb >> 8) & 0xff;
-          blue += rgb & 0xff;
-        }
-      }
-      const rgb =
-        (((red / block) | 0) << 16) |
-        (((green / block) | 0) << 8) |
-        ((blue / block) | 0);
-      // A tile is opaque: 0 is the encoder's transparent, so black is 1.
-      out[x + y * TILE_WIDTH] = rgb === 0 ? BLACK : rgb;
-    }
-  }
-  return out;
+  return boxAverage((x, y) => pixels[x + y * width], TILE_WIDTH, TILE_HEIGHT, SUPERSAMPLE);
 }
 
 const tileFiles: [string, Buffer][] = TILES.map((spec) => [

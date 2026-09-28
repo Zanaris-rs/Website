@@ -10,6 +10,7 @@ import { decodeBackdrop } from "../../lib/scenes/draw.ts";
 import { drawPhoto, PHOTO_FALLBACK } from "../../lib/scenes/photo.ts";
 import { sceneOf } from "../../lib/scenes/spots.ts";
 import { BULKY, REFERENCE, WOMAN } from "../scenes/looks.ts";
+import { boxAverage } from "./sample.ts";
 
 /**
  * The Community tile on `/title`: Varrock square with three adventurers
@@ -29,8 +30,9 @@ import { BULKY, REFERENCE, WOMAN } from "../scenes/looks.ts";
  *
  * The photo is 240x300. At full size the three stand about 97 pixels wide,
  * more than a 77-pixel tile, so the tile is `CROP` - a 154x240 window that
- * holds the statue, the fountain and all three - averaged down two to one,
- * as `render.ts` averages its object tiles down from four times their size.
+ * holds the statue, the fountain and all three - averaged down two to one
+ * by `sample.ts`'s `boxAverage`, the same box filter `render.ts` uses to
+ * average its object tiles down from four times their size.
  */
 
 /** The window of the photo the tile shows, and how many photo pixels make one tile pixel. */
@@ -38,9 +40,6 @@ export const CROP = { x: 43, y: 40, scale: 2 } as const;
 
 /** Left to right in the photo. */
 export const COMMUNITY_LOOKS = [WOMAN, BULKY, REFERENCE] as const;
-
-/** The client's black: 0 is the PNG encoder's transparent, so black is 1. */
-const BLACK = 1;
 
 /** The 77x120 tile's pixels, `0xRRGGBB`, from the repository at `repo`. */
 export async function drawCommunityTile(repo: string, width: number, height: number): Promise<Int32Array> {
@@ -58,24 +57,5 @@ export async function drawCommunityTile(repo: string, width: number, height: num
   if (left + width * scale > spot.width || top + height * scale > spot.height) {
     throw new Error(`the community tile's crop runs off the ${spot.width}x${spot.height} photo`);
   }
-  const block = scale * scale;
-  const out = new Int32Array(width * height);
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      let red = 0;
-      let green = 0;
-      let blue = 0;
-      for (let dy = 0; dy < scale; dy++) {
-        for (let dx = 0; dx < scale; dx++) {
-          const rgb = photo[left + x * scale + dx + (top + y * scale + dy) * spot.width];
-          red += (rgb >> 16) & 0xff;
-          green += (rgb >> 8) & 0xff;
-          blue += rgb & 0xff;
-        }
-      }
-      const rgb = (((red / block) | 0) << 16) | (((green / block) | 0) << 8) | ((blue / block) | 0);
-      out[x + y * width] = rgb === 0 ? BLACK : rgb;
-    }
-  }
-  return out;
+  return boxAverage((x, y) => photo[left + x + (top + y) * spot.width], width, height, scale);
 }
