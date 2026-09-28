@@ -89,7 +89,7 @@ export default function Composer({
   }
 
   return (
-    <form className="al-composer" onSubmit={submit}>
+    <form className="al-composer" onSubmit={submit} noValidate>
       <textarea
         ref={box}
         rows={rows}
