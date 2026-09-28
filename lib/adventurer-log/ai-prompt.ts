@@ -6,7 +6,7 @@ import { CSS_MAX } from "./format";
 import { cssUrl, type Picture, SITE_ART, SKILL_PICTURES, TEXTURE_PICTURES } from "./pictures";
 
 /**
- * The prompt the settings page's "Copy a prompt for an AI" puts on the
+ * The prompt the settings page's "Get AI to design for you" puts on the
  * clipboard: everything an AI needs to write an Adventurer Log's stylesheet
  * that the sanitiser (`css.ts`) keeps whole, with a line for the owner to say
  * what look they want and their current stylesheet to start from.
@@ -53,12 +53,10 @@ const OUTLINE = `<div class="al-root">                 <!-- the log; your CSS re
              <p class="al-scene-name">Varrock square</p>
              .al-scene is 240×300 with the backdrop drawn in the canvas; you can frame it, not recolour it -->
         <div class="al-turn">                                   <!-- under the figure, in a scene or not -->
-          <button class="al-turn-left" aria-label="Turn left"><svg></svg></button>
           <span class="al-turn-hint">Drag to turn · click to emote</span>   <!-- only where the figure can turn -->
-          <button class="al-turn-right" aria-label="Turn right"><svg></svg></button>
           <span class="al-turn-said" aria-live="polite">a little left</span>   <!-- hidden: tells a screen reader which way it faces after a turn -->
         </div>
-        <p class="al-tryon" aria-live="polite">Trying on Rune &middot; <button class="al-tryon-back">back to usual</button></p>   <!-- empty, taking no room, until a reader tries on an outfit from the Wardrobe -->
+        <p class="al-tryon" aria-live="polite">Zezima is wearing Rune.</p>   <!-- hidden: tells a screen reader which outfit the figure has on as a reader tries them -->
         <!-- or, with no outfit (no figure to turn):<p class="al-chat-strip"><span class="al-chat … al-overhead al-headline"></span></p>,
              or with no words either: <div class="al-chathead"><canvas></canvas></div> -->
         <p class="al-examine">Examine text</p>
@@ -230,13 +228,13 @@ ${FENCE}
 - \`.al-event--<kind>\` is one kind of adventure: ${kinds}.
 - \`.al-record--<seconds>\` is one record length, shown only when I hold a place on it: ${durations}.
 - \`.al-outfit--default\` is the outfit my chathead wears.
-- \`.al-outfit--shown\` is the outfit the card shows now: the one I wear, or one a reader clicked to try on (\`.al-tryon\` on the card says so until they go back).
+- \`.al-outfit--shown\` is the outfit the card shows now: the one I wear, or one a reader clicked to try on (clicking it again, or the ★ one, goes back).
 - \`.al-filter[aria-current]\` is the filter being shown. \`.al-edited\` is on an update only when I changed it after posting.
 - \`.al-post\`, \`.al-actions\` and \`.al-reply-form\` hold buttons and forms that only signed-in readers see. Style them if you like, but keep them usable.
 - \`.al-gz-button\` shows only to signed-in readers other than me, and never to players I blocked; \`.al-gz-button[aria-pressed="true"]\` is a gz that reader gave.
 - The dialogue box (\`.al-dialogue\`) keeps its parchment look by default; restyle it if you like, but keep \`.al-continue\` visible.
 - Chatheads and outfits are drawn on \`<canvas>\`: you can frame, size and place them, but not recolour them.
-- The figure turns: drag it, use the \`.al-turn\` buttons, or the arrow keys on it. With no scene its canvas is as wide as its widest angle needs, so centre it rather than fixing its width.
+- The figure turns: drag it, or use the arrow keys on it; \`.al-turn-hint\` under it says so. With no scene its canvas is as wide as its widest angle needs, so centre it rather than fixing its width.
 
 Its look before your CSS: a black page; each \`.al-box\` black with a 1px #3a3a3a border; each box title (\`.al-box > h2\`) a #2b2b2b bar with white 13px bold text; text #e4e4e4 in 13px Arial; links #c8ccd2; times #9a9a9a.`,
 

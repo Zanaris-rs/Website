@@ -118,7 +118,7 @@
   outline-offset: 2px;
 }
 
-/* The turn buttons under the figure, with a hint between them. */
+/* Under the figure: the hint that says how to turn it. */
 .root :global(.al-turn) {
   display: flex;
   align-items: center;
@@ -127,56 +127,22 @@
   margin: 6px 8px 0;
 }
 
-.root :global(.al-turn-left),
-.root :global(.al-turn-right) {
-  padding: 4px 8px;
-  line-height: 0;
-  background: #2b2b2b;
-  border: 1px solid #5a5a5a;
-  color: #e4e4e4;
-  cursor: pointer;
-}
-
-.root :global(.al-turn-left:disabled),
-.root :global(.al-turn-right:disabled) {
-  color: #6a6a6a;
-  cursor: default;
-}
-
 .root :global(.al-turn-hint) {
   color: var(--text-muted);
   font-size: 11px;
 }
 
-/* Which way the figure faces after a turn: said to a screen reader, never drawn. */
-.root :global(.al-turn-said) {
+/* Said to a screen reader, never drawn: which way the figure faces after a
+   turn, and which outfit it has on while a reader tries them. */
+.root :global(.al-turn-said),
+.root :global(.al-tryon) {
   position: absolute;
   width: 1px;
   height: 1px;
+  margin: 0;
   overflow: hidden;
   clip: rect(0 0 0 0);
   white-space: nowrap;
-}
-
-/* "Trying on <outfit> · back to usual", while a reader tries one on. */
-.root :global(.al-tryon) {
-  margin: 6px 8px 0;
-  font-size: 12px;
-}
-
-/* Kept in the page while no outfit is tried on, so its change is said; it takes no room then. */
-.root :global(.al-tryon:empty) {
-  margin: 0;
-}
-
-.root :global(.al-tryon-back) {
-  padding: 0;
-  background: none;
-  border: 0;
-  color: var(--link);
-  font: inherit;
-  text-decoration: underline;
-  cursor: pointer;
 }
 
 .root :global(.al-overhead) {

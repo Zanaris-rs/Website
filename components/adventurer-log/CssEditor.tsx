@@ -26,12 +26,13 @@ import settings from "./Settings.module.css";
  * The page renders what the sanitiser made of the saved sheet, so the first
  * paint's marks are already right.
  *
- * "Copy a prompt for an AI" is for owners who would rather describe a look
- * than write it: the prompt (`lib/adventurer-log/ai-prompt.ts`) tells any AI
- * chat what the log is made of and what this box keeps, with the draft to
- * start from, and what it writes back is pasted in here and checked like
- * anything else. The same prompt is under "Style it with an AI", to copy by
- * hand when the browser will not.
+ * "Get AI to design for you" is for owners who would rather describe a look
+ * than write it: it copies a prompt (`lib/adventurer-log/ai-prompt.ts`) that
+ * tells any AI chat what the log is made of and what this box keeps, with
+ * the draft to start from, and what it writes back is pasted in here and
+ * checked like anything else. The line under the buttons says so, and says
+ * what to do next once it has copied. The same prompt is under "Style it
+ * with an AI", to copy by hand when the browser will not.
  */
 
 const CLASSES: readonly [string, string][] = [
@@ -39,9 +40,8 @@ const CLASSES: readonly [string, string][] = [
   [".al-side / .al-main", "the narrow and the wide column"],
   [".al-box, .al-box > h2", "every box, and its title bar"],
   [".al-header, .al-title, .al-chathead, .al-headline", "who you are"],
-  [".al-figure, .al-turn, .al-turn-left, .al-turn-right, .al-turn-hint", "your figure, and the turn buttons and hint under it"],
+  [".al-figure, .al-turn, .al-turn-hint", "your figure, and the hint under it that says how to turn it"],
   [".al-turn-said", "which way your figure faces after a turn: read aloud, never drawn"],
-  [".al-tryon, .al-tryon-back", "the line under your figure while a reader tries an outfit on"],
   [".al-sheet, .al-sheet-row, .al-sheet--clan, .al-rank, .al-clan-link", "your character sheet; the clan row, its rank icon and its link"],
   [".al-stats, .al-skill", "the skills table (.al-skill--<category> for one)"],
   [".al-about", "about you"],
@@ -76,7 +76,7 @@ body {
   color: #ffcc00;
   text-shadow: 1px 1px 0 #000;
 }
-.al-name, .al-links a, .al-clan-link, .al-tryon-back {
+.al-name, .al-links a, .al-clan-link {
   color: #0033cc;
 }
 .al-time, .al-sheet dt, .al-turn-hint, .al-wardrobe-hint {
@@ -93,6 +93,9 @@ body {
   animation: sparkle 2s ease-in-out infinite;
 }
 `;
+
+/** The line under "Get AI to design for you", until it is pressed. */
+const AI_NOTE = "Copies a prompt that describes your log to an AI. Paste its answer back here.";
 
 /** How long typing has to pause before the draft is checked. */
 const CHECK_DELAY_MS = 400;
@@ -182,6 +185,7 @@ export default function CssEditor({
   const [shown, setShown] = useState<Lint>({ text: initial, dropped });
   const [checkError, setCheckError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
+  const [aiNote, setAiNote] = useState(AI_NOTE);
   const [busy, setBusy] = useState(false);
   const [picking, setPicking] = useState(false);
   const [pictureSource, setPictureSource] = useState<PictureSource>("site");
@@ -232,6 +236,8 @@ export default function CssEditor({
   function change(next: string) {
     setCss(next);
     setStatus(null);
+    // A copied prompt carried the draft it was copied with.
+    setAiNote(AI_NOTE);
   }
 
   const prompt = useMemo(() => aiPrompt(css), [css]);
@@ -239,13 +245,11 @@ export default function CssEditor({
   async function copyPrompt() {
     try {
       await navigator.clipboard.writeText(prompt);
-      setStatus(
-        "Copied. Paste it into an AI chat, say what look you want where it asks, then paste the CSS it writes in here.",
-      );
+      setAiNote("Copied. Paste it into any AI chat, then paste the stylesheet it gives you back here.");
     } catch {
       // No clipboard permission: the same text is on the page to copy by hand.
       if (aiBox.current) aiBox.current.open = true;
-      setStatus("Your browser would not copy it. The prompt is under “Style it with an AI” below.");
+      setAiNote("Your browser would not copy it. The prompt is under “Style it with an AI” below.");
     }
   }
 
@@ -308,13 +312,18 @@ export default function CssEditor({
             Insert a picture
           </button>
           <button type="button" disabled={disabled} onClick={copyPrompt}>
-            Copy a prompt for an AI
+            Get AI to design for you
           </button>
           <span className={settings.count}>
             {css.length}/{CSS_MAX}
           </span>
           <span role="status">{dirty && !busy && !status ? "You have unsaved changes." : status}</span>
         </div>
+        {disabled ? null : (
+          <p role="status" className={settings.hint}>
+            {aiNote}
+          </p>
+        )}
       </form>
 
       {picking ? (
@@ -369,8 +378,8 @@ export default function CssEditor({
         <summary>Style it with an AI</summary>
         <ol>
           <li>
-            Press <b>Copy a prompt for an AI</b>. It tells the AI what your log is made of, what a stylesheet here
-            can and cannot do, the pictures it can use, and what is in the box now.
+            Press <b>Get AI to design for you</b>. It copies a prompt that tells the AI what your log is made of,
+            what a stylesheet here can and cannot do, the pictures it can use, and what is in the box now.
           </li>
           <li>
             Paste it into any AI chat, and replace the line in [square brackets] with the look you want.
