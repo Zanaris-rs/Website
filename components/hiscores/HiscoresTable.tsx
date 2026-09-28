@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 
 import { DIRECTORY_HREF, logHref } from "@/lib/adventurer-log/href";
 import {
@@ -78,6 +78,8 @@ export default function HiscoresTable() {
   );
   const state: State =
     loaded && loaded.query === query ? loaded.state : { kind: "loading" };
+  // The name box's hint says where it goes; the box names it as its description.
+  const nameHintId = useId();
 
   useEffect(() => {
     if (query === null) return;
@@ -244,6 +246,7 @@ export default function HiscoresTable() {
                 }
                 autoComplete="off"
                 aria-label="Name"
+                aria-describedby={nameHintId}
               />
               <br />
               <input
@@ -251,7 +254,9 @@ export default function HiscoresTable() {
                 type="submit"
                 value="Search"
               />
-              <p className={styles.searchHint}>Opens their Adventurer Log, at their skills.</p>
+              <p id={nameHintId} className={styles.searchHint}>
+                Opens their Adventurer Log, at their skills.
+              </p>
             </form>
           </div>
         </div>

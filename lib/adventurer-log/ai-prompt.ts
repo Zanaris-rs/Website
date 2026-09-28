@@ -2,7 +2,7 @@ import { CATEGORIES } from "@/lib/hiscores/categories";
 import { RECORD_DURATIONS } from "@/lib/records/durations";
 
 import { ADVENTURE_CATEGORIES } from "./categories";
-import { CSS_MAX } from "./format";
+import { CSS_MAX, UPDATE_MAX } from "./format";
 import { cssUrl, type Picture, SITE_ART, SKILL_PICTURES, TEXTURE_PICTURES } from "./pictures";
 
 /**
@@ -44,7 +44,7 @@ const OUTLINE = `<div class="al-root">                 <!-- the log; your CSS re
       <section class="al-header al-card al-box">
         <h1 class="al-title">Zezima</h1>
         <p class="al-persona-title">the Unready</p>                  <!-- only when set -->
-        <span class="al-overhead-lines">                        <!-- all of the page's lines in one cell, so it is as tall as the tallest; only the one being said is seen -->
+        <span class="al-overhead-lines">                        <!-- every page's lines in one cell, so it is as tall as the tallest; only the one being said is seen -->
           <span class="al-chat al-chat--c9 al-chat--e1 al-overhead al-headline">A line of the dialogue</span>   <!-- the line the figure is saying now, in its page's colour and effect; outside the button, so its plain text is still read -->
         </span>
         <button class="al-figure" aria-label="Zezima: play the emote again">   <!-- a saved outfit, standing; a click replays its emote, a drag or the arrow keys turn it -->
@@ -130,7 +130,7 @@ const OUTLINE = `<div class="al-root">                 <!-- the log; your CSS re
           <div class="al-post">                                 <!-- the owner's "post an update" box -->
             <form class="al-composer">
               <textarea></textarea>
-              <div class="al-actions"><button>Post update</button> <button>Add an item or skill</button> <span class="al-time">0/2000</span></div>
+              <div class="al-actions"><button>Post update</button> <button>Add an item or skill</button> <span class="al-time">0/${UPDATE_MAX}</span></div>
               <div class="al-picker"><input type="search"><div class="al-picker-results"><button><img> Coins</button> ...</div></div>
             </form>
           </div>
@@ -226,7 +226,7 @@ ${OUTLINE}
 ${FENCE}
 
 - One column on a phone. From 900px wide there are two: \`.al-side\` is 280px on the left and \`.al-main\` takes the rest (a CSS grid on \`.al-page\`).
-- The figure says each dialogue page's lines overhead, one at a time, 3 seconds each; \`.al-chat--c<0-11>\` is the page's colour and \`.al-chat--e<0-2>\` its effect, so they change from page to page. The colour is set by the page every frame, so a \`color\` rule won't stick. \`.al-overhead-lines\` keeps room for the page's longest line, so the card doesn't move as they change. In the dialogue box, \`.al-line--said\` is the line being said now.
+- The figure says each dialogue page's lines overhead, one at a time, 3 seconds each; \`.al-chat--c<0-11>\` is the page's colour and \`.al-chat--e<0-2>\` its effect, so they change from page to page. The colour is set by the page every frame, so a \`color\` rule won't stick. \`.al-overhead-lines\` keeps room for the longest line of any page, so the card doesn't move as they change. In the dialogue box, \`.al-line--said\` is the line being said now.
 - \`.al-sheet--<home|hangout|god|clan|goals>\` is one row of the character sheet.
 - \`.al-rank\` is a clan rank's 13x13 icon, drawn in SVG (size and place it, don't recolour it); \`.al-clan-link\` goes to the clan's page.
 - \`.al-skill--<id>\` is one skill's row: ${skills}.

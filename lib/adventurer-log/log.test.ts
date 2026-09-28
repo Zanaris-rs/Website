@@ -3,7 +3,17 @@ import { describe, expect, it } from "vitest";
 import { MAX_ASSETS, parseBody } from "./body";
 import { ADVENTURE_CATEGORIES, categorySlug, isHidden, maskOf } from "./categories";
 import { eventIcon, itemByName } from "./events";
-import { ABOUT_MAX, checkCss, checkText, CSS_MAX, formatMonth, formatWhen } from "./format";
+import {
+  ABOUT_MAX,
+  checkCss,
+  checkText,
+  CSS_MAX,
+  formatMonth,
+  formatWhen,
+  REASON_MAX,
+  REPLY_MAX,
+  UPDATE_MAX,
+} from "./format";
 import {
   cursorOf,
   gzGiveStatement,
@@ -134,6 +144,27 @@ describe("checkText", () => {
     expect(checkText("a\tb", "X", 10).ok).toBe(true);
     expect(checkText("a\nb", "X", 10, { oneLine: true }).ok).toBe(false);
     expect(checkText(3, "X", 10).ok).toBe(false);
+  });
+});
+
+describe("the post limits", () => {
+  it("are 200 for an update and a reply; About and a report's reason keep theirs", () => {
+    expect(UPDATE_MAX).toBe(200);
+    expect(REPLY_MAX).toBe(200);
+    expect(ABOUT_MAX).toBe(1000);
+    expect(REASON_MAX).toBe(500);
+  });
+
+  it("take an update of 200 characters and refuse 201, saying the limit", () => {
+    expect(checkText("x".repeat(UPDATE_MAX), "Your update", UPDATE_MAX)).toEqual({ ok: true, value: "x".repeat(200) });
+    expect(checkText("x".repeat(UPDATE_MAX + 1), "Your update", UPDATE_MAX)).toEqual({
+      ok: false,
+      error: "Your update can be at most 200 characters.",
+    });
+    expect(checkText("x".repeat(REPLY_MAX + 1), "Your reply", REPLY_MAX)).toEqual({
+      ok: false,
+      error: "Your reply can be at most 200 characters.",
+    });
   });
 });
 
