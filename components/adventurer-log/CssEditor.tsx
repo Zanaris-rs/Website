@@ -94,7 +94,10 @@ body {
 }
 `;
 
-/** The line under "Get AI to design for you", until it is pressed. */
+/**
+ * The line under "Get AI to design for you", until it is pressed. It is plain
+ * text beside the live region, not in it: going back to it is never read out.
+ */
 const AI_NOTE = "Copies a prompt that describes your log to an AI. Paste its answer back here.";
 
 /** How long typing has to pause before the draft is checked. */
@@ -185,7 +188,8 @@ export default function CssEditor({
   const [shown, setShown] = useState<Lint>({ text: initial, dropped });
   const [checkError, setCheckError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
-  const [aiNote, setAiNote] = useState(AI_NOTE);
+  /** What pressing "Get AI to design for you" did, or null for `AI_NOTE`. */
+  const [aiNote, setAiNote] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [picking, setPicking] = useState(false);
   const [pictureSource, setPictureSource] = useState<PictureSource>("site");
@@ -236,8 +240,10 @@ export default function CssEditor({
   function change(next: string) {
     setCss(next);
     setStatus(null);
-    // A copied prompt carried the draft it was copied with.
-    setAiNote(AI_NOTE);
+    // A copied prompt carried the draft it was copied with, so the note goes
+    // back to AI_NOTE - once, and quietly: emptying the live region is not
+    // announced, and AI_NOTE is outside it.
+    if (aiNote !== null) setAiNote(null);
   }
 
   const prompt = useMemo(() => aiPrompt(css), [css]);
@@ -320,8 +326,9 @@ export default function CssEditor({
           <span role="status">{dirty && !busy && !status ? "You have unsaved changes." : status}</span>
         </div>
         {disabled ? null : (
-          <p role="status" className={settings.hint}>
-            {aiNote}
+          <p className={settings.hint}>
+            <span role="status">{aiNote}</span>
+            {aiNote === null ? AI_NOTE : null}
           </p>
         )}
       </form>
