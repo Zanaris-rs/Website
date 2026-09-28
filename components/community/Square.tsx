@@ -183,9 +183,10 @@ export default function Square({
                   className={styles.sitter}
                   href={logHref(sitter.username)}
                   aria-label={`${sitter.name}'s Adventurer Log`}
-                  // Neighbours' boxes can overlap by a pixel or two: each
-                  // link stacks as its figure was drawn, far to near, so the
-                  // one in front owns the overlap. All stay under the chat.
+                  // Neighbours' boxes can overlap by several pixels (7–9 px
+                  // measured): each link stacks as its figure was drawn, far
+                  // to near, so the one in front owns the overlap. All stay
+                  // under the chat.
                   style={{ left: box.x, top: box.y, width: box.w, height: box.h, zIndex: drawn[position] }}
                   onMouseEnter={() => setPointed(i)}
                   onMouseLeave={() => setPointed(null)}
