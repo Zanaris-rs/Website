@@ -57,7 +57,6 @@ export default function CharacterLook({
   name,
   username,
   joinedAt,
-  headline,
   persona,
   initialOutfits,
   headLook: firstHead,
@@ -66,7 +65,6 @@ export default function CharacterLook({
   name: string;
   username: string;
   joinedAt: string;
-  headline: string;
   /** The saved persona. */
   persona: Persona;
   initialOutfits: SavedOutfits;
@@ -130,7 +128,6 @@ export default function CharacterLook({
       name={name}
       username={username}
       joinedAt={joinedAt}
-      headline={headline}
       persona={shown}
       outfitLook={outfitLook}
       headLook={headLook}

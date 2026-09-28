@@ -26,7 +26,7 @@ type Params = {
  * database on every view. The preview's picture (`opengraph-image.tsx`, which
  * Next adds as `og:image` itself) is where the log is read — it is fetched
  * by a chat app or a crawler, not by every reader — and it carries the
- * headline, so the description does not need it.
+ * greeting, so the description does not need it.
  */
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const name = nameFrom((await params).username);

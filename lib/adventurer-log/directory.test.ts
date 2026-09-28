@@ -15,7 +15,9 @@ const HOSTILE = "x'); drop table account; --";
 
 const EVENT = {
   username: "hero",
-  headline: "Rune or bust",
+  greeting: "Rune or bust",
+  greeting_colour: 9,
+  greeting_effect: 1,
   last_at: new Date("2026-09-25T10:00:00Z"),
   last_kind: "event",
   last_category: 1,
@@ -24,7 +26,9 @@ const EVENT = {
 
 const UPDATE = {
   username: "fan",
-  headline: "",
+  greeting: "",
+  greeting_colour: 0,
+  greeting_effect: 0,
   last_at: "2026-09-25T09:00:00Z",
   last_kind: "update",
   last_category: null,
@@ -48,7 +52,9 @@ describe("the directory", () => {
     expect(page.rows).toEqual([
       {
         username: "hero",
-        headline: "Rune or bust",
+        greeting: "Rune or bust",
+        greetingColour: 9,
+        greetingEffect: 1,
         lastAt: "2026-09-25T10:00:00.000Z",
         lastKind: "event",
         lastCategory: 1,
@@ -64,6 +70,14 @@ describe("the directory", () => {
     expect(() => parseDirectory([{ ...EVENT, last_kind: "login" }])).toThrow(/login/);
     expect(() => parseDirectory([{ ...EVENT, last_category: null }])).toThrow(/last_category/);
     expect(() => parseDirectory([{ ...EVENT, last_at: "never" }])).toThrow(/last_at/);
+  });
+
+  it("throws on a row from before migration 18, or a greeting look out of range", () => {
+    const old: Record<string, unknown> = { ...EVENT, headline: "Rune or bust" };
+    delete old.greeting;
+    expect(() => parseDirectory([old])).toThrow(/greeting/);
+    expect(() => parseDirectory([{ ...EVENT, greeting_colour: 12 }])).toThrow(/greeting_colour/);
+    expect(() => parseDirectory([{ ...EVENT, greeting_effect: null }])).toThrow(/greeting_effect/);
   });
 
   it("takes a cursor from the URL only when all of it is sound", () => {

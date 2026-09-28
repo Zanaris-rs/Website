@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import styles from "@/components/adventurer-log/Directory.module.css";
 import ChatheadFace from "@/components/game/ChatheadFace";
 import ItemIcon from "@/components/game/ItemIcon";
+import ChatText from "@/components/game/ChatText";
 import SkillIcon from "@/components/game/SkillIcon";
 import frame from "@/components/site/Frame.module.css";
 import Frame from "@/components/site/Frame";
@@ -117,7 +118,10 @@ export default async function AdventurerLogs({ searchParams }: Params) {
                   <a className={`${frame.link} ${styles.name}`} href={logHref(entry.username)}>
                     {entry.name}
                   </a>
-                  {entry.headline ? <span className={styles.headline}>&ldquo;{entry.headline}&rdquo;</span> : null}
+                  {/* The greeting in its colour, as it is said overhead, but still: a list is no place for a wave or a scroll. */}
+                  {entry.greeting ? (
+                    <ChatText className={styles.greeting} text={entry.greeting} colour={entry.greetingColour} effect={0} />
+                  ) : null}
                   <div className={styles.activity}>
                     {entry.icon ? (
                       <span className={styles.icon} aria-hidden>

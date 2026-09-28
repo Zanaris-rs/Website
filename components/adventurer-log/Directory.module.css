@@ -1,5 +1,5 @@
 /* `/adventurer-log`: the name search, then one row per recently active log -
-   a small chathead, the name and headline, and what the log last showed. */
+   a small chathead, the name and greeting, and what the log last showed. */
 
 .search {
   display: flex;
@@ -56,10 +56,9 @@
   font-weight: bold;
 }
 
-.headline {
+/* The greeting is ChatText: the game's b12 in the greeting's colour. */
+.greeting {
   margin-left: 6px;
-  color: var(--text-muted);
-  font-style: italic;
   overflow-wrap: anywhere;
 }
 

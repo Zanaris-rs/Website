@@ -101,7 +101,7 @@ const OUTLINE = `<div class="al-root">                 <!-- the log; your CSS re
       </section>
     </aside>
     <div class="al-main">
-      <section class="al-dialogue al-box" aria-label="Zezima says">     <!-- only with pages or a headline; the fallback page uses the headline, neutral mood, no continue button -->
+      <section class="al-dialogue al-box" aria-label="Zezima says">     <!-- only with pages -->
         <div class="al-dialogue-head al-chathead"><canvas></canvas></div>
         <div class="al-dialogue-body">
           <p class="al-dialogue-name">Zezima</p>

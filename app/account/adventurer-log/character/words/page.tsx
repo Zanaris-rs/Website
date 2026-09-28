@@ -36,7 +36,7 @@ export default async function CharacterWordsPage() {
           username={header.username}
           joinedAt={header.joinedAt}
           persona={persona}
-          initial={wordsOf(persona, header.headline)}
+          initial={wordsOf(persona)}
           // The header's look is the worn outfit (as on the log page,
           // `page-data.ts`): the only look ever drawn whole.
           outfitLook={header.look}

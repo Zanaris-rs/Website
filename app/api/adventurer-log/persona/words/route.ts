@@ -4,11 +4,12 @@ import { checkWordsInput, wordsSaveStatement } from "@/lib/adventurer-log/person
 import { fail, readJson, runWrite, writer } from "@/lib/adventurer-log/route";
 
 /**
- * `POST /api/adventurer-log/persona/words` - Character › Words' one Save:
- * the headline, its colour and effect, the signature emote and the dialogue
- * (migration 17's `adventure_persona_save_words`). A mute is refused new
- * words (the headline or any line) but may change the picks; the database
- * decides which this is.
+ * `POST /api/adventurer-log/persona/words` `{ signatureEmote, dialogue }` -
+ * Character › Words' one Save: the signature emote and the dialogue, each
+ * page with its overhead colour and effect (migration 18's three-argument
+ * `adventure_persona_save_words`). A mute is refused a changed line but may
+ * change the picks, colours and effects included; the database decides
+ * which this is.
  */
 
 export const runtime = "nodejs";

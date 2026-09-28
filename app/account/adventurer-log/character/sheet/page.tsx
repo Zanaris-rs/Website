@@ -44,9 +44,9 @@ export default async function CharacterSheetPage() {
           name={displayName(header.username)}
           username={header.username}
           joinedAt={header.joinedAt}
-          headline={header.headline}
           persona={persona}
-          initial={sheetOf(persona)}
+          // About lives on the log's header (`adventure_log`), and is saved with the sheet.
+          initial={sheetOf(persona, header.about)}
           outfitLook={header.look}
           headLook={headLook}
           clan={clan}

@@ -4,17 +4,16 @@ import { cardMode, sheetRows } from "./card";
 import { EMPTY_PERSONA } from "./persona";
 
 describe("cardMode (the spec's chathead table)", () => {
-  const page = { mood: "neutral" as const, emote: null, lines: ["hi"] };
+  const page = { mood: "neutral" as const, emote: null, lines: ["hi"], colour: 0, effect: 0 };
   it("draws the figure whenever there is an outfit", () => {
-    expect(cardMode({ hasOutfit: true, headline: "", pages: [] })).toBe("figure");
-    expect(cardMode({ hasOutfit: true, headline: "x", pages: [page] })).toBe("figure");
+    expect(cardMode({ hasOutfit: true, pages: [] })).toBe("figure");
+    expect(cardMode({ hasOutfit: true, pages: [page] })).toBe("figure");
   });
-  it("without an outfit, strips the headline when there are words", () => {
-    expect(cardMode({ hasOutfit: false, headline: "x", pages: [] })).toBe("strip");
-    expect(cardMode({ hasOutfit: false, headline: "", pages: [page] })).toBe("strip");
+  it("without an outfit, says the pages in a strip", () => {
+    expect(cardMode({ hasOutfit: false, pages: [page] })).toBe("strip");
   });
   it("otherwise keeps today's chathead", () => {
-    expect(cardMode({ hasOutfit: false, headline: "", pages: [] })).toBe("chathead");
+    expect(cardMode({ hasOutfit: false, pages: [] })).toBe("chathead");
   });
 });
 

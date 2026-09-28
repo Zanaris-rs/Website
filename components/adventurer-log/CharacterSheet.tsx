@@ -34,7 +34,6 @@ export default function CharacterSheet({
   name,
   username,
   joinedAt,
-  headline,
   persona,
   initial,
   outfitLook,
@@ -44,7 +43,6 @@ export default function CharacterSheet({
   name: string;
   username: string;
   joinedAt: string;
-  headline: string;
   /** The saved persona: what the card draws around the sheet being edited. */
   persona: Persona;
   initial: SheetInput;
@@ -80,7 +78,6 @@ export default function CharacterSheet({
       name={name}
       username={username}
       joinedAt={joinedAt}
-      headline={headline}
       persona={shown}
       outfitLook={outfitLook}
       headLook={headLook}

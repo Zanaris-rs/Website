@@ -3,8 +3,8 @@ import { FACINGS } from "@/lib/chathead/facing";
 import { type Emote, isEmote, isMood, type Mood } from "@/lib/chathead/vocab";
 
 /**
- * An adventurer's persona (migrations 16 and 17): the words and picks the
- * Character tabs save and the card and dialogue draw. The call into
+ * An adventurer's persona (migrations 16, 17 and 18): the words and picks
+ * the Character tabs save and the card and dialogue draw. The call into
  * accounts.adventure_persona and a strict parse of what it answers, the same
  * discipline as queries.ts.
  *
@@ -12,6 +12,11 @@ import { type Emote, isEmote, isMood, type Mood } from "@/lib/chathead/vocab";
  * through `clan_of`) and the playstyle, and added `facing`: which of the
  * sixteen ways (`lib/chathead/facing.ts`) the figure faces when someone
  * opens the log.
+ *
+ * Migration 18 folded the headline into the dialogue: each page carries its
+ * own overhead colour (0-11, `CHAT_COLOUR_NAMES`) and effect (0-2,
+ * `CHAT_EFFECT_NAMES`), and the persona's one colour and effect are gone.
+ * Page 1's first line is the player's greeting (`adventure_greeting`).
  */
 
 export const GODS = ["saradomin", "zamorak", "guthix"] as const;
@@ -22,11 +27,10 @@ export const PERSONA_LIMITS = {
   title: 24, examine: 80, hangout: 40, goals: 3, goal: 40, pages: 5, lines: 4, line: 60,
 } as const;
 
-export type DialoguePage = { mood: Mood; emote: Emote | null; lines: string[] };
+/** One page of the dialogue: how it is said, what is said, and how it looks overhead. */
+export type DialoguePage = { mood: Mood; emote: Emote | null; lines: string[]; colour: number; effect: number };
 
 export type Persona = {
-  colour: number;
-  effect: number;
   title: string;
   examine: string;
   hangout: string;
@@ -41,7 +45,7 @@ export type Persona = {
 };
 
 export const EMPTY_PERSONA: Persona = {
-  colour: 0, effect: 0, title: "", examine: "", hangout: "", goals: [],
+  title: "", examine: "", hangout: "", goals: [],
   god: null, homeTown: null, scene: null, facing: 0, signatureEmote: null, dialogue: [],
 };
 
@@ -66,7 +70,13 @@ function pageOf(value: unknown): DialoguePage {
   if (!Array.isArray(page.lines) || page.lines.length < 1 || page.lines.length > 4 || !page.lines.every((l) => typeof l === "string")) {
     return fail("dialogue lines", page.lines);
   }
-  return { mood: page.mood, emote: page.emote as Emote | null, lines: page.lines as string[] };
+  return {
+    mood: page.mood,
+    emote: page.emote as Emote | null,
+    lines: page.lines as string[],
+    colour: intIn(page.colour, 11, "dialogue colour"),
+    effect: intIn(page.effect, 2, "dialogue effect"),
+  };
 }
 
 export function parsePersona(rows: readonly unknown[]): Persona {
@@ -78,8 +88,6 @@ export function parsePersona(rows: readonly unknown[]): Persona {
   if (row.god !== null && !(GODS as readonly unknown[]).includes(row.god)) fail("god", row.god);
   if (row.signature_emote !== null && !isEmote(row.signature_emote)) fail("signature_emote", row.signature_emote);
   return {
-    colour: intIn(row.headline_colour, 11, "headline_colour"),
-    effect: intIn(row.headline_effect, 2, "headline_effect"),
     title: text(row.title, "title"),
     examine: text(row.examine, "examine"),
     hangout: text(row.hangout, "hangout"),

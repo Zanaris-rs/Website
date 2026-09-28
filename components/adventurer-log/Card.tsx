@@ -48,7 +48,6 @@ export default function Card({
   name,
   username,
   joinedAt,
-  headline,
   persona,
   outfitLook,
   headLook,
@@ -59,7 +58,6 @@ export default function Card({
   name: string;
   username: string;
   joinedAt: string;
-  headline: string;
   persona: Persona;
   /** The default outfit: the only look ever drawn whole. */
   outfitLook: Look | null;
@@ -71,9 +69,12 @@ export default function Card({
   /** The owner's clan and rank, for the sheet's Clan row; null for none. */
   clan: ClanOf | null;
 }) {
-  const mode = cardMode({ hasOutfit: outfitLook !== null, headline, pages: persona.dialogue });
+  const mode = cardMode({ hasOutfit: outfitLook !== null, pages: persona.dialogue });
   const rows = sheetRows(persona);
   const scene = sceneOf(persona.scene);
+  // The greeting: page 1's first line, in page 1's colour and effect.
+  const first = persona.dialogue[0];
+  const greeting = first ? { text: first.lines[0] ?? "", colour: first.colour, effect: first.effect } : null;
   return (
     <section className="al-header al-card al-box">
       <h1 className="al-title">{name}</h1>
@@ -83,16 +84,16 @@ export default function Card({
         <CardFigure
           name={name}
           look={outfitLook}
-          headline={headline}
-          colour={persona.colour}
-          effect={persona.effect}
+          headline={greeting?.text ?? ""}
+          colour={greeting?.colour ?? 0}
+          effect={greeting?.effect ?? 0}
           scene={scene}
           outfits={outfits}
         />
       ) : mode === "strip" ? (
-        headline ? (
+        greeting?.text ? (
           <p className="al-chat-strip">
-            <ChatText className="al-overhead al-headline" text={headline} colour={persona.colour} effect={persona.effect} />
+            <ChatText className="al-overhead al-headline" text={greeting.text} colour={greeting.colour} effect={greeting.effect} />
           </p>
         ) : null
       ) : (

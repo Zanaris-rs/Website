@@ -4,7 +4,6 @@
  * with a sentence naming the field; the database is the authority.
  */
 
-export const HEADLINE_MAX = 80;
 export const ABOUT_MAX = 1000;
 export const UPDATE_MAX = 2000;
 export const REPLY_MAX = 500;
@@ -22,7 +21,7 @@ const CONTROL = /[\u0001-\u0008\u000b-\u001f\u007f]/;
 /**
  * Text as the database will store it: CRLF made LF, trimmed of spaces, tabs
  * and newlines at both ends, no control characters, within `max`, and not
- * empty unless `emptyOk`. `oneLine` refuses a newline (the headline).
+ * empty unless `emptyOk`. `oneLine` refuses a newline (a dialogue line).
  */
 export function checkText(
   raw: unknown,

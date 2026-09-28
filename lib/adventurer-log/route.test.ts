@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CLAN_ANSWERS, clanLeaveStatement } from "@/lib/clans/queries";
 
 import { runWrite } from "./route";
-import { logSaveStatement } from "./queries";
+import { saveCssStatement } from "./queries";
 
 // `server-only` throws outside a React Server build; the test is the server.
 vi.mock("server-only", () => ({}));
@@ -33,18 +33,18 @@ beforeEach(() => {
 
 describe("runWrite", () => {
   it("reads a log write's answer as it always has, with two arguments", async () => {
-    const statement = logSaveStatement("zezima", "", "");
+    const statement = saveCssStatement("zezima", "");
     answer.rows = [{ result: "ok" }];
-    expect(await answered(await runWrite(statement, "adventure_log_save"))).toEqual([200, { ok: true }]);
+    expect(await answered(await runWrite(statement, "adventure_log_save_css"))).toEqual([200, { ok: true }]);
     answer.rows = [{ result: "muted" }];
-    expect(await answered(await runWrite(statement, "adventure_log_save"))).toEqual([403, { error: "muted" }]);
+    expect(await answered(await runWrite(statement, "adventure_log_save_css"))).toEqual([403, { error: "muted" }]);
     answer.rows = [{ result: "rate_limited" }];
-    expect(await answered(await runWrite(statement, "adventure_log_save"))).toEqual([429, { error: "rate_limited" }]);
+    expect(await answered(await runWrite(statement, "adventure_log_save_css"))).toEqual([429, { error: "rate_limited" }]);
   });
 
   it("treats a clan code as undocumented for a log write", async () => {
     answer.rows = [{ result: "not_member" }];
-    const response = await runWrite(logSaveStatement("zezima", "", ""), "adventure_log_save");
+    const response = await runWrite(saveCssStatement("zezima", ""), "adventure_log_save_css");
     expect(await answered(response)).toEqual([503, { error: "unavailable" }]);
   });
 

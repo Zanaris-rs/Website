@@ -19,7 +19,8 @@ import { playerQuery, type PlayerRow } from "@/lib/hiscores/queries";
  *
  * The card is the log's header, drawn: the chathead at three times its size
  * (each game pixel a solid block, drawn on the server by the page's own
- * renderer — `lib/chathead/server.ts`), the name, the headline, the total
+ * renderer — `lib/chathead/server.ts`), the name, the greeting (page 1's
+ * first line, as plain text: a picture has no colour cycle), the total
  * level and the site. The look is the page's (`logLook`), so a preview never
  * shows more of the player than the log does.
  *
@@ -73,7 +74,7 @@ type Params = {
 
 type Card = {
   name: string;
-  headline: string;
+  greeting: string;
   totalLevel: number | null;
   /** The chathead as a data URL, or null to leave it out. */
   head: string | null;
@@ -115,7 +116,7 @@ async function cardFor(username: string): Promise<Card | null> {
 
   return {
     name: displayName(header.username),
-    headline: header.headline,
+    greeting: header.greeting,
     totalLevel: overall ? overall.level : null,
     head,
     headFailed,
@@ -165,9 +166,9 @@ export default async function Image({ params }: Params) {
             }}
           >
             <div style={{ fontSize: 72, color: GOLD }}>{card.name}</div>
-            {card.headline ? (
+            {card.greeting ? (
               <div style={{ fontSize: 36, color: TEXT, marginTop: 20 }}>
-                {`“${card.headline}”`}
+                {`“${card.greeting}”`}
               </div>
             ) : null}
             {card.totalLevel !== null ? (

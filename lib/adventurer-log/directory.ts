@@ -11,14 +11,17 @@ import { DIRECTORY_PAGE, type DirectoryCursor, directoryCursorOf, directoryState
 
 /**
  * A page of `/adventurers`, the directory of recently active logs, ready
- * to draw: each log's name, headline, chathead and the latest thing it shows
- * the public, newest first.
+ * to draw: each log's name, greeting (page 1's first line, in its overhead
+ * colour and effect), chathead and the latest thing it shows the public,
+ * newest first.
  */
 
 export type DirectoryEntry = {
   username: string;
   name: string;
-  headline: string;
+  greeting: string;
+  greetingColour: number;
+  greetingEffect: number;
   at: string;
   /** The adventure's picture (a skill, an item); null for an update or none. */
   icon: EventIcon;
@@ -42,7 +45,9 @@ export async function loadDirectory(
     (row): DirectoryEntry => ({
       username: row.username,
       name: displayName(row.username),
-      headline: row.headline,
+      greeting: row.greeting,
+      greetingColour: row.greetingColour,
+      greetingEffect: row.greetingEffect,
       at: row.lastAt,
       ...activityOf(row),
       look: looks.get(row.username) ?? null,

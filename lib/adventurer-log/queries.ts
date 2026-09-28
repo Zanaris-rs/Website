@@ -44,6 +44,13 @@ function asTextArray(value: unknown, where: string): string[] {
   throw new Error(`${where}: not a list of text: ${JSON.stringify(value)}`);
 }
 
+/** A whole number from 0 to `max`: a chat colour, a chat effect, a mask. */
+function asIntUpTo(value: unknown, max: number, where: string): number {
+  const n = asInt(value, where);
+  if (n < 0 || n > max) throw new Error(`${where}: not 0 to ${max}: ${n}`);
+  return n;
+}
+
 export function oneOf<T extends string>(allowed: readonly T[], raw: unknown, where: string): T {
   if (typeof raw === "string" && (allowed as readonly string[]).includes(raw)) {
     return raw as T;
@@ -81,11 +88,19 @@ export type LogHeader =
       result: "ok";
       username: string;
       joinedAt: string;
-      headline: string;
       about: string;
       customCss: string;
       cssDisabled: boolean;
       hiddenCategories: number;
+      /**
+       * Page 1's first line (migration 18's `adventure_greeting`), and its
+       * overhead colour (0-11) and effect (0-2); '' with no pages.
+       */
+      greeting: string;
+      greetingColour: number;
+      greetingEffect: number;
+      /** The parts of the log the owner hides, a mask of `parts.ts`'s bits (0-31). */
+      hiddenParts: number;
       isOwner: boolean;
       viewerBlocked: boolean;
       viewerCanPost: boolean;
@@ -109,11 +124,14 @@ export function parseLog(rows: readonly unknown[]): LogHeader {
     result,
     username: asText(row.username, "adventure_log username"),
     joinedAt: asIso(row.joined_at, "adventure_log joined_at"),
-    headline: asText(row.headline, "adventure_log headline"),
     about: asText(row.about, "adventure_log about"),
     customCss: asText(row.custom_css, "adventure_log custom_css"),
     cssDisabled: row.css_disabled === true,
     hiddenCategories: asInt(row.hidden_categories, "adventure_log hidden_categories"),
+    greeting: asText(row.greeting, "adventure_log greeting"),
+    greetingColour: asIntUpTo(row.greeting_colour, 11, "adventure_log greeting_colour"),
+    greetingEffect: asIntUpTo(row.greeting_effect, 2, "adventure_log greeting_effect"),
+    hiddenParts: asIntUpTo(row.hidden_parts, 31, "adventure_log hidden_parts"),
     isOwner: row.is_owner === true,
     viewerBlocked: row.viewer_blocked === true,
     viewerCanPost: row.viewer_can_post === true,
@@ -294,7 +312,10 @@ export type DirectoryCursor = { at: string; username: string };
  */
 export type DirectoryRow = {
   username: string;
-  headline: string;
+  /** Page 1's first line and its overhead colour and effect (migration 18); '' with no pages. */
+  greeting: string;
+  greetingColour: number;
+  greetingEffect: number;
   lastAt: string;
   lastKind: "event" | "update";
   /** The adventure's category; null for an update. */
@@ -322,7 +343,9 @@ export function parseDirectory(
     const lastKind = oneOf(["event", "update"] as const, row.last_kind, "adventure_log_directory last_kind");
     return {
       username: asText(row.username, "adventure_log_directory username"),
-      headline: asText(row.headline, "adventure_log_directory headline"),
+      greeting: asText(row.greeting, "adventure_log_directory greeting"),
+      greetingColour: asIntUpTo(row.greeting_colour, 11, "adventure_log_directory greeting_colour"),
+      greetingEffect: asIntUpTo(row.greeting_effect, 2, "adventure_log_directory greeting_effect"),
       lastAt: asIso(row.last_at, "adventure_log_directory last_at"),
       lastKind,
       lastCategory:
@@ -384,19 +407,17 @@ export function parseRecentReplies(rows: readonly unknown[]): RecentReply[] {
   });
 }
 
-// --- the owner's text, filters and CSS ----------------------------------------------
+// --- the owner's filters and CSS ---------------------------------------------------
 
-export function logSaveStatement(username: string, headline: string, about: string): Statement {
+/**
+ * "What your log shows" in one Save (migration 18's `adventure_log_save_shows`):
+ * the kinds of adventure the log hides (bit n hides category n, 0-255) and
+ * the parts of it (`parts.ts`, 0-31). Picks only, so a mute does not stop it.
+ */
+export function showsSaveStatement(username: string, categories: number, parts: number): Statement {
   return {
-    text: "select accounts.adventure_log_save($1, $2, $3) as result",
-    values: [username, headline, about],
-  };
-}
-
-export function setHiddenStatement(username: string, mask: number): Statement {
-  return {
-    text: "select accounts.adventure_log_set_hidden($1, $2) as result",
-    values: [username, mask],
+    text: "select accounts.adventure_log_save_shows($1, $2, $3) as result",
+    values: [username, categories, parts],
   };
 }
 
@@ -582,7 +603,6 @@ export const WRITE_RESULTS = [
   "banned",
   "muted",
   "blocked",
-  "bad_headline",
   "bad_about",
   "bad_mask",
   "bad_body",
@@ -596,8 +616,6 @@ export const WRITE_RESULTS = [
   "bad_key",
   "bad_emote",
   "bad_dialogue",
-  "bad_colour",
-  "bad_effect",
   "bad_facing",
   "too_long",
   "css_disabled",
@@ -631,7 +649,6 @@ export function parsePost(
  */
 export const LOG_STATUS: Record<string, number> = {
   ok: 200,
-  bad_headline: 400,
   bad_about: 400,
   bad_mask: 400,
   bad_body: 400,
@@ -645,8 +662,6 @@ export const LOG_STATUS: Record<string, number> = {
   bad_key: 400,
   bad_emote: 400,
   bad_dialogue: 400,
-  bad_colour: 400,
-  bad_effect: 400,
   bad_facing: 400,
   too_long: 400,
   self: 400,

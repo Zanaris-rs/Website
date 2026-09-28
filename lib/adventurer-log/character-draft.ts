@@ -1,6 +1,3 @@
-import { CHAT_COLOUR_NAMES } from "@/lib/game-chat/effects";
-import { parseChatPrefix } from "@/lib/game-chat/prefix";
-
 import { type Persona, PERSONA_LIMITS } from "./persona";
 import type { Check, SheetInput, StageInput, WordsInput } from "./persona-input";
 
@@ -9,25 +6,6 @@ import type { Check, SheetInput, StageInput, WordsInput } from "./persona-input"
  * saving do to them, kept out of the components so each can be tested.
  * Browser-safe: nothing here reaches the server.
  */
-
-/**
- * Typing into the headline. A prefix typed the in-game way (`glow1:wave:hi`)
- * moves into the colour and effect pickers, leaving the text. Only what the
- * prefix names changes, so `wave:` keeps the colour already picked.
- */
-export function typeHeadline<T extends { headline: string; colour: number; effect: number }>(draft: T, value: string): T {
-  const found = parseChatPrefix(value);
-  if (found.text === value) return { ...draft, headline: value };
-  const prefix = value.slice(0, value.length - found.text.length);
-  const namesColour = CHAT_COLOUR_NAMES.some((name) => prefix.startsWith(`${name}:`));
-  const namesEffect = prefix.endsWith("wave:") || prefix.endsWith("scroll:");
-  return {
-    ...draft,
-    headline: found.text,
-    colour: namesColour ? found.colour : draft.colour,
-    effect: namesEffect ? found.effect : draft.effect,
-  };
-}
 
 /** `list` with the item at `from` moved to `to`; unchanged past either end. */
 export function moved<T>(list: readonly T[], from: number, to: number): T[] {
@@ -69,14 +47,13 @@ export function previewPersona(persona: Persona): Persona {
 export type DraftField = keyof WordsInput | keyof SheetInput | keyof StageInput;
 
 /**
- * Which fields each of migration 17's refusals is about, so they can be
- * highlighted. `bad_key` is a home town or a scene key; the database does
- * not say which. Each tab marks only the fields it has.
+ * Which fields each of the persona writers' refusals (migration 18's) is
+ * about, so they can be highlighted. `bad_key` is a home town or a scene key;
+ * the database does not say which. A page's colour or effect is part of the
+ * dialogue, so a bad one is `bad_dialogue`. Each tab marks only the fields it
+ * has.
  */
 export const BAD_FIELDS: Readonly<Record<string, readonly DraftField[]>> = {
-  bad_headline: ["headline"],
-  bad_colour: ["colour"],
-  bad_effect: ["effect"],
   bad_emote: ["signatureEmote", "dialogue"],
   bad_dialogue: ["dialogue"],
   bad_title: ["title"],
@@ -86,6 +63,7 @@ export const BAD_FIELDS: Readonly<Record<string, readonly DraftField[]>> = {
   bad_god: ["god"],
   bad_key: ["homeTown", "scene"],
   bad_facing: ["facing"],
+  bad_about: ["about"],
 };
 
 /** The saves' refusals as sentences, ahead of the log's shared ones (`send`). */

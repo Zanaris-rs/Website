@@ -4,7 +4,6 @@ import "@/components/game/game-fonts.css";
 
 import type { ReactNode } from "react";
 
-import { dialoguePages } from "@/lib/adventurer-log/dialogue";
 import type { Persona } from "@/lib/adventurer-log/persona";
 import { nearestFacing } from "@/lib/chathead/facing";
 import type { Look } from "@/lib/chathead/look";
@@ -40,7 +39,6 @@ export default function CharacterWorkspace({
   name,
   username,
   joinedAt,
-  headline,
   persona,
   outfitLook,
   headLook,
@@ -52,7 +50,6 @@ export default function CharacterWorkspace({
   name: string;
   username: string;
   joinedAt: string;
-  headline: string;
   persona: Persona;
   /** The worn outfit: the only look ever drawn whole. */
   outfitLook: Look | null;
@@ -64,7 +61,7 @@ export default function CharacterWorkspace({
   below?: ReactNode;
   children: ReactNode;
 }) {
-  const pages = dialoguePages(persona, headline);
+  const pages = persona.dialogue;
   // As on the log: the signature emote stands in only when there are no pages.
   const signatureEmote = persona.dialogue.length === 0 ? persona.signatureEmote : null;
   const turns = sceneOf(persona.scene)?.turns ?? null;
@@ -86,7 +83,6 @@ export default function CharacterWorkspace({
                   name={name}
                   username={username}
                   joinedAt={joinedAt}
-                  headline={headline}
                   persona={persona}
                   outfitLook={outfitLook}
                   headLook={headLook}
