@@ -8,8 +8,9 @@ import { SET_RECORD_HREF } from "@/lib/records/api";
  * are), Clan (who you're with) and Log settings (how the log reads) - and
  * each links to the others from its title box, the way `/economy`'s sections
  * do: View your log · Character · Clan · Records · Log settings · Community.
- * Records is their own Start/Stop page; Community is the hub the log is part
- * of. The Account Centre stays on the title page and in Account Services.
+ * Records is their own Start/Stop page, which carries this box too ("Your
+ * records"); Community is the hub the log is part of. The Account Centre
+ * stays on the title page and in Account Services.
  */
 export default function OwnerNav({
   title,
@@ -19,7 +20,7 @@ export default function OwnerNav({
   title: string;
   /** The owner's username, for the link to their log. */
   username: string;
-  current: "character" | "clan" | "settings";
+  current: "character" | "clan" | "records" | "settings";
 }) {
   return (
     <TitleBox
@@ -29,7 +30,7 @@ export default function OwnerNav({
         { href: logHref(username), text: "View your log" },
         { href: CHARACTER_HREF, text: "Character", current: current === "character" },
         { href: CLAN_TAB_HREF, text: "Clan", current: current === "clan" },
-        { href: SET_RECORD_HREF, text: "Records" },
+        { href: SET_RECORD_HREF, text: "Records", current: current === "records" },
         { href: LOG_SETTINGS_HREF, text: "Log settings", current: current === "settings" },
         { href: COMMUNITY_HREF, text: "Community" },
       ]}
