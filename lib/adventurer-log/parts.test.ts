@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   checkShowsInput,
+  FIXED_PART_LABELS,
   isPartHidden,
   PART_BITS,
   PART_KEYS,
@@ -10,6 +11,7 @@ import {
   PARTS_MASK_MAX,
   readPart,
   schematic,
+  withBit,
 } from "./parts";
 import { parseLog } from "./queries";
 
@@ -20,6 +22,7 @@ describe("the log's parts", () => {
     expect(PARTS_MASK_MAX).toBe(31);
     expect(partsMaskOf(PART_KEYS)).toBe(PARTS_MASK_MAX);
     expect(PART_KEYS.map((key) => PART_LABELS[key])).toEqual(["Dialogue", "Wardrobe", "Records", "About", "Adventures"]);
+    expect(FIXED_PART_LABELS).toEqual({ card: "Character card", skills: "Skills" });
   });
 
   it("make a mask, and say what one hides", () => {
@@ -30,6 +33,16 @@ describe("the log's parts", () => {
     expect(isPartHidden(mask, "dialogue")).toBe(false);
     expect(partsMaskOf([])).toBe(0);
     for (const key of PART_KEYS) expect(isPartHidden(0, key)).toBe(false);
+  });
+
+  it("turn one bit on or off, leaving the rest", () => {
+    expect(withBit(12, PART_BITS.dialogue, true)).toBe(13);
+    expect(withBit(13, PART_BITS.dialogue, false)).toBe(12);
+    // Already so: unchanged.
+    expect(withBit(12, PART_BITS.about, true)).toBe(12);
+    expect(withBit(12, PART_BITS.adventures, false)).toBe(12);
+    // A kind of adventure's bit (1 << id) the same way.
+    expect(withBit(0b100000, 1 << 7, true)).toBe(0b10100000);
   });
 });
 

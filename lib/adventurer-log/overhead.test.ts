@@ -64,6 +64,14 @@ describe("pageCycles", () => {
     expect(pageCycles([], even)).toBe(0);
     expect(pageCycles(["a", "b"], () => 0)).toBe(2);
   });
+
+  it("takes each line down to whole cycles, as lineAt does, so the page ends where lineAt starts it again", () => {
+    // Two lines 150.7 cycles long last 150 each: the page is 300 cycles, not 301.4.
+    const long = () => 150.7;
+    expect(pageCycles(["a", "b"], long)).toBe(300);
+    expect(lineAt(["a", "b"], 299, long)).toEqual({ index: 1, startedAt: 150 });
+    expect(lineAt(["a", "b"], pageCycles(["a", "b"], long), long)).toEqual({ index: 0, startedAt: 300 });
+  });
 });
 
 describe("lineCyclesFor", () => {

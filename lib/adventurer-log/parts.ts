@@ -26,6 +26,9 @@ export const PART_LABELS: Record<PartKey, string> = {
   adventures: "Adventures",
 };
 
+/** The parts that are always shown: Log settings' fixed ticks and the picture's boxes name them so. */
+export const FIXED_PART_LABELS = { card: "Character card", skills: "Skills" } as const;
+
 export function isPartHidden(mask: number, key: PartKey): boolean {
   return (mask & PART_BITS[key]) !== 0;
 }
@@ -35,6 +38,11 @@ export function partsMaskOf(keys: Iterable<PartKey>): number {
   let mask = 0;
   for (const key of keys) mask |= PART_BITS[key];
   return mask;
+}
+
+/** `mask` with `bit` set (`on`) or cleared: a part's bit, or a kind of adventure's (`1 << id`). */
+export function withBit(mask: number, bit: number, on: boolean): number {
+  return on ? mask | bit : mask & ~bit;
 }
 
 /**
@@ -79,9 +87,9 @@ export function checkShowsInput(
 export type SchematicBlock = { key: PartKey | "card" | "skills"; label: string; height: number };
 
 const SIDE: readonly SchematicBlock[] = [
-  { key: "card", label: "Character card", height: 92 },
+  { key: "card", label: FIXED_PART_LABELS.card, height: 92 },
   { key: "wardrobe", label: PART_LABELS.wardrobe, height: 38 },
-  { key: "skills", label: "Skills", height: 44 },
+  { key: "skills", label: FIXED_PART_LABELS.skills, height: 44 },
   { key: "records", label: PART_LABELS.records, height: 22 },
 ];
 const MAIN: readonly SchematicBlock[] = [
