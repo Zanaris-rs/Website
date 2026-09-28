@@ -20,6 +20,8 @@ beforeEach(() => {
   answer.by = null;
   vi.mocked(query).mockClear();
   vi.spyOn(console, "error").mockImplementation(() => {});
+  // Each test's logged lines are its own.
+  vi.mocked(console.error).mockClear();
 });
 
 const LOOK = {
@@ -62,7 +64,9 @@ const EXACT = [0, 1, 2, 3, 4, 5, 6, 7].map((category) => ({
   rank: 1,
 }));
 
-const TOP = Array.from({ length: 21 }, (_, i) => ({ rank: i + 1, username: `p${i + 1}`, level: 500 - i, value: 1000 }));
+/** The top 21 on Overall; the second, zezima, has a saved outfit. */
+const topName = (rank: number) => (rank === 2 ? "zezima" : `p${rank}`);
+const TOP = Array.from({ length: 21 }, (_, i) => ({ rank: i + 1, username: topName(i + 1), level: 500 - i, value: 1000 }));
 const CLANS = ["Varrock Knights", "Lumbridge Lads", "The Partyhat Society", "Draynor Dodgers"].map((name, i) => ({
   name,
   slug: name.toLowerCase().replaceAll(" ", "-"),
@@ -117,6 +121,20 @@ function answers(given: Answers = {}) {
 
 const statements = () => vi.mocked(query).mock.calls.map(([text, values]) => ({ text, values }));
 
+/** Holds back the answers to the reads `held` picks until `open()`; the rest answer as before. */
+function holdBack(held: (text: string) => boolean) {
+  const given = answer.by!;
+  let open = () => {};
+  const gate = new Promise<void>((resolve) => {
+    open = resolve;
+  });
+  answer.by = (text, values) =>
+    held(text) ? (gate.then(() => given(text, values)) as unknown as unknown[]) : given(text, values);
+  return () => open();
+}
+
+const asked = (part: string) => statements().filter(({ text }) => text.includes(part)).length;
+
 describe("loadSquare", () => {
   it("stands the five most recent with a saved outfit, most recent first, each with their greeting and level", async () => {
     answers();
@@ -149,6 +167,15 @@ describe("loadSquare", () => {
     expect(read.some(({ text }) => text.includes("outfit_import_look"))).toBe(false);
   });
 
+  it("asks for the five levels at once", async () => {
+    answers();
+    const open = holdBack((text) => text.includes("union all"));
+    const loading = loadSquare();
+    await vi.waitFor(() => expect(asked("union all")).toBe(5));
+    open();
+    expect((await loading).map((sitter) => sitter.combat)).toEqual([null, 48, null, null, null]);
+  });
+
   it("stands nobody when nobody is about, without reading outfits", async () => {
     answers({ directory: [] });
     expect(await loadSquare()).toEqual([]);
@@ -177,13 +204,13 @@ describe("loadHub", () => {
     expect(hub.square.ok && hub.square.value).toHaveLength(5);
     expect(hub.top).toEqual({
       ok: true,
-      value: [1, 2, 3, 4, 5].map((rank) => ({
-        rank,
-        username: `p${rank}`,
-        name: `P${rank}`,
-        totalLevel: 501 - rank,
-        look: null,
-      })),
+      value: [
+        { rank: 1, username: "p1", name: "P1", totalLevel: 500, look: null },
+        { rank: 2, username: "zezima", name: "Zezima", totalLevel: 499, look: LOOK },
+        { rank: 3, username: "p3", name: "P3", totalLevel: 498, look: null },
+        { rank: 4, username: "p4", name: "P4", totalLevel: 497, look: null },
+        { rank: 5, username: "p5", name: "P5", totalLevel: 496, look: null },
+      ],
     });
     expect(hub.records).toEqual({
       ok: true,
@@ -214,6 +241,20 @@ describe("loadHub", () => {
       [21600, 0, 1],
       [86400, 0, 1],
     ]);
+  });
+
+  it("reads the boxes at once: none waits on another", async () => {
+    answers();
+    const open = holdBack((text) => text.includes("adventure_log_directory("));
+    const loading = loadHub();
+    await vi.waitFor(() => {
+      expect(asked("with ranked")).toBe(1);
+      expect(asked("record_board(")).toBeGreaterThan(0);
+      expect(asked("clan_directory(")).toBe(1);
+    });
+    open();
+    const hub = await loading;
+    expect(hub.square.ok && hub.top.ok && hub.records.ok && hub.recent.ok && hub.clans.ok).toBe(true);
   });
 
   it("fails a box on its own: the rest still fill", async () => {

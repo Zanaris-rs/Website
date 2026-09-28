@@ -16,8 +16,9 @@ import { type PhotoSlot, type SceneSpot, sceneOf } from "./spots.ts";
  * The build proves each spot's slots (`scripts/scenes/render.ts`): the bulky
  * reference look in every slot, all added to the world in one pass, is
  * pixel for pixel what `drawPhoto` draws, one body after another, far to
- * near, onto the backdrop. A page draws with the same `drawPhoto`
- * (`ClanPhoto`), so what the build proved is what a reader sees.
+ * near, onto the backdrop. A page draws with the same far-to-near drawing
+ * (`drawPlacedPhoto`, through `ClanPhoto`), so what the build proved is what
+ * a reader sees.
  *
  * A known limit, accepted as the single figure's is: the proof is the full
  * row in the bulky look. Fewer sitters (the centred run `photoSlots` picks)

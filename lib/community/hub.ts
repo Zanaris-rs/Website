@@ -27,8 +27,8 @@ import { exactCombat, pickSitters, SQUARE_READ, type SquareSitter } from "./squa
  * does (`loadPhotoSitters`): a box's read that fails is logged and comes
  * back `{ ok: false }`, and the page says so in that box alone. A nicety
  * inside a box - a sitter's combat level, a row's chathead - is forgiving:
- * logged, and left out. The reads run one after another, on the site's
- * two-connection pool, as the log page's do.
+ * logged, and left out. The boxes read at once, and so do the square's
+ * levels; the site's two-connection pool queues what it cannot run yet.
  */
 
 export type HubBox<T> = { ok: true; value: T } | { ok: false };
@@ -93,19 +93,20 @@ export async function loadSquare(): Promise<SquareSitter[]> {
 
   const outfits = defaultLooksStatement(rows.map((row) => row.username));
   const looks = parseDefaultLooks(await query<Record<string, unknown>>(outfits.text, outfits.values));
-  const sitters: SquareSitter[] = [];
-  for (const { row, look } of pickSitters(rows, looks)) {
-    sitters.push({
-      username: row.username,
-      name: displayName(row.username),
-      look,
-      greeting: row.greeting,
-      greetingColour: row.greetingColour,
-      greetingEffect: row.greetingEffect,
-      combat: await combatOf(row.username),
-    });
-  }
-  return sitters;
+  // Each level forgives its own failed read, so they are asked for at once.
+  return Promise.all(
+    pickSitters(rows, looks).map(
+      async ({ row, look }): Promise<SquareSitter> => ({
+        username: row.username,
+        name: displayName(row.username),
+        look,
+        greeting: row.greeting,
+        greetingColour: row.greetingColour,
+        greetingEffect: row.greetingEffect,
+        combat: await combatOf(row.username),
+      }),
+    ),
+  );
 }
 
 /** Chatheads for a box's rows: a nicety, so a failed read is logged and draws empty frames. */
@@ -158,13 +159,15 @@ export async function loadHubClans(): Promise<ClanListing[]> {
   return (await loadClanDirectory()).slice(0, HUB_CLANS);
 }
 
-/** Every box on the hub, each on its own. */
+/** Every box on the hub, each on its own: read at once, since `box` never throws. */
 export async function loadHub(): Promise<Hub> {
-  const square = await box("square", loadSquare);
-  const top = await box("top of the hiscores", loadTopPlayers);
-  const records = await box("record holders", loadRecordHolders);
-  const recent = await box("recent activity", loadRecentActivity);
-  const clans = await box("clans", loadHubClans);
+  const [square, top, records, recent, clans] = await Promise.all([
+    box("square", loadSquare),
+    box("top of the hiscores", loadTopPlayers),
+    box("record holders", loadRecordHolders),
+    box("recent activity", loadRecentActivity),
+    box("clans", loadHubClans),
+  ]);
   return { square, top, records, recent, clans };
 }
 
