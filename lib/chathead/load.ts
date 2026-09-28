@@ -1,5 +1,5 @@
 import { decodeBackdrop, drawAtEye, drawAtSpot, sceneFrame } from "../scenes/draw.ts";
-import { drawPhoto } from "../scenes/photo.ts";
+import { drawPlacedPhoto, type PlacedSitter } from "../scenes/photo.ts";
 import { type SceneSpot, sceneSrc } from "../scenes/spots.ts";
 import { type Clip, emoteClip, emoteStill, lineCount, moodClip, moodStill } from "./animate.ts";
 import { decodeAnims, loadAnims } from "./anims-file.ts";
@@ -41,7 +41,8 @@ import type { Emote, Mood } from "./vocab.ts";
  * mood, for the pickers that show a dozen at once.
  *
  * A clan photo (`loadClanPhoto`) is a row of figures drawn into one copy of
- * a spot's backdrop, once, and kept by nobody.
+ * a spot's backdrop, once, and kept by nobody. It says where each figure
+ * stands in it, for the Community hub's square to hang chat and links on.
  */
 
 export const tables = tablesJson as HeadTables;
@@ -575,8 +576,12 @@ export async function loadMoodStill(look: Look, mood: Mood): Promise<ImageData |
 // --- a clan photo -----------------------------------------------------------
 
 export type PhotoDrawer = {
-  /** The members, left to right, drawn far to near into one copy of the backdrop (`drawPhoto`). */
-  draw(looks: readonly Look[]): ImageData;
+  /**
+   * The members, left to right, drawn far to near into one copy of the
+   * backdrop, and where each one stands in it, left to right
+   * (`drawPlacedPhoto`).
+   */
+  draw(looks: readonly Look[]): { image: ImageData; placed: PlacedSitter[] };
 };
 
 /**
@@ -588,7 +593,9 @@ export type PhotoDrawer = {
 export async function loadClanPhoto(spot: SceneSpot): Promise<PhotoDrawer> {
   const [{ client, bodyTables }, backdrop] = await Promise.all([loadBodyTables(), loadBackdrop(spot)]);
   return {
-    draw: (looks) =>
-      new ImageData(toRgba(drawPhoto(client, bodyTables, spot, backdrop.pixels, looks)), spot.width, spot.height),
+    draw: (looks) => {
+      const { pixels, placed } = drawPlacedPhoto(client, bodyTables, spot, backdrop.pixels, looks);
+      return { image: new ImageData(toRgba(pixels), spot.width, spot.height), placed };
+    },
   };
 }

@@ -13,7 +13,7 @@ import styles from "./Clans.module.css";
  * their worn outfits, standing in a row in a scene, the top rank in the
  * middle. The page picks the spot and who stands where (`photoSpot`,
  * `photoSitters`). This draws them far to near into one copy of the
- * backdrop, with the game client's own renderer (`drawPhoto`), and paints
+ * backdrop, with the game client's own renderer (`drawPlacedPhoto`), and paints
  * once. The build proved that picture is the game's own, slot for slot
  * (`scripts/scenes/render.ts`).
  *
@@ -44,7 +44,7 @@ export default function ClanPhoto({
     loadClanPhoto(spot)
       .then((photo) => {
         if (!current) return;
-        canvas.current?.getContext("2d")?.putImageData(photo.draw(looks), 0, 0);
+        canvas.current?.getContext("2d")?.putImageData(photo.draw(looks).image, 0, 0);
       })
       .catch((error: unknown) => {
         // Said once, by the photo still on the page.
