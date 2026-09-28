@@ -21,7 +21,7 @@ import { onCycle, prefersReducedMotion, subscribeReducedMotion } from "@/lib/gam
 
 /** The line said overhead now, in its page's colour and effect. */
 export type Said = {
-  /** The line being said now; blank while a blank line is (a line not yet typed on the Words tab). */
+  /** The line being said now: blank while that line is blank (one not yet typed on the Words tab). */
   text: string;
   colour: number;
   effect: number;
