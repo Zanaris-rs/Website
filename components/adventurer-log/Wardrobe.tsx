@@ -18,10 +18,11 @@ import { usePersonaStage } from "./PersonaStage";
  * When the card draws the owner's figure (`interactive`), each outfit is a
  * button. Clicking one has the card's figure and the dialogue's chathead
  * wear it (`PersonaStage`'s `tryOn`) and plays the current emote in it
- * (unless the reader prefers reduced motion), and
- * the card says so, with a way back (`CardFigure`). Clicking the outfit they
- * usually wear, or the one being tried on, goes back to usual. Nothing is
- * saved. Without a figure on the card there is nothing to try an outfit on,
+ * (unless the reader prefers reduced motion); a hidden line on the card
+ * tells a screen reader which outfit it is (`CardFigure`). Clicking the
+ * outfit they usually wear, or the one being tried on, goes back to usual:
+ * that is the only way back, and the hint above the outfits says so. Nothing
+ * is saved. Without a figure on the card there is nothing to try an outfit on,
  * and the outfits are plain pictures.
  *
  * The figures are the plain figure at half size: never turned, so they stay

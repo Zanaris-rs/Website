@@ -1726,14 +1726,16 @@ scrolls, as the game records them - mixed with the updates they post.
   answers the same way. The settings page sends the log's
   Content-Security-Policy as well (plus `data:` pictures, which the editor's
   lint marks use), as a backstop.
-- **Copy a prompt for an AI.** For owners who would rather describe a look
+- **Get AI to design for you.** For owners who would rather describe a look
   than write it. The button in the style box copies a prompt
   (`lib/adventurer-log/ai-prompt.ts`) for any AI chat: the log's markup cut
   down, its look before any owner's CSS, the sanitiser's rules in plain words,
   every picture address it keeps, a line for the look they want, and the
-  draft in the box to start from. What comes back is pasted in and checked
-  like anything else. "Style it with an AI" under the editor shows the same
-  text, to copy by hand when the browser refuses the clipboard.
+  draft in the box to start from. A line under the buttons says what it
+  does, and once it has copied, what to do next. What comes back is pasted
+  in and checked like anything else. "Style it with an AI" under the editor
+  shows the same text, to copy by hand when the browser refuses the
+  clipboard.
   `ai-prompt.test.ts` holds it to the page: the outline names exactly the
   `al-` classes the log's components draw, every address passes the
   sanitiser, and each rule is checked against `css.ts`.
