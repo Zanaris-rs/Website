@@ -135,6 +135,14 @@ export function parseBoardParams(query: Query): ParsedBoardParams {
 /** The public board: a hiscores page, so it lives under them. */
 export const BOARD_PATH = "/hiscores/records";
 
+/**
+ * Where a signed-in player starts, watches and stops a record of their own
+ * (`app/account/records`). Every "Set a record" and "Records" link to it goes
+ * through here: the Account Centre, the board, the owner's navigation and
+ * the community pages' "Your log" row.
+ */
+export const SET_RECORD_HREF = "/account/records";
+
 /** `/hiscores/records?category=9`. The default duration and Overall have no parameter of their own. */
 export function boardHref(params: BoardParams): string {
   const search = new URLSearchParams();
