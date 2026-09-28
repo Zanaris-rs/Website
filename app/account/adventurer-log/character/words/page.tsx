@@ -13,7 +13,7 @@ import { displayName } from "@/lib/hiscores/format";
 
 export const metadata: Metadata = {
   title: "Character › Words",
-  description: "What your adventurer says: overhead chat, and the dialogue visitors click through.",
+  description: "What your adventurer says: the dialogue visitors click through, each page with its own look overhead.",
 };
 
 export const dynamic = "force-dynamic";

@@ -13,6 +13,8 @@ import {
   SAVE_MESSAGES,
   saveDraft,
   saveStatusText,
+  typedPrefix,
+  typeLine,
   usedLines,
 } from "./character-draft";
 import { EMPTY_PERSONA } from "./persona";
@@ -20,6 +22,42 @@ import { checkSheetInput, checkWordsInput, type SheetInput, type WordsInput } fr
 
 const page = { mood: "happy" as const, emote: null, lines: ["hi"], colour: 3, effect: 2 };
 const draft: WordsInput = { signatureEmote: null, dialogue: [] };
+
+describe("typedPrefix", () => {
+  it("reads a prefix typed the in-game way, and what it names", () => {
+    expect(typedPrefix("glow1:wave:hi")).toEqual({ text: "hi", colour: 9, effect: 1 });
+    expect(typedPrefix("scroll:hi")).toEqual({ text: "hi", colour: null, effect: 2 });
+    // yellow is colour 0: a prefix, even though it names the default
+    expect(typedPrefix("yellow:hi")).toEqual({ text: "hi", colour: 0, effect: null });
+  });
+  it("names nothing in plain text, a colon or not", () => {
+    expect(typedPrefix("Selling: lobbies")).toEqual({ text: "Selling: lobbies", colour: null, effect: null });
+    expect(typedPrefix("glow1")).toEqual({ text: "glow1", colour: null, effect: null });
+  });
+  it("reads the prefix as the client does", () => {
+    expect(typedPrefix("green:red:hi")).toEqual({ text: "red:hi", colour: 2, effect: null });
+    expect(typedPrefix("wave:scroll:hi")).toEqual({ text: "hi", colour: null, effect: 2 });
+  });
+});
+
+describe("typeLine", () => {
+  it("moves a prefix typed on any line into the page's overhead look, and keeps the text", () => {
+    expect(typeLine(page, 0, "glow1:wave:hi")).toEqual({ ...page, lines: ["hi"], colour: 9, effect: 1 });
+    expect(typeLine(page, 2, "red:there")).toEqual({ ...page, lines: ["hi", "", "there"], colour: 1, effect: 2 });
+  });
+  it("changes only what the prefix names", () => {
+    expect(typeLine(page, 0, "wave:hi")).toMatchObject({ colour: 3, effect: 1 });
+    expect(typeLine(page, 0, "purple:hi")).toMatchObject({ colour: 4, effect: 2 });
+  });
+  it("types plain text as it is, as linesWith does", () => {
+    expect(typeLine(page, 1, "Selling: lobbies")).toEqual({ ...page, lines: ["hi", "Selling: lobbies"] });
+    expect(typeLine(page, 0, "")).toEqual({ ...page, lines: [""] });
+    expect(typeLine(page, 4, "x")).toEqual(page);
+  });
+  it("leaves a line that is only a prefix empty, the look taken", () => {
+    expect(typeLine({ ...page, lines: ["hi", "x"] }, 1, "flash1:")).toEqual({ ...page, lines: ["hi"], colour: 6 });
+  });
+});
 
 describe("moved", () => {
   it("moves one item and leaves the rest in order", () => {

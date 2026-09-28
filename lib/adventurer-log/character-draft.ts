@@ -1,4 +1,7 @@
-import { type Persona, PERSONA_LIMITS } from "./persona";
+import { CHAT_COLOUR_NAMES } from "@/lib/game-chat/effects";
+import { parseChatPrefix } from "@/lib/game-chat/prefix";
+
+import { type DialoguePage, type Persona, PERSONA_LIMITS } from "./persona";
 import type { Check, SheetInput, StageInput, WordsInput } from "./persona-input";
 
 /**
@@ -29,6 +32,36 @@ export function linesWith(lines: readonly string[], index: number, value: string
   const next = Array.from({ length: PERSONA_LIMITS.lines }, (_, i) => (i === index ? value : lines[i] ?? ""));
   while (next.length > 1 && next[next.length - 1] === "") next.pop();
   return next;
+}
+
+/**
+ * What a prefix typed the in-game way (`glow1:wave:hi`) at the start of a
+ * line names: the text without it, and the colour and the effect, each null
+ * when the prefix names none. `wave:` names an effect and no colour, so the
+ * colour already picked stays; `yellow:` names colour 0.
+ */
+export function typedPrefix(value: string): { text: string; colour: number | null; effect: number | null } {
+  const found = parseChatPrefix(value);
+  if (found.text === value) return { text: value, colour: null, effect: null };
+  const prefix = value.slice(0, value.length - found.text.length);
+  const namesColour = CHAT_COLOUR_NAMES.some((name) => prefix.startsWith(`${name}:`));
+  const namesEffect = prefix.endsWith("wave:") || prefix.endsWith("scroll:");
+  return { text: found.text, colour: namesColour ? found.colour : null, effect: namesEffect ? found.effect : null };
+}
+
+/**
+ * Typing into box `index` of a page's lines (`linesWith`). A prefix typed the
+ * in-game way, on any line, moves into the page's overhead colour and effect
+ * and leaves the text: every line of a page is said in the page's look.
+ */
+export function typeLine(page: DialoguePage, index: number, value: string): DialoguePage {
+  const typed = typedPrefix(value);
+  return {
+    ...page,
+    lines: linesWith(page.lines, index, typed.text),
+    colour: typed.colour ?? page.colour,
+    effect: typed.effect ?? page.effect,
+  };
 }
 
 /** How many of a page's lines will be saved: up to the last that is not blank. */
