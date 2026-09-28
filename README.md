@@ -1642,10 +1642,11 @@ the player's greeting in Community lists and link previews.
   Hiscores - Records - Adventurer Logs - Clans, the page you are on in bold
   (none on a log or a clan's page). A signed-in player also gets "Your log:
   View - Character - Clan - Records - Log settings" (`yourLogLinks`) on the
-  directory and, without View, on their own log. `/community` itself is the
-  hub (W7). Every player's name on these pages opens their log. The
-  hiscores' "Search by name" opens it at the Skills box (`#skills`), whose
-  rows open the table at that player's rank (`hiscoreRowHref`).
+  directory and, without View, on their own log. The bar's Community link
+  opens the hub, `/community`. Every player's name on these pages opens
+  their log. The hiscores' "Search by name" opens it at the Skills box
+  (`#skills`), whose rows open the table at that player's rank
+  (`hiscoreRowHref`).
 - Everyone else sees an adventure **twenty minutes** after it happened, so a
   log cannot be used to follow someone around the game; the owner sees theirs
   at once. That rule, and every other one - who may write, blocks, the rates -
@@ -1690,11 +1691,12 @@ the player's greeting in Community lists and link previews.
     listed, dimmed, so the owner can see what a block hides.
 
   It (titled "Log settings"), Character (`/account/adventurer-log/character`:
-  Look, Words and Sheet), Clan and the log itself link to each other from
-  their title boxes (`OwnerNav`: View your log · Character · Clan · Records ·
-  Log settings · Community). The old Outfits page redirects to Character.
-  The Account Centre reaches them from its "Your Adventurer" panel, beside
-  "Account services".
+  Look, Words and Sheet), Clan, Records (`/account/records`, titled "Your
+  records", which links the public board from its rules) and the log itself
+  link to each other from their title boxes (`OwnerNav`: View your log ·
+  Character · Clan · Records · Log settings · Community). The old Outfits
+  page redirects to Character. The Account Centre reaches them from its
+  "Your Adventurer" panel, beside "Account services".
 - **Posting.** The owner posts updates; anyone signed in who is not muted,
   banned or blocked replies. Posts are plain text plus `[item:<debugname>]` and
   `[skill:<name>]`, which the composer's picker inserts
