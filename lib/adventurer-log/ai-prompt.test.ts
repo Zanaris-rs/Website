@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 
 import { aiPrompt, CONTENT_SYMBOLS, LOOK_PLACEHOLDER } from "./ai-prompt";
 import { sanitizeCss } from "./css";
-import { CSS_MAX } from "./format";
+import { CSS_MAX, UPDATE_MAX } from "./format";
 
 const COMPONENTS = path.join(__dirname, "../../components");
 
@@ -98,6 +98,10 @@ describe("aiPrompt", () => {
     const withSheet = aiPrompt("  .al-box { color: red }\n");
     expect(withSheet).toContain("## My stylesheet now");
     expect(withSheet.endsWith("```css\n.al-box { color: red }\n```\n")).toBe(true);
+  });
+
+  it("shows the update box's counter at the update limit", () => {
+    expect(prompt).toContain(`<span class="al-time">0/${UPDATE_MAX}</span>`);
   });
 });
 

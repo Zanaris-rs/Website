@@ -173,8 +173,16 @@ export default function Timeline({
     return null;
   }
 
-  /** Save an edit. An unchanged text is not sent: it would not be an edit. */
+  /**
+   * Save an edit. An unchanged text is not sent: it would not be an edit. So
+   * an update posted before the 200-character limit can be opened and closed
+   * again as it is; any change has to bring it within the limit.
+   */
   async function saveEdit(update: UpdateEntry, text: string): Promise<string | null> {
+    if (text === update.body) {
+      setEditing(null);
+      return null;
+    }
     const checked = checkText(text, "Your update", UPDATE_MAX);
     if (!checked.ok) return checked.error;
     if (checked.value === update.body) {
