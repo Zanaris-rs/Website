@@ -248,11 +248,19 @@ export default function PersonaStage({
     queueMicrotask(() => setReplay((count) => count + 1));
   }, [shownKey]);
 
-  const pageCount = pages.length;
+  const next = useCallback(() => {
+    if (pages.length === 0) return;
+    setPageState((page + 1) % pages.length);
+    setSpoken((count) => count + 1);
+    setReplay((count) => count + 1);
+  }, [pages.length, page]);
+
+  // Only with a page to move to: one page just starts again, as it would anyway.
+  const advances = autoAdvance && pages.length > 1;
   useEffect(() => {
     // The saying's clock. The lines are read afresh on every change (the
     // Words tab's typing), but the saying keeps the cycle it began on, so
-    // typing does not start the page again.
+    // typing does not start the page again. Below `next`, which it calls.
     if (reduced || lines.length === 0) return;
     let last = -1;
     let moved = false;
@@ -260,12 +268,10 @@ export default function PersonaStage({
       if (started.current?.key !== saying) started.current = { key: saying, at: cycle };
       const elapsed = cycle - started.current.at;
       const lineCycles = lineCyclesFor(lineEffect, scrollWindow.current);
-      if (autoAdvance && pageCount > 1 && !moved && elapsed >= pageCycles(lines, lineCycles)) {
-        // Once, as "Click here to continue" would: the next page, its emote, its first line.
+      if (advances && !moved && elapsed >= pageCycles(lines, lineCycles)) {
+        // Once, as "Click here to continue" does: the next page, its emote, its first line.
         moved = true;
-        setPageState((page + 1) % pageCount);
-        setSpoken((count) => count + 1);
-        setReplay((count) => count + 1);
+        next();
         return;
       }
       const { index } = lineAt(lines, elapsed, lineCycles);
@@ -273,14 +279,8 @@ export default function PersonaStage({
       last = index;
       setHeard({ key: saying, line: index });
     });
-  }, [reduced, lines, lineEffect, saying, autoAdvance, page, pageCount]);
+  }, [reduced, lines, lineEffect, saying, advances, next]);
 
-  const next = useCallback(() => {
-    if (pages.length === 0) return;
-    setPageState((page + 1) % pages.length);
-    setSpoken((count) => count + 1);
-    setReplay((count) => count + 1);
-  }, [pages.length, page]);
   const goTo = useCallback((to: number, { play = true }: { play?: boolean } = {}) => {
     setPageState(Math.max(0, to));
     setSpoken((count) => count + 1);

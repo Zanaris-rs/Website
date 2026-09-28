@@ -12,6 +12,19 @@ import { stringWidth } from "@/lib/game-chat/metrics";
 export const LINE_CYCLES = 150;
 
 /**
+ * Each line's length in whole cycles, at least one: the one rule `lineAt`
+ * and `pageCycles` share, so a page ends exactly where `lineAt` starts it
+ * again.
+ */
+function lineLengths(lines: readonly string[], lineCycles: (line: string) => number): number[] {
+  return lines.map((line) => Math.max(1, Math.floor(lineCycles(line))));
+}
+
+function sum(lengths: readonly number[]): number {
+  return lengths.reduce((total, length) => total + length, 0);
+}
+
+/**
  * The line being said `cycles` cycles after the page began, and the cycle
  * (counted from the page's start) it began on. Each line lasts
  * `lineCycles(line)` cycles, at least one; after the last line the page
@@ -23,8 +36,8 @@ export function lineAt(
   lineCycles: (line: string) => number,
 ): { index: number; startedAt: number } {
   if (lines.length === 0) return { index: 0, startedAt: 0 };
-  const lengths = lines.map((line) => Math.max(1, Math.floor(lineCycles(line))));
-  const total = lengths.reduce((sum, length) => sum + length, 0);
+  const lengths = lineLengths(lines, lineCycles);
+  const total = sum(lengths);
   const at = Math.max(0, Math.floor(cycles));
   let startedAt = at - (at % total);
   let index = 0;
@@ -41,7 +54,7 @@ export function lineAt(
  * log moves to the next page then (`PersonaStage`'s `autoAdvance`).
  */
 export function pageCycles(lines: readonly string[], lineCycles: (line: string) => number): number {
-  return lines.reduce((sum, line) => sum + Math.max(1, Math.floor(lineCycles(line))), 0);
+  return sum(lineLengths(lines, lineCycles));
 }
 
 /**

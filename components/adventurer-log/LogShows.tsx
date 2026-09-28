@@ -6,7 +6,16 @@ import { ADVENTURE_CATEGORIES, isHidden } from "@/lib/adventurer-log/categories"
 import { send } from "@/lib/adventurer-log/client";
 import { PUBLIC_DELAY_MINUTES } from "@/lib/adventurer-log/format";
 import { SHEET_HREF } from "@/lib/adventurer-log/href";
-import { isPartHidden, PART_BITS, PART_KEYS, PART_LABELS, type PartKey, schematic } from "@/lib/adventurer-log/parts";
+import {
+  FIXED_PART_LABELS,
+  isPartHidden,
+  PART_BITS,
+  PART_KEYS,
+  PART_LABELS,
+  type PartKey,
+  schematic,
+  withBit,
+} from "@/lib/adventurer-log/parts";
 
 import styles from "./Settings.module.css";
 
@@ -15,8 +24,8 @@ type Shows = { categories: number; parts: number };
 
 /** The parts that are always shown, and why. */
 const FIXED = [
-  { key: "card", label: "Character card", why: "Always shown: it is who you are." },
-  { key: "skills", label: "Skills", why: "Always shown: your hiscores are public anyway." },
+  { key: "card", label: FIXED_PART_LABELS.card, why: "Always shown: it is who you are." },
+  { key: "skills", label: FIXED_PART_LABELS.skills, why: "Always shown: your hiscores are public anyway." },
 ] as const;
 
 /** What each part the owner can hide is. */
@@ -112,9 +121,7 @@ export default function LogShows({ initial }: { initial: Shows }) {
                     checked={!isPartHidden(draft.parts, key)}
                     aria-describedby={`${id}-${key}-why`}
                     onChange={(event) =>
-                      change({
-                        parts: event.target.checked ? draft.parts & ~PART_BITS[key] : draft.parts | PART_BITS[key],
-                      })
+                      change({ parts: withBit(draft.parts, PART_BITS[key], !event.target.checked) })
                     }
                   />
                   <label htmlFor={`${id}-${key}`}>{PART_LABELS[key]}</label>
@@ -136,11 +143,7 @@ export default function LogShows({ initial }: { initial: Shows }) {
                       type="checkbox"
                       checked={!isHidden(draft.categories, category.id)}
                       onChange={(event) =>
-                        change({
-                          categories: event.target.checked
-                            ? draft.categories & ~(1 << category.id)
-                            : draft.categories | (1 << category.id),
-                        })
+                        change({ categories: withBit(draft.categories, 1 << category.id, !event.target.checked) })
                       }
                     />{" "}
                     {category.label}
