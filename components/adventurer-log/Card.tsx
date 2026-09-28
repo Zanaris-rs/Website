@@ -43,6 +43,10 @@ function sheetRow(row: SheetRow) {
  *
  * The sheet's Clan row (`al-sheet--clan`) is the owner's real clan
  * (`clan_of`): their rank's icon and the clan's name, linked to its page.
+ *
+ * With no outfit, the chathead lives in the dialogue box; when the owner
+ * hides that box (`chatheadInCard`), the card draws it under the strip
+ * instead, so the card still shows who they are.
  */
 export default function Card({
   name,
@@ -54,6 +58,7 @@ export default function Card({
   viewerIsOwner,
   outfits = [],
   clan,
+  chatheadInCard = false,
 }: {
   name: string;
   username: string;
@@ -68,10 +73,17 @@ export default function Card({
   outfits?: readonly WardrobeOutfit[];
   /** The owner's clan and rank, for the sheet's Clan row; null for none. */
   clan: ClanOf | null;
+  /** With no outfit, draw the chathead under the strip too: the log passes it when Dialogue is hidden. */
+  chatheadInCard?: boolean;
 }) {
   const mode = cardMode({ hasOutfit: outfitLook !== null, pages: persona.dialogue });
   const rows = sheetRows(persona);
   const scene = sceneOf(persona.scene);
+  const chathead = (
+    <div className="al-chathead">
+      <Chathead look={headLook} label={`${name}'s chathead`} />
+    </div>
+  );
   return (
     <section className="al-header al-card al-box">
       <h1 className="al-title">{name}</h1>
@@ -86,12 +98,14 @@ export default function Card({
         />
       ) : mode === "strip" ? (
         // No outfit to stand over: the page's lines are said in a strip here
-        // instead, the same way; no strip while there is nothing to say.
-        <Overhead strip />
+        // instead, the same way; no strip while there is nothing to say. With
+        // the dialogue box hidden, its chathead comes here, under the strip.
+        <>
+          <Overhead strip />
+          {chatheadInCard ? chathead : null}
+        </>
       ) : (
-        <div className="al-chathead">
-          <Chathead look={headLook} label={`${name}'s chathead`} />
-        </div>
+        chathead
       )}
 
       {persona.examine ? <p className="al-examine">{persona.examine}</p> : null}

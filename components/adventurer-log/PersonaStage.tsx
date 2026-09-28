@@ -12,7 +12,7 @@ import {
   useSyncExternalStore,
 } from "react";
 
-import { lineAt, lineCyclesFor } from "@/lib/adventurer-log/overhead";
+import { lineAt, lineCyclesFor, pageCycles } from "@/lib/adventurer-log/overhead";
 import type { DialoguePage } from "@/lib/adventurer-log/persona";
 import { nearestFacing } from "@/lib/chathead/facing";
 import type { Look } from "@/lib/chathead/look";
@@ -126,9 +126,12 @@ const StageContext = createContext<Stage>({
  * another, in the page's colour and effect (`lib/adventurer-log/overhead.ts`:
  * 150 client cycles a line, or one whole pass for scroll), and after the
  * last starts the page again. A new page - continuing, a Words row, a reset
- * - starts at its first line. The count runs on the game's shared clock
- * (`onCycle`); with reduced motion it does not run, and the first line of
- * the page is said, still, as `ChatText` draws it.
+ * - starts at its first line. With `autoAdvance` (the log, when its owner
+ * hides Dialogue, so there is no "Click here to continue") the stage moves
+ * to the next page by itself once every line of the page has been said
+ * once, playing its emote as continuing would. The count runs on the game's
+ * shared clock (`onCycle`); with reduced motion it does not run, and the
+ * first line of the page is said, still, as `ChatText` draws it.
  *
  * It also holds the way the figure faces: the owner's facing when the page
  * opens, then wherever a reader turns it. Turning only ever happens when
@@ -148,6 +151,7 @@ export default function PersonaStage({
   initialFacing = 0,
   turns = null,
   resetKey,
+  autoAdvance = false,
   children,
 }: {
   pages: readonly DialoguePage[];
@@ -164,6 +168,8 @@ export default function PersonaStage({
   turns?: readonly number[] | null;
   /** A change starts the conversation and the turn afresh (the Look tab: a scene). */
   resetKey?: string | number;
+  /** Move to the next page by itself once a page's lines have all been said (Dialogue hidden). */
+  autoAdvance?: boolean;
   children: ReactNode;
 }) {
   const [pageState, setPageState] = useState(0);
@@ -242,20 +248,32 @@ export default function PersonaStage({
     queueMicrotask(() => setReplay((count) => count + 1));
   }, [shownKey]);
 
+  const pageCount = pages.length;
   useEffect(() => {
     // The saying's clock. The lines are read afresh on every change (the
     // Words tab's typing), but the saying keeps the cycle it began on, so
     // typing does not start the page again.
     if (reduced || lines.length === 0) return;
     let last = -1;
+    let moved = false;
     return onCycle((cycle) => {
       if (started.current?.key !== saying) started.current = { key: saying, at: cycle };
-      const { index } = lineAt(lines, cycle - started.current.at, lineCyclesFor(lineEffect, scrollWindow.current));
+      const elapsed = cycle - started.current.at;
+      const lineCycles = lineCyclesFor(lineEffect, scrollWindow.current);
+      if (autoAdvance && pageCount > 1 && !moved && elapsed >= pageCycles(lines, lineCycles)) {
+        // Once, as "Click here to continue" would: the next page, its emote, its first line.
+        moved = true;
+        setPageState((page + 1) % pageCount);
+        setSpoken((count) => count + 1);
+        setReplay((count) => count + 1);
+        return;
+      }
+      const { index } = lineAt(lines, elapsed, lineCycles);
       if (index === last) return;
       last = index;
       setHeard({ key: saying, line: index });
     });
-  }, [reduced, lines, lineEffect, saying]);
+  }, [reduced, lines, lineEffect, saying, autoAdvance, page, pageCount]);
 
   const next = useCallback(() => {
     if (pages.length === 0) return;

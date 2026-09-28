@@ -1,13 +1,15 @@
 "use client";
 
-import { useMemo } from "react";
+import { useId, useMemo } from "react";
 
 import SheetClanRow, { type SheetClan } from "@/components/clans/SheetClanRow";
 import { goalsWith, previewPersona } from "@/lib/adventurer-log/character-draft";
+import { ABOUT_MAX } from "@/lib/adventurer-log/format";
 import { type God, GOD_NAMES, GODS, type Persona, PERSONA_LIMITS } from "@/lib/adventurer-log/persona";
 import { checkSheetInput, type SheetInput } from "@/lib/adventurer-log/persona-input";
 import { PLACES } from "@/lib/adventurer-log/places";
 import type { Look } from "@/lib/chathead/look";
+import { formatNumber } from "@/lib/hiscores/format";
 
 import styles from "./Character.module.css";
 import CharacterTabs from "./CharacterTabs";
@@ -25,9 +27,11 @@ const WORDS: Record<WordField, { label: string; max: number }> = {
 
 /**
  * Character › Sheet: who the adventurer is - title, examine, home town,
- * hangout, god and three goals - with one Save
+ * hangout, god, three goals and About - with one Save
  * (`/api/adventurer-log/persona/sheet`), the card beside it drawing the
- * draft. The Clan row is read-only (`SheetClanRow`, from `clan_of`): it
+ * draft. About is the log's own box, not the card's, so the stage does not
+ * show it; it moved here from Log settings (migration 18 saves it with the
+ * sheet). The Clan row is read-only (`SheetClanRow`, from `clan_of`): it
  * saves nothing, and membership is the Clan tab's, which it links to.
  */
 export default function CharacterSheet({
@@ -57,6 +61,8 @@ export default function CharacterSheet({
     checkSheetInput,
   );
   const shown = useMemo(() => previewPersona({ ...persona, ...draft }), [persona, draft]);
+  const aboutId = useId();
+  const aboutNoteId = useId();
 
   function words(field: WordField) {
     return (
@@ -141,6 +147,28 @@ export default function CharacterSheet({
                   onChange={(event) => set("goals", goalsWith(draft.goals, index, event.target.value))}
                 />
               ))}
+            </div>
+          </div>
+          <div className={`${styles.row} ${styles.rowTop}`}>
+            <label className={styles.label} htmlFor={aboutId}>
+              About
+            </label>
+            <div>
+              <textarea
+                id={aboutId}
+                rows={5}
+                value={draft.about}
+                maxLength={ABOUT_MAX}
+                aria-describedby={aboutNoteId}
+                aria-invalid={marked("about")}
+                onChange={(event) => set("about", event.target.value)}
+              />
+              <p id={aboutNoteId} className={styles.aboutNote}>
+                <span>Shown in its own box on your log.</span>
+                <span>
+                  {formatNumber(draft.about.length)} / {formatNumber(ABOUT_MAX)}
+                </span>
+              </p>
             </div>
           </div>
         </fieldset>

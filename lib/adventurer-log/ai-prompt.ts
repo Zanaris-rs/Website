@@ -61,6 +61,7 @@ const OUTLINE = `<div class="al-root">                 <!-- the log; your CSS re
         <p class="al-tryon" aria-live="polite">Zezima is wearing Rune.</p>   <!-- hidden: tells a screen reader which outfit the figure has on as a reader tries them -->
         <!-- or, with no outfit (no figure to turn), while there is something to say:
              <p class="al-chat-strip"><span class="al-overhead-lines"><span class="al-chat … al-overhead al-headline"></span></span></p>,
+             with <div class="al-chathead"><canvas></canvas></div> under it when I hide the dialogue box,
              or with no words either: <div class="al-chathead"><canvas></canvas></div> -->
         <p class="al-examine">Examine text</p>
         <dl class="al-sheet">
@@ -71,7 +72,7 @@ const OUTLINE = `<div class="al-root">                 <!-- the log; your CSS re
         <p class="al-joined">Adventuring since Sep 2026</p>
         <p class="al-links"><a>Hiscores</a></p>
       </section>
-      <section class="al-wardrobe al-box">                   <!-- only with saved outfits -->
+      <section class="al-wardrobe al-box">                   <!-- only with saved outfits, unless I hide it -->
         <h2>Zezima's Wardrobe</h2>
         <div class="al-box-body">
           <p class="al-wardrobe-hint">Click an outfit to see Zezima wear it. Click it again, or the usual one, to go back.</p>
@@ -94,7 +95,7 @@ const OUTLINE = `<div class="al-root">                 <!-- the log; your CSS re
           <!-- or, before any skill is on the hiscores: <p class="al-empty">Not on the hiscores yet.</p> -->
         </div>
       </section>
-      <section class="al-records al-box">                    <!-- only when the owner holds a place on a Records board -->
+      <section class="al-records al-box">                    <!-- only when the owner holds a place on a Records board, unless I hide it -->
         <h2>Records</h2>
         <div class="al-box-body">
           <ul>
@@ -104,7 +105,7 @@ const OUTLINE = `<div class="al-root">                 <!-- the log; your CSS re
       </section>
     </aside>
     <div class="al-main">
-      <section class="al-dialogue al-box" aria-label="Zezima says">     <!-- only with pages -->
+      <section class="al-dialogue al-box" aria-label="Zezima says">     <!-- only with pages, unless I hide it; hidden, the figure still says the pages overhead -->
         <div class="al-dialogue-head al-chathead"><canvas></canvas></div>
         <div class="al-dialogue-body">
           <p class="al-dialogue-name">Zezima</p>
@@ -116,11 +117,11 @@ const OUTLINE = `<div class="al-root">                 <!-- the log; your CSS re
           <p class="al-dialogue-page">2 / 3</p>                            <!-- only with more than one page -->
         </div>
       </section>
-      <section class="al-about al-box">
+      <section class="al-about al-box">                      <!-- only with About text, unless I hide it -->
         <h2>About Zezima</h2>
         <div class="al-box-body"><p>About text</p></div>
       </section>
-      <section class="al-timeline al-box">
+      <section class="al-timeline al-box">                   <!-- unless I hide Adventures -->
         <h2>Zezima's Adventurer Log</h2>
         <div class="al-box-body">
           <nav class="al-filters">                              <!-- links that show one kind of entry -->
@@ -237,6 +238,7 @@ ${FENCE}
 - \`.al-post\`, \`.al-actions\` and \`.al-reply-form\` hold buttons and forms that only signed-in readers see. Style them if you like, but keep them usable.
 - \`.al-gz-button\` shows only to signed-in readers other than me, and never to players I blocked; \`.al-gz-button[aria-pressed="true"]\` is a gz that reader gave.
 - The dialogue box (\`.al-dialogue\`) keeps its parchment look by default; restyle it if you like, but keep \`.al-continue\` visible.
+- I can hide whole parts of my log in its settings: the dialogue box, the Wardrobe, Records, About and the timeline. A hidden part is not in the page at all, so style every part as if it may be missing. The character card and Skills are always there.
 - Chatheads and outfits are drawn on \`<canvas>\`: you can frame, size and place them, but not recolour them.
 - The figure turns: drag it, or use the arrow keys on it; \`.al-turn-hint\` under it says so. With no scene its canvas is as wide as its widest angle needs, so centre it rather than fixing its width.
 

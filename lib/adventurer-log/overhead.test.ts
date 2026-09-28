@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { CHAT_LIFE } from "@/lib/game-chat/effects";
 
-import { LINE_CYCLES, lineAt, lineCyclesFor } from "./overhead";
+import { LINE_CYCLES, lineAt, lineCyclesFor, pageCycles } from "./overhead";
 
 const even = () => LINE_CYCLES;
 
@@ -49,6 +49,20 @@ describe("lineAt", () => {
     expect(lineAt(["a", "b"], 149.9, long)).toEqual({ index: 0, startedAt: 0 });
     expect(lineAt(["a", "b"], 150, long)).toEqual({ index: 1, startedAt: 150 });
     expect(lineAt(["a", "b"], 301.4, long)).toEqual({ index: 0, startedAt: 300 });
+  });
+});
+
+describe("pageCycles", () => {
+  it("is how long a page takes to say once: where lineAt starts it again", () => {
+    const lines = ["a", "b", "c"];
+    expect(pageCycles(lines, even)).toBe(450);
+    expect(lineAt(lines, pageCycles(lines, even), even)).toEqual({ index: 0, startedAt: 450 });
+    expect(pageCycles(["ab", "abcd"], (line) => line.length * 10)).toBe(60);
+  });
+
+  it("is nothing for no lines, and at least a cycle a line", () => {
+    expect(pageCycles([], even)).toBe(0);
+    expect(pageCycles(["a", "b"], () => 0)).toBe(2);
   });
 });
 

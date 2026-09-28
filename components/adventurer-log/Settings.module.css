@@ -1,5 +1,5 @@
 /* The owner's settings page, `/account/adventurer-log`: three boxes, each a
-   panel with a title - About you, the log's style, and blocked players. */
+   panel with a title - what the log shows, its style, and blocked players. */
 
 .title {
   margin: 0 0 8px;
@@ -66,6 +66,102 @@
 
 .categories label {
   margin-bottom: 2px;
+}
+
+/* What your log shows: the ticks on the left, the picture of the log on the
+   right; on a phone, the picture under the ticks. */
+.shows {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  align-items: flex-start;
+}
+
+.showsForm {
+  flex: 1 1 320px;
+  min-width: 0;
+}
+
+/* A part per line: its tick, its name, and what it is. */
+.parts {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.parts li {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  padding: 2px 0;
+}
+
+.parts label {
+  display: inline;
+  min-width: 8em;
+  margin: 0;
+}
+
+/* The card and Skills: always shown, so their ticks are fixed, and greyed out. */
+.parts input:disabled + label {
+  color: var(--text-muted);
+}
+
+.why {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+/* With Adventures unticked, its kinds are greyed out along with their ticks. */
+.fieldset:disabled legend,
+.fieldset:disabled label {
+  color: var(--text-muted);
+}
+
+.schematic {
+  flex: none;
+  width: 230px;
+  margin: 0;
+}
+
+.schematic figcaption {
+  margin-bottom: 4px;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.schematicLog {
+  display: flex;
+  gap: 6px;
+  min-height: 230px;
+  padding: 6px;
+  background: #0a0a0a;
+  border: 1px solid var(--panel-border);
+}
+
+.schematicSide,
+.schematicMain {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.schematicSide {
+  flex: none;
+  width: 78px;
+}
+
+.schematicMain {
+  flex: 1;
+}
+
+.block {
+  box-sizing: border-box;
+  padding: 2px 4px;
+  background: #1a1a1a;
+  border: 1px solid #4a4a4a;
+  color: var(--link);
+  font-size: 10px;
 }
 
 /* Blocked players: a name per line with its Unblock, and a box to block

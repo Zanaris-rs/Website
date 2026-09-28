@@ -421,40 +421,6 @@ export function showsSaveStatement(username: string, categories: number, parts: 
   };
 }
 
-/**
- * "About you" in one Save: the about text, then the kinds of adventure the
- * log hides. One statement, so one transaction - the second function runs
- * only when the first answered 'ok', and if either throws, neither sticks.
- * The route checks the text and the mask first, so the second answering
- * anything but 'ok' means the two sides disagree. `headline` is null to keep
- * the stored headline: the Character › Words tab
- * (`/api/adventurer-log/persona/words`) is the only route that changes it
- * now.
- */
-export function aboutSaveStatement(
-  username: string,
-  headline: string | null,
-  about: string,
-  mask: number,
-): Statement {
-  return {
-    text:
-      "with saved as (select accounts.adventure_log_save($1, $2, $3) as result)" +
-      " select saved.result as text_result," +
-      " case when saved.result = 'ok' then accounts.adventure_log_set_hidden($1, $4) end as mask_result" +
-      " from saved",
-    values: [username, headline, about, mask],
-  };
-}
-
-/** The first refusal of the two, or 'ok' when both saved. */
-export function parseAboutSave(row: unknown): WriteResult {
-  const record = asRecord(row, "about save");
-  const text = parseWrite(record.text_result, "adventure_log_save");
-  if (text !== "ok") return text;
-  return parseWrite(record.mask_result, "adventure_log_set_hidden");
-}
-
 export function saveCssStatement(username: string, css: string): Statement {
   return {
     text: "select accounts.adventure_log_save_css($1, $2) as result",

@@ -5,6 +5,7 @@ import "@/components/game/game-fonts.css";
 import type { Persona } from "@/lib/adventurer-log/persona";
 import type { WardrobeOutfit } from "@/lib/adventurer-log/wardrobe";
 import type { Filter } from "@/lib/adventurer-log/filters";
+import { isPartHidden, type PartKey } from "@/lib/adventurer-log/parts";
 import type { LogHeader } from "@/lib/adventurer-log/queries";
 import type { LogRecord } from "@/lib/adventurer-log/records";
 import type { PinnedView, TimelinePage } from "@/lib/adventurer-log/view";
@@ -31,6 +32,12 @@ import Wardrobe from "./Wardrobe";
  * strip above it (the owner's links, later the report button), deliberately
  * outside `.al-root`, where nothing an owner's stylesheet reaches can hide or
  * cover it - which is why the report button for the whole log is there.
+ *
+ * The parts its owner hides in Log settings (`header.hiddenParts`,
+ * `parts.ts`) are not drawn, for anyone: the dialogue box (the figure still
+ * says the pages overhead, moving to the next by itself; with no outfit, the
+ * card draws the chathead the box held), the Wardrobe, Records, About, and
+ * the timeline with its filters and composer. The card and Skills always are.
  */
 export default function LogView({
   header,
@@ -51,7 +58,8 @@ export default function LogView({
   header: LogHeader & { result: "ok" };
   name: string;
   skills: readonly PlayerSkill[];
-  first: TimelinePage;
+  /** The timeline's first page; null when the owner hides Adventures. */
+  first: TimelinePage | null;
   /** The timeline's filter (`?show=`). */
   show: Filter["slug"];
   /** The update pinned to the top, when the filter shows updates. */
@@ -86,6 +94,7 @@ export default function LogView({
   // sixteen with no scene), and opens facing the way the owner keeps (the
   // Look tab's "Face this way"), or the nearest of those facings.
   const turns = sceneOf(persona.scene)?.turns ?? null;
+  const hidden = (part: PartKey) => isPartHidden(header.hiddenParts, part);
   return (
     <>
       {bar ? <div className={styles.bar}>{bar}</div> : null}
@@ -99,6 +108,7 @@ export default function LogView({
           signatureEmote={signatureEmote}
           initialFacing={nearestFacing(persona.facing, turns)}
           turns={turns}
+          autoAdvance={hidden("dialogue")}
         >
           <div className="al-page">
             <aside className="al-side">
@@ -112,19 +122,22 @@ export default function LogView({
                 viewerIsOwner={viewer?.isOwner ?? false}
                 outfits={outfits}
                 clan={clan}
+                chatheadInCard={hidden("dialogue")}
               />
 
-              <Wardrobe name={name} outfits={outfits} interactive={outfitLook !== null} />
+              {hidden("wardrobe") ? null : (
+                <Wardrobe name={name} outfits={outfits} interactive={outfitLook !== null} />
+              )}
 
               <Skills username={header.username} skills={skills} />
 
-              <Records records={records} />
+              {hidden("records") ? null : <Records records={records} />}
             </aside>
 
             <div className="al-main">
-              <DialogueBox name={name} look={header.look} pages={pages} />
+              {hidden("dialogue") ? null : <DialogueBox name={name} look={header.look} pages={pages} />}
 
-              {header.about ? (
+              {header.about && !hidden("about") ? (
                 <section className="al-about al-box">
                   <h2>About {name}</h2>
                   <div className="al-box-body">
@@ -133,22 +146,24 @@ export default function LogView({
                 </section>
               ) : null}
 
-              <section className="al-timeline al-box">
-                <h2>{name}&rsquo;s Adventurer Log</h2>
-                <div className="al-box-body">
-                  <Timeline
-                    username={header.username}
-                    ownerName={name}
-                    ownerLook={header.look}
-                    first={first}
-                    pinned={pinned}
-                    show={show}
-                    hiddenCategories={header.hiddenCategories}
-                    empty={`${name} has no adventures to show yet.`}
-                    viewer={viewer}
-                  />
-                </div>
-              </section>
+              {first && !hidden("adventures") ? (
+                <section className="al-timeline al-box">
+                  <h2>{name}&rsquo;s Adventurer Log</h2>
+                  <div className="al-box-body">
+                    <Timeline
+                      username={header.username}
+                      ownerName={name}
+                      ownerLook={header.look}
+                      first={first}
+                      pinned={pinned}
+                      show={show}
+                      hiddenCategories={header.hiddenCategories}
+                      empty={`${name} has no adventures to show yet.`}
+                      viewer={viewer}
+                    />
+                  </div>
+                </section>
+              ) : null}
             </div>
           </div>
         </PersonaStage>

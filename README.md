@@ -1679,10 +1679,16 @@ the player's greeting in Community lists and link previews.
   the log's styling contract, so `Log.module.css` styles them through
   `:global()` rather than with hashed module classes.
 - `/account/adventurer-log` is the owner's side, in three boxes:
-  - **About you:** headline, about, and which kinds of adventure the log
-    shows (hidden for everyone, the owner included). One Save sends all three
-    (`POST /api/adventurer-log/about`) as one statement, so they succeed or
-    fail together.
+  - **What your log shows:** which parts of the log show (Dialogue,
+    Wardrobe, Records, About and Adventures; the character card and Skills
+    always do) and which kinds of adventure, hidden for everyone, the owner
+    included. One Save sends both masks (`POST /api/adventurer-log/shows`,
+    migration 18's `adventure_log_save_shows`). A hidden part is neither
+    drawn nor read (`readPart`, `lib/adventurer-log/parts.ts`), and the
+    timeline API answers a hidden timeline as an empty one; with Dialogue
+    hidden the figure still says the pages overhead, a page at a time, and a
+    log with Adventures hidden leaves the directory. About itself is written
+    on Character › Sheet, and saved with the sheet.
   - **Your adventurer log's style:** the owner's CSS (below).
   - **Blocked players:** unblock, or block someone by name, and the latest
     replies on the log (`accounts.adventure_log_recent_replies`, migration

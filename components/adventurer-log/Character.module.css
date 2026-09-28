@@ -179,6 +179,25 @@
   color: var(--text);
 }
 
+/* A row whose control is taller than a line (the Sheet's About): its label at the top. */
+.rowTop {
+  align-items: start;
+}
+
+.workspace textarea {
+  resize: vertical;
+}
+
+/* Under About: the hint, and the count. */
+.aboutNote {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 2px 0 0;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
 /* --- what you say: one row per page --- */
 
 .pages {

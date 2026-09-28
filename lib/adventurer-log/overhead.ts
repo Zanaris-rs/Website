@@ -36,6 +36,15 @@ export function lineAt(
 }
 
 /**
+ * How long all of a page's lines take to say once, each at least a cycle:
+ * the cycle `lineAt` starts the page again on. With Dialogue hidden, the
+ * log moves to the next page then (`PersonaStage`'s `autoAdvance`).
+ */
+export function pageCycles(lines: readonly string[], lineCycles: (line: string) => number): number {
+  return lines.reduce((sum, line) => sum + Math.max(1, Math.floor(lineCycles(line))), 0);
+}
+
+/**
  * `lineAt`'s `lineCycles` for a page in `effect`: `LINE_CYCLES` a line, or
  * for scroll one whole pass of it (`scrollPass`) through a window
  * `window` px wide - the width `ChatText` measured for its scroll window, so

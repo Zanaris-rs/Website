@@ -14,7 +14,7 @@ import { displayName } from "@/lib/hiscores/format";
 
 export const metadata: Metadata = {
   title: "Character › Sheet",
-  description: "Who your adventurer is: title, examine, home town, hangout, god and goals.",
+  description: "Who your adventurer is: title, examine, home town, hangout, god, goals and About.",
 };
 
 export const dynamic = "force-dynamic";
