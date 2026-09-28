@@ -2,7 +2,6 @@ import account from "@/components/account/Account.module.css";
 import SkillIcon from "@/components/game/SkillIcon";
 import frame from "@/components/site/Frame.module.css";
 import Panel from "@/components/site/Panel";
-import TitleBox from "@/components/site/TitleBox";
 import { formatWhen } from "@/lib/account/profile";
 import { categoryName, OVERALL } from "@/lib/hiscores/categories";
 import { BOARD_PATH, type RecordCurrentResponse } from "@/lib/records/api";
@@ -33,7 +32,9 @@ const TONE_CLASS: Record<Tone, string> = {
 /**
  * `/account/records`: the rules, Start/Stop and the timer, how the newest
  * attempt finished, and the account's history - rejected and void attempts
- * included, because telling the player why is what they are kept for.
+ * included, because telling the player why is what they are kept for. The
+ * page's title box is the owner's (`OwnerNav`, in the page); the public
+ * board is linked from the rules.
  */
 export default function RecordsPanel({
   current,
@@ -53,15 +54,6 @@ export default function RecordsPanel({
 
   return (
     <>
-      <TitleBox
-        title="Records"
-        width="min(340px, 100%)"
-        links={[
-          { href: "/account", text: "Account Centre" },
-          { href: BOARD_PATH, text: "Record board" },
-        ]}
-      />
-
       <Panel align="left" width="min(560px, 100%)">
         {/* Not "how a 5-minute record works" any more: the length is chosen
             below, beside Start, and the steps are the same for all three. */}
@@ -83,6 +75,13 @@ export default function RecordsPanel({
             <Rule line={line} />
           </p>
         ))}
+        <p className={styles.timing}>
+          Each player&apos;s best counted record is on the public{" "}
+          <a className={frame.link} href={BOARD_PATH}>
+            record board
+          </a>
+          .
+        </p>
       </Panel>
 
       <Panel width="min(560px, 100%)">

@@ -4,7 +4,7 @@ import ChatText from "@/components/game/ChatText";
 
 import { usePersonaStage } from "./PersonaStage";
 
-/** A copy of one of the page's other lines: it takes up its room, and is neither seen nor read. */
+/** A copy of one of the pages' lines: it takes up its room, and is neither seen nor read. */
 const HELD = { visibility: "hidden" } as const;
 
 /**
@@ -15,11 +15,12 @@ const HELD = { visibility: "hidden" } as const;
  * nothing to say. Each line keeps the classes the headline had
  * (`al-overhead al-headline`), so skins written for it still land.
  *
- * Every line of the page is laid in one cell (`al-overhead-lines`), the one
- * being said over hidden, still copies of the rest, so the box is as tall as
- * the page's tallest line: a short line after one that wraps does not move
- * the figure, or anything under it. In a scene each line is laid over the
- * backdrop instead (`.al-scene .al-overhead`), so there it holds no room.
+ * Every line of every page is laid in one cell (`al-overhead-lines`) as a
+ * hidden, still copy in its page's colour and effect (`Said.held`), and the
+ * line being said over them, so the box is as tall as the tallest line of
+ * any page: a short line after one that wraps, or the next page, does not
+ * move the figure or anything under it. In a scene each line is laid over
+ * the backdrop instead (`.al-scene .al-overhead`), so there it holds no room.
  *
  * The line being said is a fresh `ChatText` (`key`), so a scroll starts its
  * pass as the line starts, and the stage hears the width of its scroll
@@ -31,21 +32,20 @@ export default function Overhead({ strip = false }: { strip?: boolean }) {
   if (!said) return null;
   const lines = (
     <span className="al-overhead-lines">
-      {said.lines.map((text, index) =>
-        index !== stage.line ? (
-          <span key={index} style={HELD} aria-hidden="true">
-            <ChatText className="al-overhead al-headline" text={text} colour={said.colour} effect={said.effect} still />
-          </span>
-        ) : said.text.trim() === "" ? null : (
-          <ChatText
-            key={said.key}
-            className="al-overhead al-headline"
-            text={said.text}
-            colour={said.colour}
-            effect={said.effect}
-            onScrollWindow={stage.setScrollWindow}
-          />
-        ),
+      {said.held.map((line) => (
+        <span key={line.key} style={HELD} aria-hidden="true">
+          <ChatText className="al-overhead al-headline" text={line.text} colour={line.colour} effect={line.effect} still />
+        </span>
+      ))}
+      {said.text.trim() === "" ? null : (
+        <ChatText
+          key={said.key}
+          className="al-overhead al-headline"
+          text={said.text}
+          colour={said.colour}
+          effect={said.effect}
+          onScrollWindow={stage.setScrollWindow}
+        />
       )}
     </span>
   );

@@ -4,7 +4,7 @@ import { CLAN_LIMITS, clanNameOk, clanNameShapeOk, clanSlug, slugFrom } from "./
 
 describe("CLAN_LIMITS", () => {
   it("are the spec's numbers", () => {
-    expect(CLAN_LIMITS).toEqual({ name: 20, motto: 80, about: 600, noticeTitle: 40, noticeBody: 280, members: 50, invites: 20 });
+    expect(CLAN_LIMITS).toEqual({ name: 20, motto: 80, about: 600, noticeTitle: 40, noticeBody: 200, members: 50, invites: 20 });
   });
 });
 
