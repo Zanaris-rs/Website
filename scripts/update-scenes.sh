@@ -4,16 +4,19 @@
 # card, with the game client's own World, ClientBuild, Pix3D and Model:
 #
 #   public/game/scenes/<key>.png     each spot's backdrop, 240x300, no one in it
-#   lib/scenes/spots.json            each spot's eye and figure, and the version
+#   lib/scenes/spots.json            each spot's eye, figure and turns, and the version
+#   lib/scenes/composite-golden.json the proved composites, for lib/scenes/composite.test.ts
 #
-# Both are committed. Re-run after a content bump (the map or its locs), once
-# the engine has been repacked, and commit the result. Also writes
+# All of them are committed. Re-run after a content bump (the map or its
+# locs), once the engine has been repacked, and commit the result. Also writes
 # scripts/scenes/contact-sheet.png, every spot with a figure in it, to judge
 # the framing by eye; that is not committed.
 #
-# The spots are in scripts/scenes/spots.ts. The build fails, naming the spot,
-# wherever a figure drawn over the backdrop would differ from one drawn in
-# the scene: scripts/scenes/render.ts says why.
+# The spots are in scripts/scenes/spots.ts. Each is proved at all sixteen
+# facings. The build fails, naming the spot, wherever a figure facing the
+# camera drawn over the backdrop would differ from one drawn in the scene;
+# any other facing where one differs is left out of the spot's turns and
+# printed. scripts/scenes/render.ts says why.
 #
 # Usage:  npm run scenes:update
 #         ENGINE_DIR=/path/to/engine bash scripts/update-scenes.sh

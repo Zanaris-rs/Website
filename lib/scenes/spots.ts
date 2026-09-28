@@ -10,7 +10,7 @@ import data from "./spots.json";
  * — at `figure`, facing `figure.yaw`. Positions are world scene units (128 a
  * tile); only `figure` minus `eye` matters to `worldRender`. The build has
  * proved, for every spot, that drawing a figure over the backdrop this way is
- * pixel for pixel the scene with the figure in it.
+ * pixel for pixel the scene with the figure in it — at each of its `turns`.
  */
 export type SceneSpot = {
   key: PlaceKey;
@@ -19,6 +19,13 @@ export type SceneSpot = {
   height: 300;
   eye: { x: number; y: number; z: number; pitch: number; yaw: number };
   figure: { x: number; y: number; z: number; yaw: number };
+  /**
+   * The facings (`lib/chathead/facing.ts`) the build proved a figure can be
+   * turned to here, in order: at each, every reference look in every pose
+   * drawn over the backdrop is the game's own picture of the scene with it
+   * in. Always holds 0, the spot's own angle; a turn walks this list.
+   */
+  turns: number[];
 };
 
 export const SCENES = data as { version: string; spots: SceneSpot[] };

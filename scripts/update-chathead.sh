@@ -10,8 +10,9 @@
 #   lib/chathead/golden.json          reference pictures for the golden test
 #   public/game/chathead/bodies.bin   every body model, their textures, the stance frames
 #   lib/chathead/bodies.json          kits, worn objects, what hides what, stances
-#   lib/chathead/figure.json          the figure's frame, and the version
+#   lib/chathead/figure.json          the figure's frame, its turn frame, and the version
 #   lib/chathead/figure-golden.json   reference figures for their golden test
+#   lib/chathead/turn-golden.json     reference figures turned, in the turn frame
 #   public/game/chathead/anims.bin    the emotes' and the chathead moods' frames
 #   lib/chathead/anims.json           their seqs: frames, second frames, delays, loops
 #   lib/chathead/anim-golden.json     reference emote and mood frames for their golden test

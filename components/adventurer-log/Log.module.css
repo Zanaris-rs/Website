@@ -95,6 +95,8 @@
 
 /* --- the character card: figure, overhead chat, examine, sheet --- */
 
+/* The figure is a button: a click replays its emote, a sideways drag turns
+   it (a vertical swipe still scrolls the page), as do the arrow keys. */
 .root :global(.al-figure) {
   display: flex;
   flex-direction: column;
@@ -104,13 +106,56 @@
   padding: 0;
   background: none;
   border: 0;
-  cursor: pointer;
+  cursor: grab;
   position: relative;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .root :global(.al-figure:focus-visible) {
   outline: 2px solid var(--link);
   outline-offset: 2px;
+}
+
+/* The turn buttons under the figure, with a hint between them. */
+.root :global(.al-turn) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 6px 8px 0;
+}
+
+.root :global(.al-turn-left),
+.root :global(.al-turn-right) {
+  padding: 4px 8px;
+  line-height: 0;
+  background: #2b2b2b;
+  border: 1px solid #5a5a5a;
+  color: #e4e4e4;
+  cursor: pointer;
+}
+
+.root :global(.al-turn-left:disabled),
+.root :global(.al-turn-right:disabled) {
+  color: #6a6a6a;
+  cursor: default;
+}
+
+.root :global(.al-turn-hint) {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+/* Which way the figure faces after a turn: said to a screen reader, never drawn. */
+.root :global(.al-turn-said) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
 .root :global(.al-overhead) {

@@ -5,5 +5,11 @@
   "height": 247,
   "originX": 67,
   "originY": 236
+ },
+ "turnFrame": {
+  "width": 195,
+  "height": 264,
+  "originX": 97,
+  "originY": 239
  }
 }

@@ -25,12 +25,13 @@ import path from "node:path";
 import type { Client, ClientModel } from "../../lib/chathead/client.ts";
 import { prepare } from "../../lib/chathead/client.ts";
 import { BACKGROUND, drawModel, light } from "../../lib/chathead/draw.ts";
+import { FACINGS } from "../../lib/chathead/facing.ts";
 import type { HeadTables } from "../../lib/chathead/head.ts";
 import { type Look, toAppearance } from "../../lib/chathead/look.ts";
 import { encodeModels } from "../../lib/chathead/models.ts";
 import FileCache from "../game-icons/cache.ts";
 import { type AnimGoldenInputs, exportAnims, type Seq } from "./anims.ts";
-import { type BodyInputs, exportBodies } from "./bodies.ts";
+import { type BodyInputs, exportBodies, exportTurns } from "./bodies.ts";
 import { exportOutfitEditor, type SpriteClient } from "./outfits.ts";
 import { readWearPos } from "./server-obj.ts";
 import { readParamTypes } from "./server-param.ts";
@@ -454,12 +455,12 @@ const wearables = exportOutfitEditor({
   outDir: OUT_DIR,
 });
 
-// Last: exportAnims re-initialises AnimFrame's table (input.AnimFrame.init),
+// Last but one: exportAnims re-initialises AnimFrame's table (input.AnimFrame.init),
 // which would clear the stance frames exportBodies unpacked for its golden
 // pictures if run any earlier; it then loads every anim file whole for its
 // own. It reads the figure's and the chathead's golden looks from the files
 // written above, and prints its own summary lines.
-exportAnims({
+const anims = exportAnims({
   contentDir: process.env.CONTENT_DIR ?? path.join(ENGINE_DIR, "../content"),
   outDir: OUT_DIR,
   cache,
@@ -474,6 +475,20 @@ exportAnims({
     figureFrame: bodies.frame,
     headFrame: frame,
   },
+});
+
+// Last: the turn frame is measured over every emote frame, which
+// exportAnims has just left unpacked.
+const turns = exportTurns({
+  source,
+  bodyTables: bodies.bodyTables,
+  looks: bodies.looks,
+  clientBody: bodies.clientBody,
+  reference: bodies.reference,
+  emotes: anims.tables.emotes,
+  version: bodies.version,
+  frame: bodies.frame,
+  outDir: OUT_DIR,
 });
 
 const drawn = goldenFile.filter((entry) => entry.hash !== null).length;
@@ -505,6 +520,15 @@ console.log(
 console.log(
   `         ${bodies.golden} golden looks (${bodies.drawn} drawn, ${bodies.golden - bodies.drawn} blank) -> lib/chathead/figure-golden.json`,
 );
+const turned = turns.turnFrame;
+console.log(
+  `turn     ${turned.width}x${turned.height}, origin ${turned.originX},${turned.originY}, centred: ${bodies.golden} golden looks ` +
+    `standing and ${turns.sceneLooks} scene looks in ${turns.poses} poses, at ${FACINGS} facings -> lib/chathead/figure.json`,
+);
+console.log(`         ${turns.golden} turned golden looks -> lib/chathead/turn-golden.json`);
+if (!turns.fits) {
+  console.log(`warning  the turn frame is ${turned.width} px wide, more than the card's 278 px column holds`);
+}
 const wearableCount = Object.values(wearables.slots).flat().length;
 console.log(
   `outfits  ${wearableCount} wearable objects in ${Object.keys(wearables.slots).length} slots, the worn tab and its silhouettes -> public/img/game/worn/*.png?v=${wearables.version}, lib/chathead/wearables.json`,

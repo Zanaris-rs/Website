@@ -24,8 +24,9 @@
  * - the world is drawn a column wider than the frame, and cut (see `DRAWN`),
  *   as the rasteriser leaves a picture's last column as it found it.
  *
- * And each spot proves the site can draw a figure into it, with the site's
- * own function (`lib/scenes/draw.ts`): see `shoot`.
+ * And each spot proves the site can draw a figure into it, turned to each of
+ * the sixteen facings, with the site's own function (`lib/scenes/draw.ts`):
+ * see `shoot`.
  */
 
 import "../chathead/browser-stub.ts";
@@ -40,11 +41,13 @@ import path from "node:path";
 import type { AnimTables } from "../../lib/chathead/anims.ts";
 import { type BodyTables, buildBody, type Pose } from "../../lib/chathead/body.ts";
 import { type Client, type ClientModel, prepare } from "../../lib/chathead/client.ts";
+import { FACINGS, sceneYaw } from "../../lib/chathead/facing.ts";
 import type { Look } from "../../lib/chathead/look.ts";
 import { drawAtEye } from "../../lib/scenes/draw.ts";
 import type { SceneSpot } from "../../lib/scenes/spots.ts";
 import FileCache from "../game-icons/cache.ts";
 import { GAME_FAR, TILES } from "./far.ts";
+import { figurePoses, LOOKS } from "./looks.ts";
 import type { SpotInput } from "./spots.ts";
 
 /** The card's scene frame (spec: "With a scene, the frame is 240x300"). */
@@ -149,69 +152,19 @@ function hash(pixels: Int32Array): string {
 
 // --- the studio ----------------------------------------------------------------
 
-/** The game's new-player look (`Player.body`), wearing nothing. */
-const REFERENCE: Look = {
-  gender: 0,
-  kits: [0, 10, 18, 26, 33, 36, 42],
-  colours: [0, 0, 0, 0, 0],
-  worn: new Array<number>(14).fill(-1),
-};
-
-/**
- * The same player geared up well past that outline: a rune full helm (0),
- * a red cape (1), a rune two-handed sword (3), a rune platebody (4) and
- * platelegs (7), by `wearpos`. A player's own outfit can be wider or taller
- * than the default, so each spot is proved with this one too.
- */
-const BULKY: Look = {
-  ...REFERENCE,
-  worn: [1163, 1007, -1, 1319, 1127, -1, -1, 1079, -1, -1, -1, -1, -1, -1],
-};
-
-/**
- * The game's new-player look as a woman (`Player.body` for gender 1): a
- * different outline again — at canifis it reached what the man's did not.
- */
-const WOMAN: Look = {
-  gender: 1,
-  kits: [45, -1, 56, 61, 67, 70, 79],
-  colours: [0, 0, 0, 0, 0],
-  worn: new Array<number>(14).fill(-1),
-};
-
-/**
- * The default look in an iron chainbody (4), whose see-through faces the
- * game blends with what is behind them. Proves that the site draws a figure
- * onto the backdrop, not alone and laid over it: that differs here, and
- * only here.
- */
-const CHAINBODY: Look = {
-  ...REFERENCE,
-  worn: [-1, -1, -1, -1, 1101, -1, -1, -1, -1, -1, -1, -1, -1, -1],
-};
-
-/**
- * The looks every spot is proved with, named for the build's errors and
- * written into `lib/scenes/composite-golden.json` by these names.
- */
-export const LOOKS: { name: string; look: Look }[] = [
-  { name: "the default look", look: REFERENCE },
-  { name: "the bulky look", look: BULKY },
-  { name: "the woman's look", look: WOMAN },
-  { name: "the chainbody look", look: CHAINBODY },
-];
-
 /** The build area: 13 zones of 8 tiles (`BuildArea.SIZE`). */
 const SIZE = 104;
 
 /** Where the figure lands in the frame, from the pixels it changed. */
 export type Box = { left: number; top: number; right: number; bottom: number };
 
-/** A look in a pose whose composite is not the game's picture. */
+/** A look in a pose, at a facing, whose composite is not the game's picture. */
 export type Failure = {
   look: string;
   /** "standing", or the emote and the frame: "dance frame 2305". */
   pose: string;
+  /** Steps from the spot's own angle (`lib/chathead/facing.ts`). */
+  facing: number;
   /** Pixels where the composite and the same pass differ. */
   differing: number;
   /** The game's picture of it, for the contact sheet. */
@@ -219,22 +172,26 @@ export type Failure = {
 };
 
 export type Shot = {
+  /** Its `turns` are the facings proved. */
   spot: SceneSpot;
   /** The scene with no one in it: the PNG. */
   backdrop: Int32Array;
-  /** The default look standing, drawn by `renderAll` in the same pass. */
+  /** The default look standing facing the camera, drawn by `renderAll` in the same pass. */
   samePass: Int32Array;
-  /** Where the default look standing lands. */
+  /** Where that figure lands. */
   figureBox: Box;
-  /** How many look-and-pose composites were compared. */
+  /** How many look, pose and facing composites were compared. */
   proofs: number;
   /**
-   * Every composite's hash, for `composite-golden.json`: the look, and the
-   * emote and frame (null for standing).
+   * Every proved composite's hash, for `composite-golden.json`: the look,
+   * the facing, and the emote and frame (null for standing). Only facings
+   * in `spot.turns`.
    */
-  hashes: { look: string; emote: string | null; frame: number | null; hash: string }[];
-  /** Every one of them that differed. None is exact. */
+  hashes: { look: string; facing: number; emote: string | null; frame: number | null; hash: string }[];
+  /** Facing the camera, every look and pose that differed: the spot fails. None is exact. */
   failures: Failure[];
+  /** Each other facing left out of `spot.turns`, with the first composite that differed there. */
+  dropped: Failure[];
 };
 
 export type Studio = {
@@ -335,32 +292,20 @@ export async function openStudio(clientDir: string, engineDir: string, outDir: s
   for (const { name, look } of LOOKS) {
     for (const id of look.worn) {
       if (id !== -1 && !bodies.objs[id]) {
-        throw new Error(`${name} wears object ${id}, which bodies.json lacks: change LOOKS in render.ts`);
+        throw new Error(`${name} wears object ${id}, which bodies.json lacks: change LOOKS in looks.ts`);
       }
     }
   }
 
-  // Every pose the card can draw a figure in: standing, and every frame of
-  // every emote (lib/chathead/anims.json, what the site plays), each with
-  // the hands its seq empties. Frames an emote repeats are proved once.
+  // Every pose the card can draw a figure in (looks.ts), each frame checked
+  // against the cache's anims.
   const anims = JSON.parse(
     readFileSync(path.join(outDir, "lib/chathead/anims.json"), "utf8"),
   ) as AnimTables;
-  const poses: { name: string; emote: string | null; pose?: Pose }[] = [{ name: "standing", emote: null }];
-  const posed = new Set<string>();
-  for (const [emote, seq] of Object.entries(anims.emotes)) {
-    for (const frame of seq.frames) {
-      const id = `${frame}:${seq.hideLeft}:${seq.hideRight}`;
-      if (posed.has(id)) continue;
-      posed.add(id);
-      if (!AnimFrame.list[frame]) {
-        throw new Error(`${emote} frame ${frame} is not in the cache's anims: re-run npm run chathead:update`);
-      }
-      poses.push({
-        name: `${emote} frame ${frame}`,
-        emote,
-        pose: { frame, hideLeft: seq.hideLeft, hideRight: seq.hideRight },
-      });
+  const poses = figurePoses(anims.emotes);
+  for (const { name, pose } of poses) {
+    if (pose && !AnimFrame.list[pose.frame]) {
+      throw new Error(`${name} is not in the cache's anims: re-run npm run chathead:update`);
     }
   }
   const title = jag("title");
@@ -528,7 +473,8 @@ export async function openStudio(clientDir: string, engineDir: string, outDir: s
   // --- a shot ----------------------------------------------------------------
 
   /**
-   * Draw a spot, and prove a figure can be drawn into it afterwards.
+   * Draw a spot, and prove a figure can be drawn into it afterwards, at
+   * every facing.
    *
    * The backdrop is the spot with no one in it. The site will draw the
    * player's figure over it with `worldRender`, from the same eye, as
@@ -536,15 +482,22 @@ export async function openStudio(clientDir: string, engineDir: string, outDir: s
    * would draw if nothing the world draws after the figure — a wall, a
    * fence, a table, the ground rising in front — covers any of its pixels:
    * `World` paints back to front, and a composite puts the figure last.
+   * Turned, a figure reaches other pixels: a sword held out to the side can
+   * go behind a post the figure facing the camera clears.
    *
-   * So a figure is drawn both ways — in the same pass, with `addDynamic`,
-   * and onto the finished backdrop by the site's own `drawAtEye` — and the
-   * pixels compared, for every pose the card can show it in (standing, and
-   * every frame of every emote) and for each of `LOOKS`: the default, a
-   * bulky one that reaches further, a woman's outline, and a chainbody's
-   * see-through faces. `build.ts` refuses a spot where any differ, naming
-   * the look and pose, and writes the composites' hashes for the site's
-   * golden test.
+   * So at every facing a figure is drawn both ways — in the same pass, with
+   * `addDynamic` at the turned yaw, and onto the finished backdrop by the
+   * site's own `drawAtEye` at the same facing — and the pixels compared, for
+   * every pose the card can show it in (standing, and every frame of every
+   * emote) and for each of `LOOKS`: the default, a bulky one that reaches
+   * further, a woman's outline, and a chainbody's see-through faces.
+   *
+   * Facing the camera (0) every look and pose must match: `build.ts`
+   * refuses a spot where any differ, naming the look and pose. Any other
+   * facing where one differs is left out of the spot's `turns` at the first
+   * that does - the site never turns a figure there - and returned in
+   * `dropped` for the build to print. The proved composites' hashes are
+   * returned for the site's golden test.
    */
   async function shoot(input: SpotInput): Promise<Shot> {
     if (!((input.pitch >= 0 && input.pitch <= 96) || (input.pitch >= 128 && input.pitch <= 383))) {
@@ -561,11 +514,11 @@ export async function openStudio(clientDir: string, engineDir: string, outDir: s
       const tileX = input.x - region.baseX;
       const tileZ = input.z - region.baseZ;
 
-      // The figure stands in the middle of its tile, on the ground, facing the camera.
+      // The figure stands in the middle of its tile, on the ground; at facing 0 it faces the camera.
       const fx = tileX * 128 + 64;
       const fz = tileZ * 128 + 64;
       const fy = groundHeight(region.groundh, region.mapl, fx, fz, input.level);
-      const facing = (2048 - input.yaw) & 2047;
+      const facingCamera = (2048 - input.yaw) & 2047;
 
       const eye = camFollow(input.pitch, input.yaw, fx, fy - input.lift, fz, input.dist);
       // renderAll clamps an eye outside the build area; the site's figure would not.
@@ -585,16 +538,19 @@ export async function openStudio(clientDir: string, engineDir: string, outDir: s
         throw new Error(`${input.key}: the figure is ${depth} deep, past the game's far clip of ${GAME_FAR}; shorten dist`);
       }
 
-      const render = (body: ClientModel | null): Int32Array => {
+      /** The spot in one pass with `body` in it, turned to `yaw`; with no body, the backdrop. */
+      const render = (body: ClientModel | null, yaw: number): Int32Array => {
         const drawn = sky();
         Pix2D.setPixels(drawn, DRAWN, HEIGHT);
         Pix3D.setClipping(DRAWN, HEIGHT);
-        if (body) region.world.addDynamic(input.level, fx, fy, fz, body, 0, facing, 60, false);
+        if (body) region.world.addDynamic(input.level, fx, fy, fz, body, 0, yaw, 60, false);
         region.world.renderAll(eye.x, eye.y, eye.z, 3, input.yaw, input.pitch);
         region.world.removeSprites();
         return frame(drawn);
       };
 
+      // Filled in below, facing by facing, as each is proved.
+      const turns: number[] = [];
       const spot: SceneSpot = {
         key: input.key,
         name: input.name,
@@ -609,26 +565,51 @@ export async function openStudio(clientDir: string, engineDir: string, outDir: s
           pitch: input.pitch,
           yaw: input.yaw,
         },
-        figure: { x: input.x * 128 + 64, y: fy, z: input.z * 128 + 64, yaw: facing },
+        figure: { x: input.x * 128 + 64, y: fy, z: input.z * 128 + 64, yaw: facingCamera },
+        turns,
       };
 
-      const backdrop = render(null);
+      const backdrop = render(null, facingCamera);
       let reference: { samePass: Int32Array; composite: Int32Array } | null = null;
       const failures: Failure[] = [];
+      const dropped: Failure[] = [];
       const hashes: Shot["hashes"] = [];
-      for (const { name: look, look: worn } of LOOKS) {
-        for (const { name: pose, emote, pose: frame } of poses) {
-          const samePass = render(figure(worn, frame));
-          // What the site does (lib/scenes/draw.ts): the figure drawn onto
-          // the backdrop, from the spot's eye.
-          const composite = drawAtEye(source, figure(worn, frame), spot, backdrop);
+      let proofs = 0;
+      for (let facing = 0; facing < FACINGS; facing++) {
+        const yaw = sceneYaw(facingCamera, facing);
+        const differ: Failure[] = [];
+        const proved: Shot["hashes"] = [];
+        for (const { name: look, look: worn } of LOOKS) {
+          if (facing !== 0 && differ.length > 0) break;
+          for (const { name: pose, emote, pose: frame } of poses) {
+            const samePass = render(figure(worn, frame), yaw);
+            // What the site does (lib/scenes/draw.ts): the figure drawn onto
+            // the backdrop, from the spot's eye, turned the same.
+            const composite = drawAtEye(source, figure(worn, frame), spot, backdrop, facing);
+            proofs++;
 
-          let differing = 0;
-          for (let i = 0; i < composite.length; i++) if (composite[i] !== samePass[i]) differing++;
-          if (differing > 0) failures.push({ look, pose, differing, samePass });
-          hashes.push({ look, emote, frame: frame?.frame ?? null, hash: hash(composite) });
-          // The first proof is the default look standing: the contact sheet's.
-          reference ??= { samePass, composite };
+            let differing = 0;
+            for (let i = 0; i < composite.length; i++) if (composite[i] !== samePass[i]) differing++;
+            // The first proof is the default look standing facing the camera: the contact sheet's.
+            if (facing === 0) reference ??= { samePass, composite };
+            if (differing > 0) {
+              differ.push({ look, pose, facing, differing, samePass });
+              // Facing the camera, every failure is listed for the error; any
+              // other facing is left out at its first.
+              if (facing !== 0) break;
+            }
+            proved.push({ look, facing, emote, frame: frame?.frame ?? null, hash: hash(composite) });
+          }
+        }
+        if (differ.length === 0) {
+          turns.push(facing);
+          hashes.push(...proved);
+        } else if (facing === 0) {
+          // The spot fails as a whole (build.ts): no other facing is worth proving.
+          failures.push(...differ);
+          break;
+        } else {
+          dropped.push(differ[0]);
         }
       }
       if (!reference) throw new Error("no looks or poses to prove a spot with");
@@ -648,15 +629,7 @@ export async function openStudio(clientDir: string, engineDir: string, outDir: s
         throw new Error(`${input.key}: the figure is not in the frame; aim the camera at it`);
       }
 
-      return {
-        spot,
-        backdrop,
-        samePass: reference.samePass,
-        figureBox: box,
-        proofs: LOOKS.length * poses.length,
-        failures,
-        hashes,
-      };
+      return { spot, backdrop, samePass: reference.samePass, figureBox: box, proofs, failures, dropped, hashes };
     });
   }
 

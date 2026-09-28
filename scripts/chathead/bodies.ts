@@ -2,12 +2,15 @@ import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
+import type { AnimTables } from "../../lib/chathead/anims.ts";
 import { encodeBodies } from "../../lib/chathead/bodies-file.ts";
-import { type BodyTables, FIGURE_CAMERA } from "../../lib/chathead/body.ts";
+import { type BodyTables, buildBody, FIGURE_CAMERA, plainCamera } from "../../lib/chathead/body.ts";
 import type { Client, ClientModel } from "../../lib/chathead/client.ts";
-import { BACKGROUND, drawModel, type Frame } from "../../lib/chathead/draw.ts";
+import { BACKGROUND, type Camera, drawModel, type Frame } from "../../lib/chathead/draw.ts";
+import { FACINGS } from "../../lib/chathead/facing.ts";
 import { type Look, toAppearance } from "../../lib/chathead/look.ts";
 import type FileCache from "../game-icons/cache.ts";
+import { figurePoses, LOOKS } from "../scenes/looks.ts";
 import type { WearPos } from "./server-obj.ts";
 import { paramNamed, type ParamType } from "./server-param.ts";
 import { cutAnim, framesIn } from "./stances.ts";
@@ -19,8 +22,9 @@ import { cutAnim, framesIn } from "./stances.ts";
  *
  *   public/game/chathead/bodies.bin   every body model, their textures, the stance frames
  *   lib/chathead/bodies.json          kits, worn objects, what hides what, stances, palettes
- *   lib/chathead/figure.json          the frame and the version, for the page itself
+ *   lib/chathead/figure.json          the frame, the turn frame and the version, for the page itself
  *   lib/chathead/figure-golden.json   reference pictures for the golden test
+ *   lib/chathead/turn-golden.json     reference pictures turned, in the turn frame (exportTurns)
  *
  * The reference pictures are drawn by the client's own
  * `ClientPlayer.getTempModel2`, fed the slots and the stance straight from
@@ -110,6 +114,37 @@ const ANIM_ARCHIVE = 2;
 
 /** A box every figure fits in with room to spare, to measure them in. */
 const PROBE: Frame = { width: 400, height: 520, originX: 200, originY: 440 };
+
+/** Where pictures' pixels reach, relative to their frame's origin. */
+type Reach = { left: number; top: number; right: number; bottom: number };
+
+/**
+ * Grow `reach` to take in every pixel of a picture drawn in `PROBE`; a
+ * pixel on the probe's edge throws `edge`, since the figure may go on past it.
+ */
+function reachOf(reach: Reach, pixels: Int32Array, edge: string): void {
+  for (let y = 0; y < PROBE.height; y++) {
+    for (let x = 0; x < PROBE.width; x++) {
+      if (pixels[x + y * PROBE.width] === BACKGROUND) continue;
+      if (x === 0 || y === 0 || x === PROBE.width - 1 || y === PROBE.height - 1) {
+        throw new Error(edge);
+      }
+      reach.left = Math.min(reach.left, x - PROBE.originX);
+      reach.right = Math.max(reach.right, x - PROBE.originX);
+      reach.top = Math.min(reach.top, y - PROBE.originY);
+      reach.bottom = Math.max(reach.bottom, y - PROBE.originY);
+    }
+  }
+}
+
+/** A picture's hash as the golden tests take it; null for a blank one. */
+function hash(pixels: Int32Array): string | null {
+  if (pixels.every((rgb) => rgb === BACKGROUND)) return null;
+  return createHash("sha256")
+    .update(new Uint8Array(pixels.buffer))
+    .digest("hex")
+    .slice(0, 16);
+}
 
 export function exportBodies(input: BodyInputs) {
   const { source, IdkType, ObjType, SeqType, ClientPlayer, cache, wearpos } = input;
@@ -373,37 +408,24 @@ export function exportBodies(input: BodyInputs) {
     return player;
   }
 
-  /**
-   * The client's own figure for a look: `ClientPlayer.getTempModel2`, for a
-   * player standing still, drawn at the figure's camera.
-   */
-  function reference(entry: Look, frame: Frame): Int32Array {
+  /** The client's own body for a look: `ClientPlayer.getTempModel2`, for a player standing still. */
+  function clientBody(entry: Look): ClientModel {
     const body = standing(entry).getTempModel2();
     if (!body) throw new Error("the client built no body");
-    return drawModel(source, body, frame, FIGURE_CAMERA);
+    return body;
   }
 
-  type Extent = { left: number; top: number; right: number; bottom: number };
+  /**
+   * The client's own figure for a look, standing still, drawn at the
+   * figure's camera, or at `camera` (`plainCamera`: a turned figure's).
+   */
+  function reference(entry: Look, frame: Frame, camera: Camera = FIGURE_CAMERA): Int32Array {
+    return drawModel(source, clientBody(entry), frame, camera);
+  }
 
-  function measure(entry: Look): Extent | null {
-    const pixels = reference(entry, PROBE);
-    let extent: Extent | null = null;
-    for (let y = 0; y < PROBE.height; y++) {
-      for (let x = 0; x < PROBE.width; x++) {
-        if (pixels[x + y * PROBE.width] === BACKGROUND) continue;
-        if (x === 0 || y === 0 || x === PROBE.width - 1 || y === PROBE.height - 1) {
-          throw new Error("a figure reached the edge of the probe box; make it bigger");
-        }
-        const dx = x - PROBE.originX;
-        const dy = y - PROBE.originY;
-        extent ??= { left: dx, top: dy, right: dx, bottom: dy };
-        extent.left = Math.min(extent.left, dx);
-        extent.right = Math.max(extent.right, dx);
-        extent.top = Math.min(extent.top, dy);
-        extent.bottom = Math.max(extent.bottom, dy);
-      }
-    }
-    return extent;
+  /** Grow `reach` to take in a look's figure, as the client draws it. */
+  function measure(reach: Reach, entry: Look): void {
+    reachOf(reach, reference(entry, PROBE), "a figure reached the edge of the probe box; make it bigger");
   }
 
   /**
@@ -413,15 +435,8 @@ export function exportBodies(input: BodyInputs) {
    * pixels above the head, the widest (a square shield) 25 to its side — so
    * cutting the few that do would buy a frame barely smaller.
    */
-  const bounds: Extent = { left: 0, top: 0, right: 0, bottom: 0 };
-  for (const { look: entry } of golden) {
-    const extent = measure(entry);
-    if (!extent) continue;
-    bounds.left = Math.min(bounds.left, extent.left);
-    bounds.top = Math.min(bounds.top, extent.top);
-    bounds.right = Math.max(bounds.right, extent.right);
-    bounds.bottom = Math.max(bounds.bottom, extent.bottom);
-  }
+  const bounds: Reach = { left: 0, top: 0, right: 0, bottom: 0 };
+  for (const { look: entry } of golden) measure(bounds, entry);
 
   // A pixel of air on every side.
   const frame: Frame = {
@@ -431,13 +446,6 @@ export function exportBodies(input: BodyInputs) {
     originY: 1 - bounds.top,
   };
 
-  function hash(pixels: Int32Array): string | null {
-    if (pixels.every((rgb) => rgb === BACKGROUND)) return null;
-    return createHash("sha256")
-      .update(new Uint8Array(pixels.buffer))
-      .digest("hex")
-      .slice(0, 16);
-  }
   const goldenFile = golden.map(({ name, look: entry }) => ({
     name,
     look: entry,
@@ -495,8 +503,136 @@ export function exportBodies(input: BodyInputs) {
      * browser can init AnimFrame's table once for both bodies.bin and
      * anims.bin. */
     frameTotal,
+    /** The tables as written, for `exportTurns` to build the scene looks with. */
+    bodyTables,
+    /** Every golden look, for `exportTurns` to measure standing at every facing. */
+    looks: golden,
     /** The client's own player standing in a look, for `anims.ts` to play
      * an emote on for its reference pictures. */
     standing,
+    /** The client's own body for a look, standing, for `exportTurns` to turn. */
+    clientBody,
+    /** The client's own figure for a look at a camera, for `exportTurns`'s goldens. */
+    reference,
+  };
+}
+
+// --- turning ----------------------------------------------------------------
+
+/** The facings `turn-golden.json` checks: a quarter turn apart. */
+const TURN_GOLDEN_FACINGS = [0, 4, 8, 12];
+
+/** The widest turn frame the card's 280 px column holds, inside its box's border. */
+const CARD_WIDTH = 278;
+
+export type TurnInputs = {
+  /** The client's source classes: the turned golden figures are the client's own. */
+  source: Client;
+  /** The tables as written (`exportBodies`), for the scene looks' poses. */
+  bodyTables: BodyTables;
+  /** Every golden look (`exportBodies`). */
+  looks: readonly { name: string; look: Look }[];
+  /** The client's own body for a look, standing (`exportBodies`). */
+  clientBody(look: Look): ClientModel;
+  /** The client's own figure for a look, drawn at a camera (`exportBodies`). */
+  reference(look: Look, frame: Frame, camera?: Camera): Int32Array;
+  /** The emotes as `anims.json` has them (`exportAnims`): every frame a figure is posed in. */
+  emotes: AnimTables["emotes"];
+  /** `figure.json`'s version and frame, written again unchanged. */
+  version: string;
+  frame: Frame;
+  outDir: string;
+};
+
+/**
+ * The turn frame: the frame a turned figure is drawn in (`Figure` with a
+ * `facing`), measured as the union over
+ *
+ * - every golden look standing, as the client draws it, at all sixteen
+ *   facings, and
+ * - the scene build's four reference looks (`scripts/scenes/looks.ts`) in
+ *   every pose - standing and every emote frame - at all sixteen, drawn by
+ *   the site's `buildBody` on the client's classes, as the scene build
+ *   proves them,
+ *
+ * centred on the figure's axis, so turning never moves the figure
+ * sideways, with a pixel of air on every side.
+ *
+ * It is written into `figure.json` beside `frame`, which is left as it
+ * was, with the same `version`: the version is the hash of the renderer,
+ * `bodies.bin`, the tables and `frame`, none of which changes, so every
+ * golden keeps its version and every picture its hash. It exists to change
+ * the year-long `/game/chathead` URLs, and nothing there changes; the turn
+ * frame ships in the page's own bundle. `turn-golden.json` records the
+ * frame its pictures were drawn in, and its test checks that against
+ * `figure.json`.
+ *
+ * Runs after `exportAnims`, which leaves every anim file in the cache
+ * unpacked, so the emote frames can be posed.
+ */
+export function exportTurns(input: TurnInputs) {
+  const { source, clientBody, reference } = input;
+
+  const reach: Reach = { left: 0, top: 0, right: 0, bottom: 0 };
+  /** One built body drawn at every facing: drawing leaves the model as it was. */
+  const everyFacing = (body: ClientModel) => {
+    for (let facing = 0; facing < FACINGS; facing++) {
+      reachOf(
+        reach,
+        drawModel(source, body, PROBE, plainCamera(facing)),
+        "a turned figure reached the edge of the probe box; make PROBE bigger",
+      );
+    }
+  };
+
+  for (const { look } of input.looks) everyFacing(clientBody(look));
+
+  const poses = figurePoses(input.emotes);
+  for (const { name, look } of LOOKS) {
+    for (const { name: pose, pose: frame } of poses) {
+      const body = buildBody(source, input.bodyTables, look, frame);
+      if (!body) throw new Error(`${name} built no body in ${pose}: re-run npm run chathead:update`);
+      everyFacing(body);
+    }
+  }
+
+  const half = Math.max(-reach.left, reach.right);
+  const turnFrame: Frame = {
+    width: 2 * half + 3,
+    height: reach.bottom - reach.top + 3,
+    originX: half + 1,
+    originY: 1 - reach.top,
+  };
+
+  // The golden figure's named looks - the defaults and the whole outfits -
+  // a quarter turn apart, as the client draws them.
+  const named = input.looks.filter(({ name }) => !/^(kit|colour|obj) /.test(name));
+  const golden = named.flatMap(({ name, look }) =>
+    TURN_GOLDEN_FACINGS.map((facing) => ({
+      name,
+      look,
+      facing,
+      hash: hash(reference(look, turnFrame, plainCamera(facing))),
+    })),
+  );
+
+  writeFileSync(
+    path.join(input.outDir, "lib/chathead/figure.json"),
+    JSON.stringify({ version: input.version, frame: input.frame, turnFrame }, null, 1) + "\n",
+  );
+  writeFileSync(
+    path.join(input.outDir, "lib/chathead/turn-golden.json"),
+    `{"version":${JSON.stringify(input.version)},"frame":${JSON.stringify(turnFrame)},"looks":[\n` +
+      golden.map((entry) => JSON.stringify(entry)).join(",\n") +
+      "\n]}\n",
+  );
+
+  return {
+    turnFrame,
+    /** Whether the card's column holds it; the build says so if not. */
+    fits: turnFrame.width <= CARD_WIDTH,
+    sceneLooks: LOOKS.length,
+    poses: poses.length,
+    golden: golden.length,
   };
 }
