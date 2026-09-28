@@ -13,7 +13,7 @@ import { loadStaff } from "@/lib/staff/staff-server";
 
 export const metadata: Metadata = {
   title: "Log reports",
-  description: "Reports of Adventurer Log updates, replies and pages.",
+  description: "Reports of Adventurer Log updates, replies and pages, and of clans.",
 };
 
 export const dynamic = "force-dynamic";

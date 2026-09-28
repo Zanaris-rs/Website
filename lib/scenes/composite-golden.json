@@ -1,4 +1,4 @@
-{"version":"30abefa644cf","bodies":"9af5df9a","anims":"dcda1e6de621",
+{"version":"068e197eeb7d","bodies":"9af5df9a","anims":"dcda1e6de621",
 "turns":{"varrock":[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15],"lumbridge":[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15],"falador":[0,4,5,7,8,9,10],"wilderness":[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15],"draynor":[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15],"catherby":[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15],"al_kharid":[0,1,5,6,7,8,9,10,13,14,15],"edgeville":[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15],"port_sarim":[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15],"barbarian_village":[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15],"karamja":[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15],"seers_village":[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15],"ardougne":[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15],"yanille":[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15],"canifis":[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15],"taverley":[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]},
 "looks":{"the default look":{"gender":0,"kits":[0,10,18,26,33,36,42],"colours":[0,0,0,0,0],"worn":[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1]},"the bulky look":{"gender":0,"kits":[0,10,18,26,33,36,42],"colours":[0,0,0,0,0],"worn":[1163,1007,-1,1319,1127,-1,-1,1079,-1,-1,-1,-1,-1,-1]},"the woman's look":{"gender":1,"kits":[45,-1,56,61,67,70,79],"colours":[0,0,0,0,0],"worn":[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1]},"the chainbody look":{"gender":0,"kits":[0,10,18,26,33,36,42],"colours":[0,0,0,0,0],"worn":[-1,-1,-1,-1,1101,-1,-1,-1,-1,-1,-1,-1,-1,-1]}},
 "draws":[
@@ -2338,4 +2338,17 @@
 {"spot":"taverley","look":"the bulky look","facing":15,"emote":null,"frame":null,"hash":"d6e427047753338c"},
 {"spot":"taverley","look":"the woman's look","facing":15,"emote":null,"frame":null,"hash":"8c8cd60eb800fb3f"},
 {"spot":"taverley","look":"the chainbody look","facing":15,"emote":null,"frame":null,"hash":"efc5352b6dbb82ad"}
+],
+"photos":[
+{"spot":"varrock","count":7,"hash":"42d314ff8646fe8f"},
+{"spot":"falador","count":3,"hash":"007a7c77e538ae5b"},
+{"spot":"wilderness","count":3,"hash":"83dceedbe19e2d09"},
+{"spot":"draynor","count":7,"hash":"bba03c2ae3b6817b"},
+{"spot":"catherby","count":5,"hash":"5c422e4c87071686"},
+{"spot":"edgeville","count":5,"hash":"96b578af6430674a"},
+{"spot":"barbarian_village","count":7,"hash":"81e488799cc5ad42"},
+{"spot":"seers_village","count":3,"hash":"b07c07d5aedb853b"},
+{"spot":"ardougne","count":7,"hash":"131be95abf468703"},
+{"spot":"canifis","count":7,"hash":"473dc184e8187f06"},
+{"spot":"taverley","count":3,"hash":"7de1713b4883ed58"}
 ]}

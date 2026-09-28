@@ -38,6 +38,25 @@ export function sceneYaw(spotYaw: number, facing: number): number {
   return (spotYaw + wrap(facing) * STEP) & 2047;
 }
 
+/** CSS pixels of sideways drag for each step a figure turns (the log's card, the outfit editor). */
+export const DRAG_STEP = 14;
+
+/** A press that moves no further than this, in CSS pixels, stays a click rather than a turn. */
+export const DRAG_SLOP = 4;
+
+/**
+ * How many steps a sideways drag of `dx` CSS pixels, from where it began,
+ * turns a figure: one each `DRAG_STEP`, to the nearest step, the same
+ * distance either way. A drag right turns the face toward your right, so it
+ * follows the pointer - facing down - so a drag right is negative.
+ */
+export function dragSteps(dx: number): number {
+  if (!Number.isFinite(dx)) return 0;
+  const steps = Math.round(Math.abs(dx) / DRAG_STEP);
+  if (steps === 0) return 0;
+  return dx > 0 ? -steps : steps;
+}
+
 /** How many steps apart two facings are, the short way round: 0-8. */
 function apart(a: number, b: number): number {
   const steps = Math.abs(a - b);

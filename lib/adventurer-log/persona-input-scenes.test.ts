@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { EMPTY_PERSONA } from "./persona";
-import { checkPersonaInput, editablePersona, type PersonaInput } from "./persona-input";
+import { checkStageInput, sheetOf, stageOf } from "./persona-input";
 
 /**
  * Every place has a scene today, so these pretend one (Lumbridge) lost its
@@ -13,16 +13,16 @@ vi.mock("@/lib/scenes/spots", async (importOriginal) => {
   return { ...real, SCENES: { ...real.SCENES, spots }, sceneOf: (key: string | null) => spots.find((spot) => spot.key === key) ?? null };
 });
 
-describe("editablePersona, against the scenes there are backdrops for", () => {
-  const stored: PersonaInput = { ...EMPTY_PERSONA, headline: "hi", homeTown: "lumbridge", scene: "lumbridge" };
+describe("the stage, against the scenes there are backdrops for", () => {
+  const stored = { ...EMPTY_PERSONA, homeTown: "lumbridge", scene: "lumbridge", facing: 2 };
 
   it("drops a scene whose place has no backdrop, and keeps the place as a home town", () => {
-    expect(checkPersonaInput(stored).ok).toBe(false);
-    const cleaned = editablePersona(stored);
-    expect(cleaned).toEqual({ ...stored, scene: null });
-    expect(checkPersonaInput(cleaned).ok).toBe(true);
+    expect(checkStageInput({ scene: "lumbridge", facing: 2 }).ok).toBe(false);
+    expect(stageOf(stored)).toEqual({ scene: null, facing: 2 });
+    expect(checkStageInput(stageOf(stored)).ok).toBe(true);
+    expect(sheetOf(stored).homeTown).toBe("lumbridge");
   });
   it("keeps a scene there is a backdrop for", () => {
-    expect(editablePersona({ ...stored, scene: "varrock" }).scene).toBe("varrock");
+    expect(stageOf({ ...stored, scene: "varrock" }).scene).toBe("varrock");
   });
 });

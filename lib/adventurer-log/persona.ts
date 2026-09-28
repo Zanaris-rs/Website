@@ -1,26 +1,25 @@
 import type { Statement } from "@/lib/account/register";
+import { FACINGS } from "@/lib/chathead/facing";
 import { type Emote, isEmote, isMood, type Mood } from "@/lib/chathead/vocab";
 
 /**
- * An adventurer's persona (migration 16): the words and picks the Character
- * tab saves and the card and dialogue draw. The call into
+ * An adventurer's persona (migrations 16 and 17): the words and picks the
+ * Character tabs save and the card and dialogue draw. The call into
  * accounts.adventure_persona and a strict parse of what it answers, the same
  * discipline as queries.ts.
+ *
+ * Migration 17 dropped the free-text clan (membership is real now, read
+ * through `clan_of`) and the playstyle, and added `facing`: which of the
+ * sixteen ways (`lib/chathead/facing.ts`) the figure faces when someone
+ * opens the log.
  */
 
 export const GODS = ["saradomin", "zamorak", "guthix"] as const;
 export type God = (typeof GODS)[number];
 export const GOD_NAMES: Record<God, string> = { saradomin: "Saradomin", zamorak: "Zamorak", guthix: "Guthix" };
 
-export const PLAYSTYLES = ["main", "pure", "tank", "skiller", "merchant", "quester", "pker", "clue_hunter"] as const;
-export type Playstyle = (typeof PLAYSTYLES)[number];
-export const PLAYSTYLE_NAMES: Record<Playstyle, string> = {
-  main: "Main", pure: "Pure", tank: "Tank", skiller: "Skiller", merchant: "Merchant",
-  quester: "Quester", pker: "PKer", clue_hunter: "Clue hunter",
-};
-
 export const PERSONA_LIMITS = {
-  title: 24, examine: 80, hangout: 40, clan: 24, goals: 3, goal: 40, pages: 5, lines: 4, line: 60,
+  title: 24, examine: 80, hangout: 40, goals: 3, goal: 40, pages: 5, lines: 4, line: 60,
 } as const;
 
 export type DialoguePage = { mood: Mood; emote: Emote | null; lines: string[] };
@@ -31,19 +30,19 @@ export type Persona = {
   title: string;
   examine: string;
   hangout: string;
-  clan: string;
   goals: string[];
   god: God | null;
   homeTown: string | null;
-  playstyle: string | null;
   scene: string | null;
+  /** 0-15; 0 is the angle every figure had before figures could turn. */
+  facing: number;
   signatureEmote: Emote | null;
   dialogue: DialoguePage[];
 };
 
 export const EMPTY_PERSONA: Persona = {
-  colour: 0, effect: 0, title: "", examine: "", hangout: "", clan: "", goals: [],
-  god: null, homeTown: null, playstyle: null, scene: null, signatureEmote: null, dialogue: [],
+  colour: 0, effect: 0, title: "", examine: "", hangout: "", goals: [],
+  god: null, homeTown: null, scene: null, facing: 0, signatureEmote: null, dialogue: [],
 };
 
 export function personaStatement(name: string): Statement {
@@ -84,12 +83,11 @@ export function parsePersona(rows: readonly unknown[]): Persona {
     title: text(row.title, "title"),
     examine: text(row.examine, "examine"),
     hangout: text(row.hangout, "hangout"),
-    clan: text(row.clan, "clan"),
     goals: row.goals as string[],
     god: row.god as God | null,
     homeTown: keyOrNull(row.home_town, "home_town"),
-    playstyle: keyOrNull(row.playstyle, "playstyle"),
     scene: keyOrNull(row.scene, "scene"),
+    facing: intIn(row.facing, FACINGS - 1, "facing"),
     signatureEmote: row.signature_emote as Emote | null,
     dialogue: (row.dialogue as unknown[]).map(pageOf),
   };

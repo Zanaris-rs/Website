@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { emptyOutfits, memoryStore } from "./outfit-store";
+import { emptyOutfits, firstEmptySlot, keepSame, memoryStore, sameOutfit, type SavedOutfits } from "./outfit-store";
 import { defaultLook, OUTFIT_SLOTS } from "./validate";
 
 const outfit = (name: string) => ({ name, look: defaultLook(0) });
@@ -36,5 +36,63 @@ describe("memoryStore", () => {
     expect(await memoryStore().importLook!()).toBeNull();
     const look = defaultLook(1);
     expect(await memoryStore(emptyOutfits(), look).importLook!()).toBe(look);
+  });
+});
+
+/** Ten slots, the first few filled. */
+const ten = (...first: (ReturnType<typeof outfit> | null)[]) => [
+  ...first,
+  ...Array<null>(OUTFIT_SLOTS - first.length).fill(null),
+];
+
+describe("firstEmptySlot", () => {
+  it("is the first slot with nothing in it, or null when all ten are full", () => {
+    expect(firstEmptySlot(emptyOutfits())).toBe(0);
+    expect(firstEmptySlot({ outfits: ten(outfit("a"), outfit("b")), defaultSlot: 0 })).toBe(2);
+    expect(firstEmptySlot({ outfits: ten(outfit("a"), null, outfit("c")), defaultSlot: 0 })).toBe(1);
+    const full = Array.from({ length: OUTFIT_SLOTS }, (_, i) => outfit(`o${i}`));
+    expect(firstEmptySlot({ outfits: full, defaultSlot: 0 })).toBeNull();
+  });
+});
+
+describe("keepSame", () => {
+  it("keeps each outfit that did not change as the object it was", () => {
+    const before: SavedOutfits = { outfits: ten(outfit("a"), outfit("b")), defaultSlot: 0 };
+    const after: SavedOutfits = {
+      outfits: ten(outfit("a"), { name: "b", look: defaultLook(1) }, outfit("c")),
+      defaultSlot: 1,
+    };
+    const kept = keepSame(before, after);
+    expect(kept.defaultSlot).toBe(1);
+    expect(kept.outfits[0]).toBe(before.outfits[0]);
+    expect(kept.outfits[1]).toBe(after.outfits[1]);
+    expect(kept.outfits[2]).toBe(after.outfits[2]);
+    expect(kept.outfits[3]).toBeNull();
+  });
+
+  it("takes a renamed outfit, or an emptied slot, as the new answer", () => {
+    const before: SavedOutfits = { outfits: ten(outfit("a"), outfit("b")), defaultSlot: 0 };
+    const after: SavedOutfits = { outfits: ten(outfit("z"), null), defaultSlot: 0 };
+    const kept = keepSame(before, after);
+    expect(kept.outfits[0]).toBe(after.outfits[0]);
+    expect(kept.outfits[1]).toBeNull();
+  });
+});
+
+describe("sameOutfit", () => {
+  it("is the same name and look, whatever the objects", () => {
+    expect(sameOutfit(outfit("a"), outfit("a"))).toBe(true);
+    expect(sameOutfit(null, null)).toBe(true);
+  });
+
+  it("is different for another name, another look, or nothing against something", () => {
+    expect(sameOutfit(outfit("a"), outfit("b"))).toBe(false);
+    expect(sameOutfit(outfit("a"), { name: "a", look: defaultLook(1) })).toBe(false);
+    const hat = outfit("a");
+    const worn = [...hat.look.worn];
+    worn[0] = 1163;
+    expect(sameOutfit(hat, { name: "a", look: { ...hat.look, worn } })).toBe(false);
+    expect(sameOutfit(outfit("a"), null)).toBe(false);
+    expect(sameOutfit(null, outfit("a"))).toBe(false);
   });
 });

@@ -19,19 +19,18 @@ describe("cardMode (the spec's chathead table)", () => {
 });
 
 describe("sheetRows", () => {
-  it("leaves out what is empty, names places and picks", () => {
+  it("leaves out what is empty, and names places and picks", () => {
     expect(sheetRows(EMPTY_PERSONA)).toEqual([]);
     expect(
-      sheetRows({ ...EMPTY_PERSONA, homeTown: "al_kharid", god: "zamorak", playstyle: "clue_hunter", goals: ["a", "b"], hangout: "GE" }),
+      sheetRows({ ...EMPTY_PERSONA, homeTown: "al_kharid", god: "zamorak", goals: ["a", "b"], hangout: "GE" }),
     ).toEqual([
       { key: "home", label: "Home", value: "Al Kharid" },
       { key: "hangout", label: "Hangout", value: "GE" },
       { key: "god", label: "God", value: "Zamorak" },
-      { key: "style", label: "Style", value: "Clue hunter" },
       { key: "goals", label: "Goals", value: ["a", "b"] },
     ]);
   });
-  it("drops a place or style key the site does not know", () => {
-    expect(sheetRows({ ...EMPTY_PERSONA, homeTown: "zanaris", playstyle: "ironman" })).toEqual([]);
+  it("drops a place key the site does not know", () => {
+    expect(sheetRows({ ...EMPTY_PERSONA, homeTown: "zanaris" })).toEqual([]);
   });
 });

@@ -1,7 +1,17 @@
 import { describe, expect, it } from "vitest";
 
 import { FIGURE_CAMERA, plainCamera } from "./body";
-import { FACING_NAMES, FACINGS, nearestFacing, plainYaw, sceneYaw, stepFacing } from "./facing";
+import {
+  DRAG_SLOP,
+  DRAG_STEP,
+  dragSteps,
+  FACING_NAMES,
+  FACINGS,
+  nearestFacing,
+  plainYaw,
+  sceneYaw,
+  stepFacing,
+} from "./facing";
 
 describe("facings", () => {
   it("are sixteen steps of 128 yaw units, facing 0 the angle figures have always had", () => {
@@ -71,5 +81,31 @@ describe("facings", () => {
     expect(FACING_NAMES[8]).toBe("back to you");
     expect(FACING_NAMES[12]).toBe("side-on, right");
     expect(FACING_NAMES[15]).toBe("a little right");
+  });
+});
+
+describe("dragSteps", () => {
+  it("turns a step each 14 px, a drag of 4 px or less being a click", () => {
+    expect(DRAG_STEP).toBe(14);
+    expect(DRAG_SLOP).toBe(4);
+  });
+
+  it("is no turn at all without a drag, or for a drag shorter than half a step", () => {
+    expect(dragSteps(0)).toBe(0);
+    expect(dragSteps(3)).toBe(0);
+    expect(dragSteps(-3)).toBe(0);
+    expect(dragSteps(Number.NaN)).toBe(0);
+  });
+
+  it("turns toward your right (down) for a drag right, so the face follows the pointer", () => {
+    expect(dragSteps(7)).toBe(-1);
+    expect(dragSteps(13)).toBe(-1);
+    expect(dragSteps(50)).toBe(-4);
+  });
+
+  it("turns toward your left (up) for a drag left, the same distance either way", () => {
+    expect(dragSteps(-7)).toBe(1);
+    expect(dragSteps(-13)).toBe(1);
+    expect(dragSteps(-50)).toBe(4);
   });
 });

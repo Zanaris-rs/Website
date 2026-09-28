@@ -58,15 +58,27 @@ const OUTLINE = `<div class="al-root">                 <!-- the log; your CSS re
           <button class="al-turn-right" aria-label="Turn right"><svg></svg></button>
           <span class="al-turn-said" aria-live="polite">a little left</span>   <!-- hidden: tells a screen reader which way it faces after a turn -->
         </div>
+        <p class="al-tryon" aria-live="polite">Trying on Rune &middot; <button class="al-tryon-back">back to usual</button></p>   <!-- empty, taking no room, until a reader tries on an outfit from the Wardrobe -->
         <!-- or, with no outfit (no figure to turn):<p class="al-chat-strip"><span class="al-chat … al-overhead al-headline"></span></p>,
              or with no words either: <div class="al-chathead"><canvas></canvas></div> -->
         <p class="al-examine">Examine text</p>
         <dl class="al-sheet">
           <div class="al-sheet-row al-sheet--home"><dt>Home</dt><dd>Varrock</dd></div> ...
+          <div class="al-sheet-row al-sheet--clan"><dt>Clan</dt><dd><svg class="al-rank" role="img" aria-label="Captain"></svg> <a class="al-clan-link">Varrock Knights</a></dd></div>   <!-- the clan they are in: their rank's icon, and the clan's page -->
           <div class="al-sheet-row al-sheet--goals"><dt>Goals</dt><dd><ul class="al-goals"><li>99 Thieving</li></ul></dd></div>
         </dl>
         <p class="al-joined">Adventuring since Sep 2026</p>
         <p class="al-links"><a>Hiscores</a></p>
+      </section>
+      <section class="al-wardrobe al-box">                   <!-- only with saved outfits -->
+        <h2>Zezima's Wardrobe</h2>
+        <div class="al-box-body">
+          <p class="al-wardrobe-hint">Click an outfit to see Zezima wear it. Click it again, or the usual one, to go back.</p>
+          <ul class="al-outfits">
+            <li class="al-outfit al-outfit--default al-outfit--shown"><button class="al-outfit-button" aria-pressed="true"><canvas></canvas><span class="al-outfit-name">★ Outfit name</span></button></li> ...
+          </ul>
+          <!-- with no outfit worn on the card, the outfits are plain pictures: no hint and no buttons -->
+        </div>
       </section>
       <section class="al-stats al-box">
         <h2>Skills</h2>
@@ -105,14 +117,6 @@ const OUTLINE = `<div class="al-root">                 <!-- the log; your CSS re
       <section class="al-about al-box">
         <h2>About Zezima</h2>
         <div class="al-box-body"><p>About text</p></div>
-      </section>
-      <section class="al-wardrobe al-box">
-        <h2>Zezima's Wardrobe</h2>
-        <div class="al-box-body">
-          <ul class="al-outfits">
-            <li class="al-outfit al-outfit--default"><canvas></canvas><span class="al-outfit-name">★ Outfit name</span></li> ...
-          </ul>
-        </div>
       </section>
       <section class="al-timeline al-box">
         <h2>Zezima's Adventurer Log</h2>
@@ -220,11 +224,13 @@ ${FENCE}
 
 - One column on a phone. From 900px wide there are two: \`.al-side\` is 280px on the left and \`.al-main\` takes the rest (a CSS grid on \`.al-page\`).
 - \`.al-chat--c<0-11>\` is the headline's colour and \`.al-chat--e<0-2>\` its effect. The colour is set by the page every frame, so a \`color\` rule won't stick.
-- \`.al-sheet--<home|hangout|god|clan|style|goals>\` is one row of the character sheet.
+- \`.al-sheet--<home|hangout|god|clan|goals>\` is one row of the character sheet.
+- \`.al-rank\` is a clan rank's 13x13 icon, drawn in SVG (size and place it, don't recolour it); \`.al-clan-link\` goes to the clan's page.
 - \`.al-skill--<id>\` is one skill's row: ${skills}.
 - \`.al-event--<kind>\` is one kind of adventure: ${kinds}.
 - \`.al-record--<seconds>\` is one record length, shown only when I hold a place on it: ${durations}.
 - \`.al-outfit--default\` is the outfit my chathead wears.
+- \`.al-outfit--shown\` is the outfit the card shows now: the one I wear, or one a reader clicked to try on (\`.al-tryon\` on the card says so until they go back).
 - \`.al-filter[aria-current]\` is the filter being shown. \`.al-edited\` is on an update only when I changed it after posting.
 - \`.al-post\`, \`.al-actions\` and \`.al-reply-form\` hold buttons and forms that only signed-in readers see. Style them if you like, but keep them usable.
 - \`.al-gz-button\` shows only to signed-in readers other than me, and never to players I blocked; \`.al-gz-button[aria-pressed="true"]\` is a gz that reader gave.

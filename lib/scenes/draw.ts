@@ -38,13 +38,55 @@ export function sceneFrame(spot: Size): Frame {
 }
 
 /**
+ * A copy of a spot's backdrop, made the client's picture to draw into
+ * (`Pix2D`), with `Pix3D`'s origin at its centre. The backdrop is left as it
+ * was.
+ */
+export function sceneCanvas(client: Client, spot: SceneSpot, backdrop: Int32Array): Int32Array {
+  if (backdrop.length !== spot.width * spot.height) {
+    throw new Error(`${spot.key}: the backdrop is not ${spot.width}x${spot.height}`);
+  }
+  const pixels = backdrop.slice();
+  client.Pix2D.setPixels(pixels, spot.width, spot.height);
+  client.Pix3D.setRenderClipping();
+  return pixels;
+}
+
+/**
+ * A posed, lit model drawn into the current picture (`sceneCanvas`) from the
+ * spot's eye, standing at `at` (world scene units, like `figure`) and turned
+ * to `yaw`, as `World` draws every model on a tile (World.ts:1476:
+ * `sprite.model.worldRender(sprite.yaw, cameraSinX, cameraCosX, cameraSinY,
+ * cameraCosY, sprite.x - cx, sprite.y - cy, sprite.z - cz, typecode)`, where
+ * X is the pitch and Y the yaw).
+ */
+export function renderAtEye(
+  client: Client,
+  model: ClientModel,
+  spot: SceneSpot,
+  at: { x: number; y: number; z: number },
+  yaw: number,
+): void {
+  const { eye } = spot;
+  const { sinTable, cosTable } = client.Pix3D;
+  model.worldRender(
+    yaw,
+    sinTable[eye.pitch],
+    cosTable[eye.pitch],
+    sinTable[eye.yaw],
+    cosTable[eye.yaw],
+    at.x - eye.x,
+    at.y - eye.y,
+    at.z - eye.z,
+    0,
+  );
+}
+
+/**
  * A posed, lit model drawn into a copy of a spot's backdrop at the spot's
- * eye (World.ts:1476: `sprite.model.worldRender(sprite.yaw, cameraSinX,
- * cameraCosX, cameraSinY, cameraCosY, sprite.x - cx, sprite.y - cy,
- * sprite.z - cz, typecode)`, where X is the pitch and Y the yaw), turned
- * `facing` steps from the spot's own angle (`sceneYaw`). Only the facings in
- * `spot.turns` are proved to be the game's picture. The backdrop is left as
- * it was.
+ * eye, on the figure's own spot (`renderAtEye`), turned `facing` steps from
+ * the spot's own angle (`sceneYaw`). Only the facings in `spot.turns` are
+ * proved to be the game's picture. The backdrop is left as it was.
  */
 export function drawAtEye(
   client: Client,
@@ -53,26 +95,8 @@ export function drawAtEye(
   backdrop: Int32Array,
   facing = 0,
 ): Int32Array {
-  if (backdrop.length !== spot.width * spot.height) {
-    throw new Error(`${spot.key}: the backdrop is not ${spot.width}x${spot.height}`);
-  }
-  const pixels = backdrop.slice();
-  client.Pix2D.setPixels(pixels, spot.width, spot.height);
-  client.Pix3D.setRenderClipping();
-
-  const { eye, figure } = spot;
-  const { sinTable, cosTable } = client.Pix3D;
-  model.worldRender(
-    sceneYaw(figure.yaw, facing),
-    sinTable[eye.pitch],
-    cosTable[eye.pitch],
-    sinTable[eye.yaw],
-    cosTable[eye.yaw],
-    figure.x - eye.x,
-    figure.y - eye.y,
-    figure.z - eye.z,
-    0,
-  );
+  const pixels = sceneCanvas(client, spot, backdrop);
+  renderAtEye(client, model, spot, spot.figure, sceneYaw(spot.figure.yaw, facing));
   return pixels;
 }
 

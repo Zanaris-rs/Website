@@ -1,12 +1,11 @@
 import TitleBox from "@/components/site/TitleBox";
-import { logHref } from "@/lib/adventurer-log/href";
+import { CHARACTER_HREF, CLAN_TAB_HREF, LOG_SETTINGS_HREF, logHref } from "@/lib/adventurer-log/href";
 
 /**
- * The owner's side of an Adventurer Log is four pages - the log as everyone
- * sees it, its settings, the character its card and dialogue draw, and the
- * outfits its picture comes from - and each links to the others from its
- * title box, the way `/economy`'s sections do, with the Account Centre they
- * are reached from.
+ * The owner has three homes besides the log itself - Character (who you
+ * are), Clan (who you're with) and Log settings (how the log reads) - and
+ * each links to the others from its title box, the way `/economy`'s sections
+ * do, with the Account Centre they are reached from.
  */
 export default function OwnerNav({
   title,
@@ -16,7 +15,7 @@ export default function OwnerNav({
   title: string;
   /** The owner's username, for the link to their log. */
   username: string;
-  current: "edit" | "character" | "outfits";
+  current: "character" | "clan" | "settings";
 }) {
   return (
     <TitleBox
@@ -24,9 +23,9 @@ export default function OwnerNav({
       width="min(460px, 100%)"
       links={[
         { href: logHref(username), text: "View your log" },
-        { href: "/account/adventurer-log", text: "Edit your log", current: current === "edit" },
-        { href: "/account/adventurer-log/character", text: "Your character", current: current === "character" },
-        { href: "/account/adventurer-log/outfits", text: "Outfits", current: current === "outfits" },
+        { href: CHARACTER_HREF, text: "Character", current: current === "character" },
+        { href: CLAN_TAB_HREF, text: "Clan", current: current === "clan" },
+        { href: LOG_SETTINGS_HREF, text: "Log settings", current: current === "settings" },
         { href: "/account", text: "Account Centre" },
       ]}
     />

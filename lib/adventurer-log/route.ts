@@ -13,7 +13,8 @@ import { logStatusFor, parseWrite } from "./queries";
  * What the Adventurer Log's write routes share: a live session (a cookie from
  * before a password change cannot write), the same-origin check, one
  * statement, and its answer as JSON. Every refusal is `{ error }` with the
- * status `LOG_STATUS` gives it.
+ * status `LOG_STATUS` gives it - or, for the clan routes, which share these
+ * too, `CLAN_STATUS` (lib/clans/queries.ts).
  */
 
 export const NO_STORE = { "Cache-Control": "no-store" } as const;
@@ -48,14 +49,30 @@ export async function writer(
   return { username: live.profile.username };
 }
 
+/**
+ * How a write's answer is read, and the status each refusal gets. The log's
+ * functions are the default; a clan write passes `CLAN_ANSWERS`
+ * (lib/clans/queries.ts).
+ */
+export type WriteAnswers = {
+  parse: (raw: unknown, where: string) => string;
+  status: (result: string) => number;
+};
+
+const LOG_ANSWERS: WriteAnswers = { parse: parseWrite, status: logStatusFor };
+
 /** Run a `select accounts.x(...) as result` write and answer it. */
-export async function runWrite(statement: Statement, what: string): Promise<Response> {
+export async function runWrite(
+  statement: Statement,
+  what: string,
+  answers: WriteAnswers = LOG_ANSWERS,
+): Promise<Response> {
   try {
     const rows = await query<{ result: unknown }>(statement.text, statement.values);
-    const result = parseWrite(rows[0]?.result, what);
+    const result = answers.parse(rows[0]?.result, what);
     if (result !== "ok") {
       console.warn(`[adventurer-log] ${what} ${result}`);
-      return fail(result, logStatusFor(result));
+      return fail(result, answers.status(result));
     }
     return Response.json({ ok: true }, { status: 200, headers: NO_STORE });
   } catch (error) {

@@ -5,6 +5,8 @@ import { useState } from "react";
 import { formatWhen } from "@/lib/adventurer-log/format";
 import { logHref } from "@/lib/adventurer-log/href";
 import type { AdventureReport, StaffAction } from "@/lib/adventurer-log/staff";
+import { clanHref } from "@/lib/clans/href";
+import { clanSlug } from "@/lib/clans/names";
 
 
 const LABELS: Record<StaffAction, string> = {
@@ -98,19 +100,42 @@ export default function AdventureReports({ reports }: { reports: AdventureReport
         <li key={report.id} style={{ borderBottom: "1px solid var(--rule)", padding: "8px 0" }}>
           <div>
             <b>#{report.id}</b> {report.targetKind}
-            {report.logOwner ? (
+            {report.targetKind === "clan" ? (
+              report.logOwner ? (
+                <>
+                  {" "}
+                  <a href={clanHref(clanSlug(report.logOwner))}>{report.logOwner}</a>
+                  {report.author ? (
+                    <>
+                      , led by <a href={logHref(report.author)}>{report.author}</a>
+                    </>
+                  ) : null}
+                </>
+              ) : null
+            ) : (
               <>
-                {" "}
-                on <a href={logHref(report.logOwner)}>{report.logOwner}</a>&rsquo;s log
+                {report.logOwner ? (
+                  <>
+                    {" "}
+                    on <a href={logHref(report.logOwner)}>{report.logOwner}</a>&rsquo;s log
+                  </>
+                ) : null}
+                {report.author && report.author !== report.logOwner ? <> by {report.author}</> : null}
               </>
-            ) : null}
-            {report.author && report.author !== report.logOwner ? <> by {report.author}</> : null} &middot; reported by{" "}
-            {report.reporter}, {formatWhen(report.createdAt)} &middot; <i>{report.contentState}</i>
+            )}{" "}
+            &middot; reported by {report.reporter}, {formatWhen(report.createdAt)} &middot; <i>{report.contentState}</i>
           </div>
+          {report.targetKind === "clan" && !report.resolvedAt ? (
+            <div>
+              Hide blanks the clan&rsquo;s motto and About, deletes its notices and renames it &ldquo;Clan{" "}
+              {report.targetId}&rdquo;. The Leader can be muted as usual.
+            </div>
+          ) : null}
           <div>
             Reason: <q>{report.reason}</q>
           </div>
-          {report.content ? (
+          {/* A hidden clan's content is its blank motto, a newline and its blank About. */}
+          {report.content?.trim() ? (
             <pre style={{ whiteSpace: "pre-wrap", margin: "4px 0", fontFamily: "inherit" }}>{report.content}</pre>
           ) : null}
           {report.css ? (

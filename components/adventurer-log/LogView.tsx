@@ -9,7 +9,9 @@ import type { Filter } from "@/lib/adventurer-log/filters";
 import type { LogHeader } from "@/lib/adventurer-log/queries";
 import type { LogRecord } from "@/lib/adventurer-log/records";
 import type { PinnedView, TimelinePage } from "@/lib/adventurer-log/view";
+import { nearestFacing } from "@/lib/chathead/facing";
 import type { Look } from "@/lib/chathead/look";
+import type { ClanOf } from "@/lib/clans/queries";
 import type { PlayerSkill } from "@/lib/hiscores/api";
 import { sceneOf } from "@/lib/scenes/spots";
 
@@ -25,11 +27,11 @@ import Wardrobe from "./Wardrobe";
 /**
  * A player's Adventurer Log: who they are on the left - the character card
  * (name, title, figure or chathead acting out their persona, examine line
- * and sheet), skills - and on the right what they say about themselves and
- * what they have been doing. `bar` is the site's own strip above it (the
- * owner's links, later the report button), deliberately outside `.al-root`,
- * where nothing an owner's stylesheet reaches can hide or cover it - which
- * is why the report button for the whole log is there.
+ * and sheet), their wardrobe, skills and records - and on the right what they
+ * say about themselves and what they have been doing. `bar` is the site's own
+ * strip above it (the owner's links, later the report button), deliberately
+ * outside `.al-root`, where nothing an owner's stylesheet reaches can hide or
+ * cover it - which is why the report button for the whole log is there.
  */
 export default function LogView({
   header,
@@ -45,6 +47,7 @@ export default function LogView({
   outfitLook,
   outfits = [],
   records = [],
+  clan,
 }: {
   header: LogHeader & { result: "ok" };
   name: string;
@@ -63,10 +66,15 @@ export default function LogView({
   persona: Persona;
   /** The default outfit: the only look ever drawn whole, on the card's figure. */
   outfitLook: Look | null;
-  /** The owner's saved outfits, for the Wardrobe; none hides it. */
+  /**
+   * The owner's saved outfits, for the Wardrobe under the card; none hides
+   * it. A reader can try one on when the card draws a figure (`outfitLook`).
+   */
   outfits?: readonly WardrobeOutfit[];
   /** The owner's best Overall gain per record length; none hides the box. */
   records?: readonly LogRecord[];
+  /** The owner's clan and rank, for the card's Clan row; null for none. */
+  clan: ClanOf | null;
 }) {
   // Computed once so the stage and the dialogue box always agree on what is
   // being said - the stage drives the figure's emote, the box draws the
@@ -77,11 +85,9 @@ export default function LogView({
   // choice from being papered over by it (PersonaStage's `emote` fallback).
   const signatureEmote = persona.dialogue.length === 0 ? persona.signatureEmote : null;
   // The figure turns through the facings the owner's scene proved (all
-  // sixteen with no scene).
+  // sixteen with no scene), and opens facing the way the owner keeps (the
+  // Look tab's "Face this way"), or the nearest of those facings.
   const turns = sceneOf(persona.scene)?.turns ?? null;
-  // TASK 8 (W4): pass persona.facing here. Before migration 017 a persona has
-  // no facing, so every log opens facing you.
-  const initialFacing = 0;
   return (
     <>
       {bar ? <div className={styles.bar}>{bar}</div> : null}
@@ -90,7 +96,12 @@ export default function LogView({
             hoists only a <style> with href and precedence. Its text is the
             sanitiser's output, which has no "<" in it. */}
         {css ? <style>{css}</style> : null}
-        <PersonaStage pages={pages} signatureEmote={signatureEmote} initialFacing={initialFacing} turns={turns}>
+        <PersonaStage
+          pages={pages}
+          signatureEmote={signatureEmote}
+          initialFacing={nearestFacing(persona.facing, turns)}
+          turns={turns}
+        >
           <div className="al-page">
             <aside className="al-side">
               <Card
@@ -102,7 +113,11 @@ export default function LogView({
                 outfitLook={outfitLook}
                 headLook={header.look}
                 viewerIsOwner={viewer?.isOwner ?? false}
+                outfits={outfits}
+                clan={clan}
               />
+
+              <Wardrobe name={name} outfits={outfits} interactive={outfitLook !== null} />
 
               <Skills username={header.username} skills={skills} />
 
@@ -120,8 +135,6 @@ export default function LogView({
                   </div>
                 </section>
               ) : null}
-
-              <Wardrobe name={name} outfits={outfits} />
 
               <section className="al-timeline al-box">
                 <h2>{name}&rsquo;s Adventurer Log</h2>

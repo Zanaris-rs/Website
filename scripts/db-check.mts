@@ -86,6 +86,29 @@ import {
   updateEditStatement,
   updatePostStatement,
 } from "../lib/adventurer-log/queries.ts";
+import {
+  clanCreateStatement,
+  clanDirectoryStatement,
+  clanDisbandStatement,
+  clanHandOverStatement,
+  clanInviteAnswerStatement,
+  clanInviteCancelStatement,
+  clanInvitesForStatement,
+  clanInvitesSentStatement,
+  clanInviteStatement,
+  clanLeaveStatement,
+  clanMembersStatement,
+  clanNoticeDeleteStatement,
+  clanNoticePostStatement,
+  clanNoticesStatement,
+  clanOfStatement,
+  clanPageStatement,
+  clanRemoveStatement,
+  clanSavePageStatement,
+  clanSetPermsStatement,
+  clanSetRankStatement,
+  parseClanDirectory,
+} from "../lib/clans/queries.ts";
 import { RECORD_DURATIONS } from "../lib/records/durations.ts";
 import {
   parseRecordBoardRow,
@@ -208,6 +231,12 @@ async function main(): Promise<void> {
     // 16_adventure_persona. Read only through adventure_persona, which
     // answers nothing for a banned account.
     "public.adventure_persona",
+    // 17_adventure_clans. Clans, members, invites and notices are read only
+    // through the clan functions, which leave banned players out.
+    "public.adventure_clan",
+    "public.adventure_clan_member",
+    "public.adventure_clan_invite",
+    "public.adventure_clan_notice",
   ]) {
     try {
       await query(`select 1 from ${table} limit 1`);
@@ -337,11 +366,38 @@ async function main(): Promise<void> {
     "accounts.adventure_update_edit(text, int, text)",
     "accounts.adventure_log_pin(text, int)",
     // 16_adventure_persona: a log's persona - the card's words and picks and
-    // the dialogue - read by anyone, saved by its owner. 13's
+    // the dialogue - read by anyone (17 replaced its one save). 13's
     // adventure_log_save and staff_adventure_resolve are replaced in place,
     // same signatures, so they are listed once, above.
     "accounts.adventure_persona(text)",
-    "accounts.adventure_persona_save(text, text, int, int, text, text, text, text, jsonb, text, text, text, text, text, jsonb)",
+    // 17_adventure_clans: the persona saved one tab at a time (16's save is
+    // dropped; adventure_persona, above, is re-created with `facing`), the
+    // clan reads and the clan writes. 13's adventure_report,
+    // staff_adventure_reports and staff_adventure_resolve are replaced in
+    // place, same signatures, so they are listed once, above.
+    "accounts.adventure_persona_save_words(text, text, int, int, text, jsonb)",
+    "accounts.adventure_persona_save_sheet(text, text, text, text, jsonb, text, text)",
+    "accounts.adventure_persona_save_stage(text, text, int)",
+    "accounts.clan_page(text)",
+    "accounts.clan_members(int)",
+    "accounts.clan_notices(int)",
+    "accounts.clan_directory()",
+    "accounts.clan_of(text)",
+    "accounts.clan_invites_for(text)",
+    "accounts.clan_invites_sent(text)",
+    "accounts.clan_create(text, text, text, int, int)",
+    "accounts.clan_save_page(text, text, text, int, int, text)",
+    "accounts.clan_set_perms(text, int, int, int, int)",
+    "accounts.clan_invite(text, text)",
+    "accounts.clan_invite_cancel(text, text)",
+    "accounts.clan_invite_answer(text, int, boolean)",
+    "accounts.clan_set_rank(text, text, text)",
+    "accounts.clan_remove(text, text)",
+    "accounts.clan_leave(text)",
+    "accounts.clan_hand_over(text, text)",
+    "accounts.clan_disband(text)",
+    "accounts.clan_notice_post(text, text, text)",
+    "accounts.clan_notice_delete(text, int)",
   ];
   const withheld = [
     "accounts.throttled(text, text)",
@@ -370,13 +426,20 @@ async function main(): Promise<void> {
     // 13_adventurer_log's helpers.
     "accounts.adventure_text(text, int, boolean)",
     "accounts.adventure_author(text, boolean)",
-    // 16_adventure_persona's helpers: the fixed lists, the JSON checks, and
-    // the words a mute may not change.
+    // 16_adventure_persona's helpers: the fixed lists and the JSON checks.
+    // Its adventure_persona_words (the words a mute may not change) is
+    // dropped by 17.
     "accounts.adventure_emotes()",
     "accounts.adventure_moods()",
     "accounts.adventure_goals(jsonb)",
     "accounts.adventure_dialogue(jsonb)",
-    "accounts.adventure_persona_words(text, text, text, text, text, jsonb, jsonb)",
+    // 17_adventure_clans' helpers: the rank ladder, the slug, the name rule,
+    // the locked membership lookup, and the dialogue lines a mute may not change.
+    "accounts.clan_rank_level(text)",
+    "accounts.clan_slug(text)",
+    "accounts.clan_name_ok(text)",
+    "accounts.clan_membership(int)",
+    "accounts.adventure_dialogue_lines(jsonb)",
   ];
 
   // ...and nothing else: every function in `accounts` this role can run is
@@ -1050,6 +1113,35 @@ async function checkAdventurerLog(): Promise<void> {
     }
   }
 
+  // 17_adventure_clans made adventure_persona anew: `facing` in, `clan` and
+  // `playstyle` out. A name nobody has gives no rows, so the shape is read
+  // from the catalogue instead: a database still on 16 answers every call
+  // above, and would only fail later, in parsePersona, on a real log.
+  try {
+    const [shape] = await query<{ result: string | null }>(
+      "select pg_get_function_result('accounts.adventure_persona(text)'::regprocedure) as result",
+    );
+    const result = shape?.result ?? "";
+    // "TABLE(headline_colour integer, …, facing integer, …)": each column's
+    // name is the first word after "TABLE(" or ", ".
+    const columns = [...result.matchAll(/(?:^TABLE\(|, )([a-z_][a-z0-9_]*) /g)].map((match) => match[1]);
+    const wrong = [
+      ...(columns.includes("facing") ? [] : ["has no facing"]),
+      ...["clan", "playstyle"].filter((column) => columns.includes(column)).map((column) => `still has ${column}`),
+    ];
+    if (wrong.length === 0) {
+      console.log(`accounts.adventure_persona(text) returns ${columns.length} columns: facing, and no clan or playstyle (expected)`);
+    } else {
+      console.error(`FAIL: accounts.adventure_persona(text) ${wrong.join(" and ")}; it returns ${result || "nothing"}.`);
+      process.exitCode = 1;
+    }
+  } catch (error) {
+    console.error(
+      `FAIL: accounts.adventure_persona(text)'s result could not be read. ${error instanceof Error ? error.message : String(error)}`,
+    );
+    process.exitCode = 1;
+  }
+
   const writes: [string, { text: string; values: readonly unknown[] }][] = [
     ["adventure_log_save", logSaveStatement("__db_check__", "", "")],
     ["adventure_log_set_hidden", setHiddenStatement("__db_check__", 0)],
@@ -1066,14 +1158,30 @@ async function checkAdventurerLog(): Promise<void> {
     ["adventure_log_pin (unpin)", pinStatement("__db_check__", null)],
     ["adventure_gz_give", gzGiveStatement("__db_check__", 1)],
     ["adventure_gz_take", gzTakeStatement("__db_check__", [1])],
-    // 16_adventure_persona's save, with the fifteen arguments the site sends
-    // (lib/adventurer-log/persona-input.ts). It asks who is writing first.
+    // 17_adventure_clans' three persona writers, with the arguments the site
+    // sends (lib/adventurer-log/persona-input.ts). Written out rather than
+    // imported: persona-input.ts reaches its lists through the `@/` alias,
+    // which this script, run by node, cannot resolve. Each asks who is
+    // writing first.
     [
-      "adventure_persona_save",
+      "adventure_persona_save_words",
       {
-        text:
-          "select accounts.adventure_persona_save($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10, $11, $12, $13, $14, $15::jsonb) as result",
-        values: ["__db_check__", "", 0, 0, "", "", "", "", "[]", null, null, null, null, null, "[]"],
+        text: "select accounts.adventure_persona_save_words($1, $2, $3, $4, $5, $6::jsonb) as result",
+        values: ["__db_check__", "", 0, 0, null, "[]"],
+      },
+    ],
+    [
+      "adventure_persona_save_sheet",
+      {
+        text: "select accounts.adventure_persona_save_sheet($1, $2, $3, $4, $5::jsonb, $6, $7) as result",
+        values: ["__db_check__", "", "", "", "[]", null, null],
+      },
+    ],
+    [
+      "adventure_persona_save_stage",
+      {
+        text: "select accounts.adventure_persona_save_stage($1, $2, $3) as result",
+        values: ["__db_check__", null, 0],
       },
     ],
   ];
@@ -1121,6 +1229,73 @@ async function checkAdventurerLog(): Promise<void> {
     console.log("accounts.staff_adventure_reports / resolve('__db_check__'): empty, forbidden (expected)");
   } else {
     console.error(`FAIL: the staff adventure functions answered a non-staff name (${staffRows.length} rows, ${JSON.stringify(resolved?.result)}).`);
+    process.exitCode = 1;
+  }
+
+  // 17_adventure_clans, against a name nobody has, with the values Task 1's
+  // rehearsal used. Every read is empty and every write answers not_found:
+  // each asks who is writing first (adventure_author), so none writes
+  // anything. Clan and notice ids start at 1, so 0 is one nobody has.
+  const shown = (values: readonly unknown[]) =>
+    values.map((value) => (typeof value === "string" ? `'${value}'` : String(value))).join(", ");
+  for (const [name, statement] of [
+    ["clan_page", clanPageStatement("__db_check__")],
+    ["clan_members", clanMembersStatement(0)],
+    ["clan_notices", clanNoticesStatement(0)],
+    ["clan_of", clanOfStatement("__db_check__")],
+    ["clan_invites_for", clanInvitesForStatement("__db_check__")],
+    ["clan_invites_sent", clanInvitesSentStatement("__db_check__")],
+  ] as const) {
+    const rows = await query(statement.text, statement.values);
+    if (rows.length === 0) {
+      console.log(`accounts.${name}(${shown(statement.values)}): 0 rows (expected)`);
+    } else {
+      console.error(`FAIL: ${name} returned ${rows.length} rows for a clan or name nobody has.`);
+      process.exitCode = 1;
+    }
+  }
+
+  const clanWrites: [string, { text: string; values: readonly unknown[] }][] = [
+    ["clan_create", clanCreateStatement("__db_check__", "Db Check", "", 0, null)],
+    ["clan_save_page", clanSavePageStatement("__db_check__", "Db Check", "", 0, null, "")],
+    ["clan_set_perms", clanSetPermsStatement("__db_check__", 4, 1, 1, 2)],
+    ["clan_invite", clanInviteStatement("__db_check__", "__db_check__")],
+    ["clan_invite_cancel", clanInviteCancelStatement("__db_check__", "__db_check__")],
+    ["clan_invite_answer", clanInviteAnswerStatement("__db_check__", 0, false)],
+    ["clan_set_rank", clanSetRankStatement("__db_check__", "__db_check__", "recruit")],
+    ["clan_remove", clanRemoveStatement("__db_check__", "__db_check__")],
+    ["clan_leave", clanLeaveStatement("__db_check__")],
+    ["clan_hand_over", clanHandOverStatement("__db_check__", "__db_check__")],
+    ["clan_disband", clanDisbandStatement("__db_check__")],
+    ["clan_notice_post", clanNoticePostStatement("__db_check__", "db check", "db check")],
+    ["clan_notice_delete", clanNoticeDeleteStatement("__db_check__", 0)],
+    // 017 widens adventure_report's kinds to 'clan', whose target is the
+    // clan's id: the site's own statement, as the clan page's Report sends it.
+    ["adventure_report", reportStatement("__db_check__", "clan", 0, null, "db check")],
+  ];
+  for (const [name, statement] of clanWrites) {
+    const [row] = await query<{ result: unknown }>(statement.text, statement.values);
+    if (row?.result === "not_found") {
+      console.log(`accounts.${name}(${shown(statement.values)}): not_found (expected)`);
+    } else {
+      console.error(`FAIL: ${name} answered ${JSON.stringify(row?.result)}; expected not_found.`);
+      process.exitCode = 1;
+    }
+  }
+
+  // The clan directory lists every clan, so it is checked for shape instead:
+  // parsed as /clans parses it, and no longer than its 200.
+  try {
+    const clans = clanDirectoryStatement();
+    const listed = parseClanDirectory(await query<Record<string, unknown>>(clans.text, clans.values));
+    if (listed.length <= 200) {
+      console.log(`accounts.clan_directory(): ${listed.length} clans, parsed (expected)`);
+    } else {
+      console.error(`FAIL: clan_directory returned ${listed.length} clans; at most 200.`);
+      process.exitCode = 1;
+    }
+  } catch (error) {
+    console.error(`FAIL: clan_directory did not parse. ${error instanceof Error ? error.message : String(error)}`);
     process.exitCode = 1;
   }
 

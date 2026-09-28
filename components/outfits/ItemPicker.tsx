@@ -12,20 +12,21 @@ import styles from "./Outfits.module.css";
 const SHOWN = 80;
 
 /**
- * Everything that can be worn in one slot, searchable by name. Anyone may
- * wear anything: the list is every object the game lets into the slot, not
- * what the player owns.
+ * Everything that can be worn in one slot, searchable by name, inside the
+ * editor's fixed-size panel. Only the list scrolls, inside the panel.
+ * Picking an item wears it and leaves the list where it was, and "Take
+ * off" is always drawn (disabled with nothing worn), so nothing on the page
+ * moves. Anyone may wear anything: the list is every object the game lets
+ * into the slot, not what the player owns.
  */
 export default function ItemPicker({
   slot,
   worn,
   onWear,
-  onClose,
 }: {
   slot: number;
   worn: number;
   onWear: (obj: number) => void;
-  onClose: () => void;
 }) {
   const [query, setQuery] = useState("");
   const slotName = TAB_SLOTS.find((entry) => entry.slot === slot)?.name ?? "";
@@ -38,32 +39,25 @@ export default function ItemPicker({
     [slot],
   );
   const needle = query.trim().toLowerCase();
-  const matches = needle
-    ? items.filter((item) => item.name.toLowerCase().includes(needle))
-    : items;
+  const matches = needle ? items.filter((item) => item.name.toLowerCase().includes(needle)) : items;
 
   return (
-    <div className={styles.picker} role="dialog" aria-label={`${slotName} slot`}>
+    <div className={styles.picker}>
       <div className={styles.pickerHead}>
         <b>{slotName}</b>
         <input
           type="search"
           className={styles.search}
+          aria-label={`Search the ${slotName.toLowerCase()} slot`}
           placeholder={`Search ${items.length} items`}
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          autoFocus
         />
-        {worn !== -1 ? (
-          <button type="button" onClick={() => onWear(-1)}>
-            Take off
-          </button>
-        ) : null}
-        <button type="button" onClick={onClose}>
-          Close
+        <button type="button" onClick={() => onWear(-1)} disabled={worn === -1}>
+          Take off
         </button>
       </div>
-      <ul className={styles.items}>
+      <ul className={styles.items} aria-label={`${slotName} items`}>
         {matches.slice(0, SHOWN).map((item) => (
           <li key={item.id}>
             <button
@@ -78,14 +72,13 @@ export default function ItemPicker({
           </li>
         ))}
       </ul>
-      {matches.length > SHOWN ? (
-        <p className={styles.more}>
-          {matches.length - SHOWN} more — type to narrow the list.
-        </p>
-      ) : null}
-      {matches.length === 0 ? (
-        <p className={styles.more}>Nothing in this slot is called that.</p>
-      ) : null}
+      <p className={styles.more}>
+        {matches.length === 0
+          ? "Nothing in this slot is called that."
+          : matches.length > SHOWN
+            ? `${matches.length - SHOWN} more — type to narrow the list.`
+            : `${matches.length} ${matches.length === 1 ? "item" : "items"}.`}
+      </p>
     </div>
   );
 }

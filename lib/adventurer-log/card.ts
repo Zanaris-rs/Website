@@ -1,4 +1,4 @@
-import { GOD_NAMES, type DialoguePage, type Persona, PLAYSTYLE_NAMES, type Playstyle } from "./persona";
+import { type DialoguePage, GOD_NAMES, type Persona } from "./persona";
 import { placeName } from "./places";
 
 /**
@@ -14,18 +14,20 @@ export function cardMode(input: { hasOutfit: boolean; headline: string; pages: r
 }
 
 export type SheetRow =
-  | { key: "home" | "hangout" | "god" | "clan" | "style"; label: string; value: string }
+  | { key: "home" | "hangout" | "god"; label: string; value: string }
   | { key: "goals"; label: string; value: string[] };
 
+/**
+ * The character sheet's rows from the persona, in the card's order, leaving
+ * out what is empty. Migration 17 took away the playstyle and the free-text
+ * clan: the Clan row comes from real membership instead.
+ */
 export function sheetRows(persona: Persona): SheetRow[] {
   const rows: SheetRow[] = [];
   const home = placeName(persona.homeTown);
   if (home) rows.push({ key: "home", label: "Home", value: home });
   if (persona.hangout) rows.push({ key: "hangout", label: "Hangout", value: persona.hangout });
   if (persona.god) rows.push({ key: "god", label: "God", value: GOD_NAMES[persona.god] });
-  if (persona.clan) rows.push({ key: "clan", label: "Clan", value: persona.clan });
-  const style = persona.playstyle && PLAYSTYLE_NAMES[persona.playstyle as Playstyle];
-  if (style) rows.push({ key: "style", label: "Style", value: style });
   if (persona.goals.length > 0) rows.push({ key: "goals", label: "Goals", value: persona.goals });
   return rows;
 }

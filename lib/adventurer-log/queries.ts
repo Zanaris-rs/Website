@@ -9,12 +9,12 @@ import type { Look } from "@/lib/chathead/look";
  * author are always the verified session's username, or null for nobody.
  */
 
-function asRecord(row: unknown, where: string): Record<string, unknown> {
+export function asRecord(row: unknown, where: string): Record<string, unknown> {
   if (typeof row !== "object" || row === null) throw new Error(`${where}: not a row`);
   return row as Record<string, unknown>;
 }
 
-function asIso(value: unknown, where: string): string {
+export function asIso(value: unknown, where: string): string {
   const date =
     value instanceof Date ? value : typeof value === "string" ? new Date(value) : null;
   if (!date || Number.isNaN(date.getTime())) {
@@ -23,17 +23,17 @@ function asIso(value: unknown, where: string): string {
   return date.toISOString();
 }
 
-function asInt(value: unknown, where: string): number {
+export function asInt(value: unknown, where: string): number {
   if (typeof value === "number" && Number.isInteger(value)) return value;
   throw new Error(`${where}: not a whole number: ${JSON.stringify(value)}`);
 }
 
-function asText(value: unknown, where: string): string {
+export function asText(value: unknown, where: string): string {
   if (typeof value === "string") return value;
   throw new Error(`${where}: not text: ${JSON.stringify(value)}`);
 }
 
-function asBool(value: unknown, where: string): boolean {
+export function asBool(value: unknown, where: string): boolean {
   if (typeof value === "boolean") return value;
   throw new Error(`${where}: not true or false: ${JSON.stringify(value)}`);
 }
@@ -44,7 +44,7 @@ function asTextArray(value: unknown, where: string): string[] {
   throw new Error(`${where}: not a list of text: ${JSON.stringify(value)}`);
 }
 
-function oneOf<T extends string>(allowed: readonly T[], raw: unknown, where: string): T {
+export function oneOf<T extends string>(allowed: readonly T[], raw: unknown, where: string): T {
   if (typeof raw === "string" && (allowed as readonly string[]).includes(raw)) {
     return raw as T;
   }
@@ -406,8 +406,9 @@ export function setHiddenStatement(username: string, mask: number): Statement {
  * only when the first answered 'ok', and if either throws, neither sticks.
  * The route checks the text and the mask first, so the second answering
  * anything but 'ok' means the two sides disagree. `headline` is null to keep
- * the stored headline: the Character tab (`/api/adventurer-log/persona`) is
- * the only route that changes it now.
+ * the stored headline: the Character › Words tab
+ * (`/api/adventurer-log/persona/words`) is the only route that changes it
+ * now.
  */
 export function aboutSaveStatement(
   username: string,
@@ -541,7 +542,23 @@ export function parseBlocks(rows: readonly unknown[]): { username: string; block
 
 // --- reports ------------------------------------------------------------------------
 
-export type ReportKind = "update" | "reply" | "log";
+export type ReportKind = "update" | "reply" | "log" | "clan";
+
+/** The largest int4, the top of every row id (`MAX_ROW_ID` in `lib/messages/queries.ts`). */
+const INT4_MAX = 2147483647;
+
+/**
+ * The id an update, reply or clan report names, or null when it is not a row
+ * id (0, -1, 1.5, past int4, text): a target that cannot exist, answered as
+ * one that does not (`not_found`), as the gz and clan routes read theirs
+ * with `parseId`. Past int4, Postgres would refuse the call before the
+ * function ran, and the route would answer 503. The bound is written out
+ * rather than imported: `scripts/db-check.mts` runs this file under plain
+ * node, which cannot resolve the `@/` paths.
+ */
+export function reportTargetId(raw: unknown): number | null {
+  return typeof raw === "number" && Number.isInteger(raw) && raw >= 1 && raw <= INT4_MAX ? raw : null;
+}
 
 export function reportStatement(
   username: string,
@@ -574,12 +591,14 @@ export const WRITE_RESULTS = [
   "bad_title",
   "bad_examine",
   "bad_hangout",
-  "bad_clan",
   "bad_goals",
   "bad_god",
   "bad_key",
   "bad_emote",
   "bad_dialogue",
+  "bad_colour",
+  "bad_effect",
+  "bad_facing",
   "too_long",
   "css_disabled",
   "no_such_player",
@@ -621,12 +640,14 @@ export const LOG_STATUS: Record<string, number> = {
   bad_title: 400,
   bad_examine: 400,
   bad_hangout: 400,
-  bad_clan: 400,
   bad_goals: 400,
   bad_god: 400,
   bad_key: 400,
   bad_emote: 400,
   bad_dialogue: 400,
+  bad_colour: 400,
+  bad_effect: 400,
+  bad_facing: 400,
   too_long: 400,
   self: 400,
   banned: 403,

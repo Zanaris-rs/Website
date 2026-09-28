@@ -1,65 +1,142 @@
-/* The outfit editor: the chathead and the figure, the Worn Equipment tab and
-   the design controls side by side, wrapping under each other on a narrow
-   screen. */
+/* The outfit editor - /account/adventurer-log/character/outfit/<n>, and
+   /dev/outfits: the chathead and a figure that turns, the Worn Equipment
+   tab, and a fixed-size panel (Items | Body | Colours) beside it.
+
+   Nothing in it changes size as it is used, so the page never jumps:
+   - the panel is always there at one size, and its item list scrolls
+     inside it;
+   - the figure's canvas is the turn frame from the first paint;
+   - "Take off" is always drawn (disabled when nothing is worn);
+   - the count line under the list is one line;
+   - the heading is one line;
+   - the status line has a fixed height.
+
+   The layout follows the editor's own width (a container query), so it
+   fits whatever the frame around it leaves:
+   - 842 px or more: the previews, the tab and the panel abreast
+     (328 + 12 + 190 + 12 + 300);
+   - 502 px or more: the previews above, the tab and the panel side by side
+     under them (190 + 12 + 300);
+   - narrower: one column - the previews (the figure under the chathead
+     when both do not fit), the tab, then the panel, still at its fixed
+     height. */
 
 .editor {
+  container-type: inline-size;
   font-size: 13px;
 }
 
-/* --- the ten outfits --- */
-
-.slots {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  justify-content: center;
-  margin-bottom: 10px;
-}
-
-.slotTab,
-.slotTabEmpty {
-  font-family: Arial, Helvetica, sans-serif;
-  font-size: 12px;
-  max-width: 11em;
+.heading {
+  margin: 0 0 10px;
   overflow: hidden;
+  font-size: 14px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.slotTabEmpty {
-  color: var(--text-muted);
-}
-
-.slotTab[aria-current],
-.slotTabEmpty[aria-current] {
-  outline: 2px solid var(--link-green);
+.wearingBadge {
+  margin-left: 8px;
+  color: #ffd700;
+  font-size: 11px;
 }
 
 /* --- the workbench --- */
 
 .workbench {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
+  display: grid;
+  grid-template-areas: "previews" "tab" "panel";
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px 12px;
   justify-content: center;
-  align-items: flex-start;
+  justify-items: center;
+  align-items: start;
 }
 
-/* The chathead and the figure stand on one line, their captions level. */
+@container (width >= 502px) {
+  .workbench {
+    grid-template-areas: "previews previews" "tab panel";
+    grid-template-columns: 190px 300px;
+  }
+}
+
+@container (width >= 842px) {
+  .workbench {
+    grid-template-areas: "previews tab panel";
+    grid-template-columns: auto 190px 300px;
+  }
+}
+
+/* The chathead and the figure stand on one line, their captions level -
+   or, where the two do not fit, the figure under the chathead. Each canvas
+   has room enough round what it draws, so they need no gap. */
 .previews {
   display: flex;
-  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
   align-items: flex-end;
+  grid-area: previews;
 }
 
 .preview {
   margin: 0;
-  text-align: center;
   color: var(--text-muted);
   font-size: 11px;
+  text-align: center;
+}
+
+.turn {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+}
+
+/* As the card's figure (`.al-figure`): a sideways drag turns it, and an
+   up-or-down swipe still scrolls the page. */
+.turnable {
+  display: block;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  line-height: 0;
+  cursor: grab;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.turnable:active {
+  cursor: grabbing;
+}
+
+.turnable:focus-visible {
+  outline: 2px solid var(--link-green);
+  outline-offset: 2px;
+}
+
+.turnButtons {
+  display: flex;
+  gap: 4px;
+}
+
+.turnButtons button {
+  padding: 0 8px;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 12px;
+}
+
+/* Which way the figure faces after a turn: said to a screen reader, never drawn. */
+.turnSaid {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
 .wornColumn {
+  grid-area: tab;
   text-align: center;
 }
 
@@ -92,21 +169,146 @@
   outline: 1px solid #ffff00;
 }
 
-.design {
-  min-width: 220px;
-  max-width: 300px;
-}
+/* --- the panel: one size, whatever is in it --- */
 
-.field {
+.panel {
+  display: flex;
+  flex-direction: column;
+  grid-area: panel;
+  box-sizing: border-box;
+  width: min(100%, 420px);
+  height: 360px;
   border: 1px solid var(--panel-border);
-  margin: 0 0 8px;
-  padding: 6px 8px 8px;
 }
 
-.field legend {
-  padding: 0 4px;
+@container (width >= 502px) {
+  .panel {
+    width: 300px;
+  }
+}
+
+.panel button {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 13px;
+}
+
+.panelTabs {
+  display: flex;
+  flex: none;
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.panelTab {
+  flex: 1 1 0;
+  padding: 5px 0;
+  background: none;
+  border: 0;
+  border-right: 1px solid var(--panel-border);
+  color: var(--link);
+  cursor: pointer;
+}
+
+.panelTab:last-child {
+  border-right: 0;
+}
+
+.panelTab[aria-selected="true"] {
+  background: #2b2b2b;
+  color: var(--text);
   font-weight: bold;
 }
+
+/* Body and Colours scroll as a whole if they must. */
+.panelBody {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+/* Items: the search stays put and only the list scrolls. */
+.panelItems {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  padding: 8px;
+}
+
+.empty {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+/* --- the item picker --- */
+
+.picker {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.pickerHead {
+  display: flex;
+  flex: none;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.pickerHead b,
+.pickerHead button {
+  flex: none;
+}
+
+.search {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.items {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-y: auto;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 1px 4px;
+  border: 0;
+  background: none;
+  color: var(--link);
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+
+.item:hover {
+  color: var(--link-hover);
+  background: #1a1a1a;
+}
+
+.item[aria-pressed="true"] {
+  outline: 2px solid var(--link-green);
+  outline-offset: -2px;
+}
+
+.more {
+  flex: none;
+  margin: 6px 0 0;
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --- body and colours --- */
 
 .genders {
   display: flex;
@@ -114,8 +316,7 @@
   margin-bottom: 6px;
 }
 
-.genders button[aria-pressed="true"],
-.item[aria-pressed="true"] {
+.genders button[aria-pressed="true"] {
   outline: 2px solid var(--link-green);
 }
 
@@ -139,8 +340,8 @@
 }
 
 .colourLabel {
-  width: 3.5em;
   flex: none;
+  width: 3.5em;
 }
 
 .swatches {
@@ -162,63 +363,7 @@
   outline-offset: 0;
 }
 
-/* --- the item picker --- */
-
-.picker {
-  border: 1px solid var(--panel-border);
-  margin-top: 12px;
-  padding: 8px;
-}
-
-.pickerHead {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  align-items: center;
-  margin-bottom: 6px;
-}
-
-.search {
-  flex: 1 1 12em;
-}
-
-.items {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
-  gap: 2px 8px;
-  max-height: 280px;
-  overflow-y: auto;
-}
-
-.item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  width: 100%;
-  padding: 1px 4px;
-  border: 0;
-  background: none;
-  color: var(--link);
-  text-align: left;
-  cursor: pointer;
-  font: inherit;
-}
-
-.item:hover {
-  color: var(--link-hover);
-  background: #1a1a1a;
-}
-
-.more {
-  margin: 6px 0 0;
-  color: var(--text-muted);
-  font-size: 11px;
-}
-
-/* --- save, default, delete, import --- */
+/* --- name, save, save and wear, delete, import --- */
 
 .actions {
   display: flex;
@@ -230,18 +375,33 @@
 }
 
 .actions button {
+  padding: 2px 12px;
   font-family: Arial, Helvetica, sans-serif;
   font-size: 13px;
-  padding: 2px 12px;
+}
+
+/* A request is out: the button keeps its focus (aria-disabled, not
+   disabled) and ignores presses until the answer comes. */
+.actions button[aria-disabled="true"] {
+  cursor: progress;
 }
 
 .name input {
   width: 14em;
 }
 
+/* A fixed height, so a message coming or going never moves the page: three
+   lines where the editor is narrow (a phone), two where it is not. */
 .status {
-  min-height: 1.4em;
+  height: 4.2em;
   margin: 8px 0 0;
-  text-align: center;
+  overflow: hidden;
   color: var(--text-muted);
+  text-align: center;
+}
+
+@container (width >= 502px) {
+  .status {
+    height: 2.8em;
+  }
 }

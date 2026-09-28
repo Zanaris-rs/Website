@@ -1,0 +1,481 @@
+/* Clans, outside the log's `.al-root`: the crest on its shield, the crest
+   picker, and the Clan tab's boxes (`/account/adventurer-log/clan`). The
+   clan page's and the directory's rules follow below. */
+
+/* --- the crest and the rank icon ------------------------------------------- */
+
+.crest {
+  position: relative;
+  display: inline-block;
+  flex: none;
+  vertical-align: middle;
+}
+
+.crestShield {
+  position: absolute;
+  inset: 0;
+}
+
+.crestIcon {
+  position: absolute;
+  line-height: 0;
+}
+
+.rankIcon {
+  display: inline-block;
+  vertical-align: -2px;
+}
+
+/* --- the crest picker: a grid of a fixed size, so a search never moves the page */
+
+.crestPicker {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.crestPreview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 96px;
+  color: var(--text-muted);
+  font-size: 11px;
+  text-align: center;
+}
+
+.crestSearch {
+  flex: 1;
+  min-width: 220px;
+}
+
+.crestSearch input[type="search"] {
+  width: 100%;
+  font: inherit;
+}
+
+.crestGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 40px);
+  grid-auto-rows: 40px;
+  gap: 2px;
+  height: 172px;
+  margin-top: 4px;
+  padding: 2px;
+  overflow-y: auto;
+  border: 1px solid var(--panel-border);
+  background: #000;
+}
+
+.crestOption {
+  width: 40px;
+  height: 40px;
+  padding: 3px;
+  border: 1px solid transparent;
+  background: #111;
+  line-height: 0;
+  cursor: pointer;
+}
+
+.crestOption[aria-pressed="true"] {
+  border-color: #c8a032;
+  background: #2b2410;
+}
+
+.gridNote {
+  grid-column: 1 / -1;
+  margin: 4px;
+  color: var(--text-muted);
+}
+
+/* --- fields: Start a clan, and the Clan page form -------------------------- */
+
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fieldLabel {
+  font-weight: bold;
+}
+
+.fields input[type="text"],
+.fields textarea {
+  width: 100%;
+  font: inherit;
+}
+
+.fields select {
+  max-width: 100%;
+}
+
+/* A form's own button (Post, the Leader's Save) keeps its width. */
+.fields > button {
+  align-self: flex-start;
+}
+
+.count {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+/* --- the tab's boxes -------------------------------------------------------- */
+
+.tab {
+  font-size: 13px;
+  text-align: left;
+}
+
+.tab button,
+.tab select,
+.tab input {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 13px;
+}
+
+.tab button {
+  padding: 2px 12px;
+}
+
+/* A request is out: the control keeps its focus (aria-disabled, not
+   disabled) and ignores presses until the answer comes. It fades, so the
+   wait shows without a pointer too. */
+.tab button[aria-disabled="true"] {
+  cursor: progress;
+  opacity: 0.55;
+}
+
+/* The field the last refusal was about. */
+.tab [aria-invalid="true"] {
+  outline: 2px solid #ff5a5a;
+  outline-offset: 1px;
+}
+
+.tabTitle {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+
+.subtitle {
+  margin: 10px 0 4px;
+  font-size: 13px;
+}
+
+.hint {
+  margin: 0 0 6px;
+  color: var(--text-muted);
+}
+
+.muted {
+  margin: 2px 0;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.error {
+  margin: 6px 0 0;
+  color: var(--warning);
+}
+
+.error:empty {
+  margin: 0;
+}
+
+.row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin: 4px 0;
+}
+
+.danger {
+  color: var(--warning);
+}
+
+.clanHead {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.clanHeadName {
+  margin: 0;
+  font-size: 16px;
+}
+
+/* The motto: the game's b12 on black, as overhead chat is drawn. */
+.motto {
+  display: inline-block;
+  margin: 4px 0;
+  padding: 3px 6px;
+  background: #000;
+}
+
+.roster,
+.people,
+.invites,
+.notices {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.rosterRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 4px 0;
+  border-top: 1px solid var(--panel-border);
+}
+
+.face {
+  flex: none;
+  border: 1px solid var(--panel-border);
+}
+
+.rosterName {
+  min-width: 8em;
+  font-weight: bold;
+}
+
+.rank {
+  min-width: 9em;
+}
+
+.people li {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 2px 0;
+}
+
+.invite {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 6px 0;
+  border-top: 1px solid var(--panel-border);
+}
+
+.inviteMain {
+  flex: 1;
+  min-width: 0;
+}
+
+.inviteName {
+  font-weight: bold;
+}
+
+.notice {
+  padding: 6px 0;
+  border-top: 1px solid var(--panel-border);
+}
+
+.noticeHead {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.noticeBody {
+  margin: 2px 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* --- the clan page (`/clan/<slug>`) and the directory (`/clans`) ------------
+   The log's shape and grey: a narrow card on the left, the rest on the
+   right, each box black with a title bar. */
+
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  justify-content: center;
+  margin-top: var(--stack-gap-title);
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.page {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--stack-gap);
+  margin-top: var(--stack-gap-title);
+  color: var(--text);
+  font-size: 13px;
+  text-align: left;
+}
+
+@media (min-width: 900px) {
+  .page {
+    grid-template-columns: 280px 1fr;
+    align-items: start;
+  }
+}
+
+.side,
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--stack-gap);
+  min-width: 0;
+}
+
+.box {
+  background: #000;
+  border: 1px solid var(--panel-border);
+}
+
+.box > h2 {
+  margin: 0;
+  padding: 3px 8px;
+  border-bottom: 1px solid var(--panel-border);
+  background: #2b2b2b;
+  color: #fff;
+  font-size: 13px;
+}
+
+.boxBody {
+  padding: 8px;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 8px;
+  text-align: center;
+}
+
+.cardName {
+  margin: 6px 0 2px;
+  font-size: 18px;
+}
+
+.sheet {
+  width: 100%;
+  margin: 8px 0 0;
+  text-align: left;
+}
+
+.sheet > div {
+  display: flex;
+  gap: 8px;
+  padding: 2px 0;
+  border-top: 1px solid #1f1f1f;
+}
+
+.sheet dt {
+  flex: none;
+  width: 5.5em;
+  color: var(--text-muted);
+}
+
+.sheet dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.about {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.rankHead {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  margin: 8px 0 2px;
+  font-size: 13px;
+}
+
+.rankHead:first-child {
+  margin-top: 0;
+}
+
+.members {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.member {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 3px 0;
+}
+
+.memberName {
+  font-weight: bold;
+}
+
+.empty {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.clans {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+  text-align: left;
+}
+
+.clanRow {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 6px 0;
+  border-top: 1px solid var(--panel-border);
+}
+
+.clanMain {
+  flex: 1;
+  min-width: 0;
+}
+
+.clanName {
+  font-weight: bold;
+}
+
+/* The motto on its own line under the name, however short, as on the card. */
+.clanMain > .motto {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+}
+
+/* --- the clan photo, on the clan card --------------------------------------- */
+
+.photo {
+  margin: 8px 0 0;
+}
+
+.photo canvas {
+  display: block;
+  border: 1px solid var(--panel-border);
+}
+
+.photo figcaption {
+  margin-top: 3px;
+  color: var(--text-muted);
+  font-size: 11px;
+}

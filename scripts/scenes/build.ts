@@ -10,10 +10,12 @@
  * Writes, for every spot in `spots.ts`:
  *
  *   public/game/scenes/<key>.png     the backdrop: the spot with no one in it
- *   lib/scenes/spots.json            each spot's eye, figure and turns, and the version
- *   lib/scenes/composite-golden.json the proved composites' hashes, which
- *                                    `lib/scenes/composite.test.ts` holds the
- *                                    site's renderer to
+ *   lib/scenes/spots.json            each spot's eye, figure, turns and clan
+ *                                    photo slots, and the version
+ *   lib/scenes/composite-golden.json the proved composites' and clan photos'
+ *                                    hashes, which `lib/scenes/composite.test.ts`
+ *                                    and `photo-golden.test.ts` hold the site's
+ *                                    renderer to
  *
  * and `scripts/scenes/contact-sheet.png`, every spot with the reference
  * figure drawn in, to judge the framing by eye. That one is not committed.
@@ -30,6 +32,13 @@
  * so what is proved is what a page draws. Nothing is written but the
  * contact sheet, which then shows the first failing pose, when a spot fails
  * facing the camera.
+ *
+ * Each spot also tries a clan photo: 7, then 5, then 3 of the bulky look in
+ * a row across the frame, all added in one pass and compared with
+ * `lib/scenes/photo.ts`'s `drawPhoto` over the backdrop. The largest clean
+ * count's slots go into `spots.json` as `photo`, and its hash into
+ * `composite-golden.json`'s `photos`. Varrock square (`PHOTO_FALLBACK`) is
+ * every photo's fallback, so the build fails unless it holds at least 5.
  */
 
 import "../chathead/browser-stub.ts";
@@ -39,6 +48,7 @@ import { mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { FACINGS } from "../../lib/chathead/facing.ts";
+import { PHOTO_FALLBACK } from "../../lib/scenes/photo.ts";
 import type { SceneSpot } from "../../lib/scenes/spots.ts";
 import { encodePng } from "../game-icons/png.ts";
 import { LOOKS } from "./looks.ts";
@@ -91,6 +101,10 @@ for (const input of SPOTS) {
   for (const drop of shot.dropped) {
     console.log(`      dropped facing ${drop.facing}: ${drop.look}, ${drop.pose} differs in ${drop.differing} px`);
   }
+  console.log(
+    `photo    ${input.key}: ${shot.photo ? `${shot.photo.slots.length} slots` : "none"}` +
+      (shot.photoTried.length > 0 ? ` (${shot.photoTried.join("; ")})` : ""),
+  );
   shots.push({ ...shot, png });
 }
 
@@ -133,6 +147,18 @@ if (inexact.length > 0) {
   );
 }
 
+// PHOTO_FALLBACK is the clan photo's fallback (lib/scenes/photo.ts photoSpot):
+// every clan whose Leader stands where no photo was proved is shot there.
+const fallback = shots.find((shot) => shot.spot.key === PHOTO_FALLBACK);
+const fallbackSlots = fallback?.photo?.slots.length ?? 0;
+if (fallbackSlots < 5) {
+  throw new Error(
+    `${PHOTO_FALLBACK}, the clan photo's fallback, holds ${fallbackSlots} slots; it needs at least 5 ` +
+      `(${fallback ? fallback.photoTried.join("; ") || "no count tried" : `${PHOTO_FALLBACK} is not in spots.ts`}). ` +
+      `Reframe it in spots.ts, change PHOTO_SPACING or PHOTO_FALLBACK in lib/scenes/photo.ts - never the proof.`,
+  );
+}
+
 // --- write -----------------------------------------------------------------
 
 const dir = path.join(OUT_DIR, "public/game/scenes");
@@ -145,9 +171,10 @@ for (const shot of shots) writeFileSync(path.join(dir, `${shot.spot.key}.png`), 
 
 const spots: SceneSpot[] = shots.map((shot) => shot.spot);
 /**
- * One version for every backdrop, camera and list of turns: the site asks
- * for `<key>.png?v=`, cached for a year (`next.config.ts`), so anything that
- * changes a picture or where and how the figure stands changes every URL.
+ * One version for every backdrop, camera, list of turns and row of photo
+ * slots: the site asks for `<key>.png?v=`, cached for a year
+ * (`next.config.ts`), so anything that changes a picture or where and how a
+ * figure stands changes every URL.
  */
 const hash = createHash("sha256");
 for (const shot of shots) hash.update(shot.png);
@@ -163,12 +190,18 @@ writeFileSync(path.join(OUT_DIR, "lib/scenes/spots.json"), JSON.stringify({ vers
  *   default look in every pose at every other proved facing.
  *
  * Plus each spot's proved facings (`turns`), which spots.json must agree
- * with. One draw per line, as the chathead goldens are written.
+ * with, and each proved clan photo (`photos`, the last key): the spot, its
+ * slot count and the hash of `drawPhoto` with the bulky look in every slot,
+ * which `photo-golden.test.ts` holds the site to. One draw or photo per
+ * line, as the chathead goldens are written.
  */
 const draws = shots.flatMap((shot, index) =>
   shot.hashes
     .filter((entry) => entry.emote === null || (index === 0 && (entry.facing === 0 || entry.look === LOOKS[0].name)))
     .map((entry) => ({ spot: shot.spot.key, ...entry })),
+);
+const photos = shots.flatMap((shot) =>
+  shot.photo ? [{ spot: shot.spot.key, count: shot.photo.slots.length, hash: shot.photo.hash }] : [],
 );
 const turnsBySpot = Object.fromEntries(spots.map((spot) => [spot.key, spot.turns]));
 const looks = Object.fromEntries(LOOKS.map(({ name, look }) => [name, look]));
@@ -178,6 +211,8 @@ writeFileSync(
     `"anims":${JSON.stringify(studio.versions.anims)},\n"turns":${JSON.stringify(turnsBySpot)},\n` +
     `"looks":${JSON.stringify(looks)},\n"draws":[\n` +
     draws.map((draw) => JSON.stringify(draw)).join(",\n") +
+    "\n],\n\"photos\":[\n" +
+    photos.map((photo) => JSON.stringify(photo)).join(",\n") +
     "\n]}\n",
 );
 
@@ -187,4 +222,7 @@ console.log(
     `${(bytes / 1024).toFixed(0)} KB -> public/game/scenes/*.png?v=${version}, lib/scenes/spots.json`,
 );
 console.log(`golden   ${draws.length} composites -> lib/scenes/composite-golden.json`);
+console.log(
+  `photos   ${photos.length} spots hold a clan photo (${photos.map((photo) => `${photo.spot} ${photo.count}`).join(", ")})`,
+);
 process.exit(0);

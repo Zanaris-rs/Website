@@ -1,6 +1,7 @@
 import { decodeBackdrop, drawAtEye, drawAtSpot, sceneFrame } from "../scenes/draw.ts";
+import { drawPhoto } from "../scenes/photo.ts";
 import { type SceneSpot, sceneSrc } from "../scenes/spots.ts";
-import { type Clip, emoteClip, lineCount, moodClip } from "./animate.ts";
+import { type Clip, emoteClip, emoteStill, lineCount, moodClip, moodStill } from "./animate.ts";
 import { decodeAnims, loadAnims } from "./anims-file.ts";
 import type { AnimTables } from "./anims.ts";
 import { decodeBodies, loadBodies } from "./bodies-file.ts";
@@ -35,6 +36,12 @@ import type { Emote, Mood } from "./vocab.ts";
  * proved (`spot.turns`), standing or acting out an emote. Every drawing is
  * kept by look and angle, the most recently used few of each kind
  * (`recent`).
+ *
+ * A still (`loadEmoteStill`, `loadMoodStill`) is one frame of an emote or a
+ * mood, for the pickers that show a dozen at once.
+ *
+ * A clan photo (`loadClanPhoto`) is a row of figures drawn into one copy of
+ * a spot's backdrop, once, and kept by nobody.
  */
 
 export const tables = tablesJson as HeadTables;
@@ -514,3 +521,74 @@ export const loadChatheadClips = once(async (): Promise<ChatheadClips> => {
     ),
   };
 });
+
+// --- stills: one frame each, for pickers --------------------------------------
+
+/**
+ * The last stills drawn: an emote's or a mood's single frame, for the Words
+ * tab's rows and pickers - thirteen emote choices and fourteen moods per
+ * look, and a page or two's worth of looks. Null is kept too, for a look
+ * with nothing to draw.
+ */
+const stills = recent<ImageData | null>(STILLS_KEPT);
+
+/**
+ * A look acting out an emote, as one still (`emoteStill`: its middle
+ * frame); no emote is the look standing. Without `facing` it is drawn in the
+ * figure frame at the design screen's angle, as `<Figure>` is; with one, in
+ * the turn frame, turned that way. Loads `renderer.js`, `bodies.bin` and
+ * `anims.bin` on first use.
+ */
+export async function loadEmoteStill(look: Look, emote: Emote | null, facing?: number): Promise<ImageData | null> {
+  const [{ client, bodyTables }, anims] = await Promise.all([loadBodyTables(), loadAnimTables()]);
+  const turned = drawnFacing(facing);
+  const key = `emote/${lookKey(look)}/${emote ?? "stand"}/${turned ?? "plain"}`;
+  let image = stills.get(key);
+  if (image === undefined) {
+    const frame = figureFrame(turned);
+    const camera = figureCamera(turned);
+    const pixels = emoteStill(client, bodyTables, anims, look, emote, (body) =>
+      drawModel(client, body, frame, camera),
+    );
+    image = pixels ? new ImageData(toRgba(pixels), frame.width, frame.height) : null;
+    stills.set(key, image);
+  }
+  return image;
+}
+
+/**
+ * A look's chathead in a mood, as one still (`moodStill`). Loads
+ * `renderer.js`, `models.bin` and `anims.bin` on first use.
+ */
+export async function loadMoodStill(look: Look, mood: Mood): Promise<ImageData | null> {
+  const [client, anims] = await Promise.all([loadHeadModels(), loadAnimTables()]);
+  const key = `mood/${lookKey(look)}/${mood}`;
+  let image = stills.get(key);
+  if (image === undefined) {
+    const pixels = moodStill(client, tables, anims, look, mood);
+    image = pixels ? new ImageData(toRgba(pixels), tables.frame.width, tables.frame.height) : null;
+    stills.set(key, image);
+  }
+  return image;
+}
+
+// --- a clan photo -----------------------------------------------------------
+
+export type PhotoDrawer = {
+  /** The members, left to right, drawn far to near into one copy of the backdrop (`drawPhoto`). */
+  draw(looks: readonly Look[]): ImageData;
+};
+
+/**
+ * A spot's backdrop and the figure renderer, for a clan photo: `renderer.js`,
+ * `bodies.bin` and the spot's PNG, fetched on first use and shared with the
+ * scenes. A failed load is retried. A photo is drawn once and painted once,
+ * so nothing is kept.
+ */
+export async function loadClanPhoto(spot: SceneSpot): Promise<PhotoDrawer> {
+  const [{ client, bodyTables }, backdrop] = await Promise.all([loadBodyTables(), loadBackdrop(spot)]);
+  return {
+    draw: (looks) =>
+      new ImageData(toRgba(drawPhoto(client, bodyTables, spot, backdrop.pixels, looks)), spot.width, spot.height),
+  };
+}

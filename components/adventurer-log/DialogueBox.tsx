@@ -20,7 +20,8 @@ const HEAD_SCALE = 96 / tables.frame.width;
  * The adventurer talking, as an NPC talks in 2004: their chathead in the
  * page's mood, their name in dark red, the page's lines in black, and "Click
  * here to continue" in blue - which moves the conversation on, back to the
- * first page after the last, and has the figure act out the next page.
+ * first page after the last, and has the figure act out the next page. An
+ * outfit a reader tries on from the Wardrobe shows here too.
  *
  * Its lines are a polite live region, so a new page is read out. The
  * editor's preview turns that off (`live={false}`): there the lines change
@@ -42,12 +43,16 @@ export default function DialogueBox({
   if (pages.length === 0) return null;
   // `stage.page` is already clamped to `pages` by `PersonaStage`; reading it
   // straight keeps this in agreement with the emote it is driving, even if
-  // `pages` shrinks under an unchanged stage (W5's live editor preview).
+  // `pages` shrinks under an unchanged stage (the Words tab's live stage,
+  // when a page is removed).
   const page = pages[stage.page];
+  // A reader trying on an outfit from the Wardrobe sees the chathead in it
+  // too: the Wardrobe's own look object, so the head's drawing is kept.
+  const head = stage.tryOn ?? look;
   return (
     <section className="al-dialogue al-box" aria-label={`${name} says`}>
       <div className="al-dialogue-head al-chathead">
-        <Chathead look={look} label={`${name}'s chathead`} mood={page.mood} lines={page.lines.length} scale={HEAD_SCALE} />
+        <Chathead look={head} label={`${name}'s chathead`} mood={page.mood} lines={page.lines.length} scale={HEAD_SCALE} />
       </div>
       <div className="al-dialogue-body">
         <p className="al-dialogue-name">{name}</p>

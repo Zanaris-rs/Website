@@ -346,6 +346,8 @@ describe("queries", () => {
     expect(parsePost([{ result: "ok", update_id: 9 }], "update_id", "post")).toEqual({ result: "ok", id: 9 });
     expect(parsePost([{ result: "muted", update_id: null }], "update_id", "post")).toEqual({ result: "muted", id: null });
     expect(() => parseWrite("whatever", "w")).toThrow(/whatever/);
+    for (const code of ["bad_colour", "bad_effect", "bad_facing"]) expect(parseWrite(code, "w")).toBe(code);
+    expect(() => parseWrite("bad_clan", "w")).toThrow(/bad_clan/);
   });
 
   it("save About you in one statement, the filters only after the text", () => {
@@ -363,6 +365,7 @@ describe("queries", () => {
 
   it("give each answer a status", () => {
     expect(logStatusFor("bad_body")).toBe(400);
+    expect(logStatusFor("bad_facing")).toBe(400);
     expect(logStatusFor("muted")).toBe(403);
     expect(logStatusFor("not_found")).toBe(404);
     expect(logStatusFor("already")).toBe(409);

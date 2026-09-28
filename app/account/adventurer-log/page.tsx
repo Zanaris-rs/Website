@@ -14,6 +14,7 @@ import { requireSession } from "@/lib/account/session-server";
 import { excerpt, parseBody } from "@/lib/adventurer-log/body";
 import { sanitizeCss } from "@/lib/adventurer-log/css";
 import { CSS_MAX } from "@/lib/adventurer-log/format";
+import { logHref } from "@/lib/adventurer-log/href";
 import {
   blocksStatement,
   type LogHeader,
@@ -27,14 +28,14 @@ import { toDisplayName } from "@/lib/base37";
 import { query } from "@/lib/db";
 
 export const metadata: Metadata = {
-  title: "Your Adventurer Log",
-  description: "What your Adventurer Log says about you, and what it shows.",
+  title: "Log settings",
+  description: "How your Adventurer Log reads: about you, what it shows, its style, and who may reply.",
 };
 
 export const dynamic = "force-dynamic";
 
 /**
- * `/account/adventurer-log` — the owner's settings for their own log, in
+ * `/account/adventurer-log` — Log settings: how the owner's log reads, in
  * three boxes: what it says about them (one Save), its stylesheet, and who
  * may not reply on it. The log itself is one link away ("View your log").
  */
@@ -85,7 +86,7 @@ export default async function LogSettingsPage() {
 
   return (
     <Frame>
-      <OwnerNav title="Your Adventurer Log" username={username} current="edit" />
+      <OwnerNav title="Log settings" username={username} current="settings" />
       <Panel align="left" width="100%">
         <h2 className={styles.title}>About you</h2>
         <AboutYou initial={{ about: header.about, hidden: header.hiddenCategories }} />
@@ -96,7 +97,7 @@ export default async function LogSettingsPage() {
           initial={header.customCss}
           disabled={header.cssDisabled}
           dropped={dropped}
-          logHref={`/adventurer-log/${encodeURIComponent(username)}`}
+          logHref={logHref(username)}
         />
       </Panel>
       <Panel align="left" width="100%">
@@ -110,9 +111,9 @@ export default async function LogSettingsPage() {
 function Unavailable() {
   return (
     <Frame>
-      <TitleBox title="Your Adventurer Log" links={[{ href: "/account", text: "Account Centre" }]} />
+      <TitleBox title="Log settings" links={[{ href: "/account", text: "Account Centre" }]} />
       <Panel>
-        <p>Your Adventurer Log is unavailable right now. Try again shortly.</p>
+        <p>Your log settings are unavailable right now. Try again shortly.</p>
       </Panel>
     </Frame>
   );

@@ -1,4 +1,4 @@
-import type { Look } from "./look.ts";
+import { type Look, lookKey } from "./look.ts";
 import { OUTFIT_SLOTS, type Outfit } from "./validate.ts";
 
 /**
@@ -62,5 +62,34 @@ export function memoryStore(
       return next({ defaultSlot: slot });
     },
     importLook: () => Promise.resolve(importable),
+  };
+}
+
+/** The first slot with nothing saved in it, or null when all ten are full. */
+export function firstEmptySlot(saved: SavedOutfits): number | null {
+  const slot = saved.outfits.findIndex((outfit) => outfit === null);
+  return slot === -1 ? null : slot;
+}
+
+/** Two outfits (or empty slots) with the same name and the same look, whatever the objects. */
+export function sameOutfit(a: Outfit | null, b: Outfit | null): boolean {
+  if (a === null || b === null) return a === b;
+  return a.name === b.name && lookKey(a.look) === lookKey(b.look);
+}
+
+/**
+ * The outfits a write answered with, keeping each one that did not change
+ * as the object the page already had. Every write answers with all ten
+ * outfits as new objects, and `<Figure>` and `<Chathead>` redraw whenever
+ * their look is a new object - so without this, wearing one outfit would
+ * redraw all ten.
+ */
+export function keepSame(previous: SavedOutfits, next: SavedOutfits): SavedOutfits {
+  return {
+    defaultSlot: next.defaultSlot,
+    outfits: next.outfits.map((outfit, slot) => {
+      const before = previous.outfits[slot];
+      return outfit && before && sameOutfit(outfit, before) ? before : outfit;
+    }),
   };
 }
