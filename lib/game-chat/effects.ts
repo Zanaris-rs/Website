@@ -79,12 +79,23 @@ export function waveRuns(text: string): WaveRun[] {
 }
 
 /**
- * How far scroll has moved the text left, in pixels. The client shows it
- * through a 100 px window centred on the speaker, starting at the window's
- * right edge.
+ * How far scroll has moved the text left, in pixels, `cycle` cycles into its
+ * pass. The text's left edge is at `window - scrollOffset(...)`.
+ *
+ * The client shows a scroll line through a 100 px window centred on the
+ * speaker, from the window's right edge, at `(textWidth + 100) / 150` px a
+ * cycle: the whole line crosses in the line's 150-cycle life. A log draws
+ * the line through a wider window - the box it sits in - at that same pixel
+ * speed, so a pass takes `(textWidth + window) / speed` cycles, rounded up:
+ * the line enters at the right edge and is gone past the left before the
+ * next pass. With `window` 100 this is exactly the client's scroll.
+ *
+ * Each product is taken before its one division, so whole-number inputs
+ * come out exact (75 cycles at 1.2 px is 90, not 89.99...).
  */
-export function scrollOffset(textWidth: number, cycle: number): number {
-  const delta = ((cycle % CHAT_LIFE) + CHAT_LIFE) % CHAT_LIFE;
+export function scrollOffset(textWidth: number, cycle: number, window = 100): number {
+  const life = Math.ceil(((textWidth + window) * CHAT_LIFE) / (textWidth + 100));
+  const delta = ((cycle % life) + life) % life;
   return Math.trunc((delta * (textWidth + 100)) / CHAT_LIFE);
 }
 
