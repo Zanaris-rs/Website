@@ -1,38 +1,19 @@
-import { Suspense } from "react";
+import { notFound, permanentRedirect } from "next/navigation";
 
-import type { Metadata } from "next";
+import { logHref } from "@/lib/adventurer-log/href";
+import { nameFrom } from "@/lib/adventurer-log/name";
 
-import PlayerHiscores from "@/components/hiscores/PlayerHiscores";
-import Frame from "@/components/site/Frame";
-import { toDisplayName } from "@/lib/base37";
-
-export async function generateMetadata({
-  params,
-}: PageProps<"/hiscores/player/[username]">): Promise<Metadata> {
-  const { username } = await params;
-  // A hand-typed URL can carry a malformed escape; that is a bad name, not a
-  // crashed page.
-  let decoded = username;
-  try {
-    decoded = decodeURIComponent(username);
-  } catch {}
-  const name = toDisplayName(decoded);
-  return {
-    title: `${name} — Hiscores`,
-    description: `Zanaris hiscores for ${name}.`,
-  };
-}
-
-export default async function Player({
-  params,
-}: PageProps<"/hiscores/player/[username]">) {
-  const { username } = await params;
-
-  return (
-    <Frame>
-      <Suspense fallback={null}>
-        <PlayerHiscores username={username} />
-      </Suspense>
-    </Frame>
-  );
+/**
+ * `/hiscores/player/<name>` - where one player's hiscores used to be. The
+ * Adventurer Log is the one player page now, and its Skills box (`#skills`)
+ * has every skill with its rank, each linking into the table at that
+ * player's row. So this answers 308 there, in the log's form of the name
+ * (`Lynx%20Titan` -> `/adventurer/lynx_titan#skills`). A `profile` query is
+ * dropped: only "main" is published. A name the game cannot hold is a 404,
+ * as it is on the log.
+ */
+export default async function Player({ params }: PageProps<"/hiscores/player/[username]">) {
+  const name = nameFrom((await params).username);
+  if (!name) notFound();
+  permanentRedirect(`${logHref(name)}#skills`);
 }

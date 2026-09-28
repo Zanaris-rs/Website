@@ -160,42 +160,8 @@
   font-size: 13px;
 }
 
-/* The personal page: Skill / Rank / Level / XP. Four no-wrap columns are
-   about as wide as a phone, so the panel scrolls sideways if it has to. */
-.playerPanel {
-  display: inline-block;
-  max-width: 100%;
-  overflow-x: auto;
-  text-align: left;
-}
-
-.playerTable {
-  border-collapse: collapse;
-  font-size: 13px;
-}
-
-.playerTable th,
-.playerTable td {
-  padding: 0 6px;
-  font-weight: normal;
-  white-space: nowrap;
-}
-
-.playerTable thead th {
-  font-weight: bold;
-}
-
-.playerTable .skill {
-  width: 120px;
-  text-align: left;
-}
-
-.playerTable .figure {
-  width: 80px;
-  text-align: right;
-}
-
-.playerHeading {
-  text-align: center;
-  padding-bottom: 8px;
+/* Under "Search by name": where it goes, since it leaves the table. */
+.searchHint {
+  margin: 4px 0 0;
+  font-size: 11px;
 }

@@ -3,6 +3,7 @@ import { combatRange, overallOf, skillRows, type SkillRow } from "@/lib/adventur
 import type { PlayerSkill } from "@/lib/hiscores/api";
 import { OVERALL } from "@/lib/hiscores/categories";
 import { formatNumber } from "@/lib/hiscores/format";
+import { hiscoreRowHref } from "@/lib/hiscores/params";
 import { statOfCategory } from "@/lib/skills/icons";
 
 /**
@@ -16,6 +17,10 @@ import { statOfCategory } from "@/lib/skills/icons";
  * classes: `.al-skill-total`, `.al-combat`, `.al-skill` (`.al-skill--<id>`,
  * `.al-skill--unranked`), `.al-skill-xp`, `.al-skill-level` and
  * `.al-skills-note`.
+ *
+ * The box is `#skills`, where `/hiscores/player/<name>` and the hiscores'
+ * "Search by name" land; each row, Overall's included, opens that
+ * category's table at this player's row (`hiscoreRowHref`).
  */
 export default function Skills({
   username,
@@ -27,7 +32,7 @@ export default function Skills({
 }) {
   if (skills.length === 0) {
     return (
-      <section className="al-stats al-box">
+      <section className="al-stats al-box" id="skills">
         <h2>Skills</h2>
         <div className="al-box-body">
           <p className="al-empty">Not on the hiscores yet.</p>
@@ -42,12 +47,12 @@ export default function Skills({
   const anyUnranked = rows.some((row) => row.ranked === null);
 
   return (
-    <section className="al-stats al-box">
+    <section className="al-stats al-box" id="skills">
       <h2>Skills</h2>
       <div className="al-box-body">
         {overall ? (
           <p className="al-skill-total">
-            <a href={hiscoresHref(OVERALL, username)}>
+            <a href={hiscoreRowHref(username, OVERALL)}>
               Total level {overall.level} · {formatNumber(overall.xp)} xp · #{formatNumber(overall.rank)}
             </a>
           </p>
@@ -63,7 +68,7 @@ export default function Skills({
                   <SkillIcon stat={statOfCategory(row.category)} size={16} />
                 </td>
                 <td>
-                  <a href={hiscoresHref(row.category, username)}>{row.name}</a>
+                  <a href={hiscoreRowHref(username, row.category)}>{row.name}</a>
                   <span className="al-skill-xp">
                     {row.ranked ? `${formatNumber(row.ranked.xp)} xp · #${formatNumber(row.ranked.rank)}` : "under 15"}
                   </span>
@@ -87,8 +92,4 @@ function rowClass(row: SkillRow): string {
   const classes = ["al-skill", `al-skill--${row.category}`];
   if (!row.ranked) classes.push("al-skill--unranked");
   return classes.join(" ");
-}
-
-function hiscoresHref(category: number, username: string): string {
-  return `/hiscores?category=${category}&name=${encodeURIComponent(username)}`;
 }

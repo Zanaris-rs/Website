@@ -3,6 +3,7 @@ import messages from "@/components/messages/Messages.module.css";
 import frame from "@/components/site/Frame.module.css";
 import Panel from "@/components/site/Panel";
 import TitleBox from "@/components/site/TitleBox";
+import { logHref } from "@/lib/adventurer-log/href";
 import { toDisplayName } from "@/lib/base37";
 import { formatWhen } from "@/lib/messages/format";
 import type { InputStream } from "@/lib/staff/macro/decode";
@@ -195,7 +196,7 @@ export default function StaffReportDetail({
                 {report.offenderRegistered ? (
                   <a
                     className={frame.link}
-                    href={`/hiscores/player/${encodeURIComponent(report.offender)}`}
+                    href={logHref(report.offender)}
                   >
                     {toDisplayName(report.offender)}
                   </a>

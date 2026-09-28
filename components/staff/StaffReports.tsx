@@ -3,6 +3,7 @@ import styles from "@/components/messages/Messages.module.css";
 import frame from "@/components/site/Frame.module.css";
 import Panel from "@/components/site/Panel";
 import TitleBox from "@/components/site/TitleBox";
+import { logHref } from "@/lib/adventurer-log/href";
 import { toDisplayName } from "@/lib/base37";
 import { formatWhen } from "@/lib/messages/format";
 import {
@@ -87,7 +88,7 @@ export default function StaffReports({
                   <td className={staff.name}>
                     <a
                       className={frame.link}
-                      href={`/hiscores/player/${encodeURIComponent(report.offender)}`}
+                      href={logHref(report.offender)}
                     >
                       {toDisplayName(report.offender)}
                     </a>

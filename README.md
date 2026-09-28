@@ -14,7 +14,7 @@ of somebody else's work with no connection to Jagex Ltd.
 | `/rules` and `/rules/original` | what the twelve rules mean here, and the twelve rules themselves |
 | `/worldmap` | the 2004 map applet, drawn from the game's own map data |
 | `/serverlist` | the world list: region, members or free, a live player count, and links into the client at high or low detail |
-| `/hiscores` | rankings for Overall and each of the nineteen skills, plus `/hiscores/player/<username>` |
+| `/hiscores` | rankings for Overall and each of the nineteen skills; `/hiscores/player/<username>` answers 308 to that player's Adventurer Log, at their skills |
 | `/register` | a closed door: paste an invite code and continue to `/join/<code>` |
 | `/join/<code>` | the actual registration form, behind Cloudflare Turnstile and the database's own rate limits |
 | `/account/login` | the login box: a bcrypt salt handshake, so the site never sees a password hash |
@@ -1015,7 +1015,10 @@ malformed request; 503 if the database is unreachable.
   "skills": [{ "category": 0, "rank": 1, "level": 1872, "xp": 275552085 }] }
 ```
 
-404 `{ "error": "not_found" }` when the player has no rows at all.
+404 `{ "error": "not_found" }` when the player has no rows at all. No page on
+the site calls it any more: a player's own hiscores are their Adventurer
+Log's Skills box, which runs the same query itself. It stays for anyone who
+does.
 
 Both hiscores routes send `Cache-Control: public, s-maxage=60,
 stale-while-revalidate=600` on success and `no-store` on an error.
@@ -1237,7 +1240,7 @@ fetches the file in the browser and picks it up immediately.
 | `app/worldmap/page.tsx` | the map applet's page |
 | `app/serverlist/page.tsx` | the world list |
 | `app/hiscores/page.tsx` | `/hiscores` |
-| `app/hiscores/player/[username]/page.tsx` | one player's hiscores |
+| `app/hiscores/player/[username]/page.tsx` | 308 to the player's Adventurer Log, `#skills` |
 | `app/hiscores/records/page.tsx` | the record board; `/records` redirects here |
 | `app/register/page.tsx` | the closed door: paste an invite code, continue to `/join/<code>` |
 | `app/join/page.tsx` | the pasted-code box; redirects a valid code to `/join/<code>` |
@@ -1636,7 +1639,9 @@ scrolls, as the game records them - mixed with the updates they post.
   (none on a log or a clan's page). A signed-in player also gets "Your log:
   View - Character - Clan - Records - Log settings" (`yourLogLinks`) on the
   directory and, without View, on their own log. `/community` itself is the
-  hub (W7).
+  hub (W7). Every player's name on these pages opens their log. The
+  hiscores' "Search by name" opens it at the Skills box (`#skills`), whose
+  rows open the table at that player's rank (`hiscoreRowHref`).
 - Everyone else sees an adventure **twenty minutes** after it happened, so a
   log cannot be used to follow someone around the game; the owner sees theirs
   at once. That rule, and every other one - who may write, blocks, the rates -

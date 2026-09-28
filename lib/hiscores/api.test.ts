@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 
 import {
   parseHiscoresResponse,
-  parsePlayerResponse,
   toHiscoresResponse,
   toPlayerResponse,
 } from "./api";
@@ -165,38 +164,5 @@ describe("parseHiscoresResponse", () => {
     expect(() =>
       parseHiscoresResponse({ ...body, rows: [{ rank: "480" }] }),
     ).toThrow();
-  });
-});
-
-describe("parsePlayerResponse", () => {
-  const body = {
-    username: "detective",
-    name: "Detective",
-    citizen: 7,
-    skills: [{ category: 0, rank: 1, level: 1872, xp: 275_552_085 }],
-  };
-
-  it("accepts the documented shape", () => {
-    expect(parsePlayerResponse(body)).toEqual(body);
-  });
-
-  it("rejects a missing name", () => {
-    expect(() => parsePlayerResponse({ ...body, name: "" })).toThrow();
-  });
-
-  it("rejects a skill row with a missing field", () => {
-    expect(() =>
-      parsePlayerResponse({ ...body, skills: [{ category: 0, rank: 1 }] }),
-    ).toThrow();
-  });
-
-  it("reads a response cached from before the citizen number existed", () => {
-    const old = { username: body.username, name: body.name, skills: body.skills };
-    expect(parsePlayerResponse(old)).toEqual({ ...old, citizen: null });
-  });
-
-  it("drops a citizen number that is not a positive whole number", () => {
-    expect(parsePlayerResponse({ ...body, citizen: "7" }).citizen).toBeNull();
-    expect(parsePlayerResponse({ ...body, citizen: 0 }).citizen).toBeNull();
   });
 });

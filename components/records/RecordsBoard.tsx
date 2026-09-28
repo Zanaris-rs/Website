@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import { useSearchParams } from "next/navigation";
 
+import { logHref } from "@/lib/adventurer-log/href";
 import { COMMUNITY_BAR_WIDTH, communityLinks } from "@/lib/community/href";
 import {
   boardHref,
@@ -171,10 +172,7 @@ export default function RecordsBoard() {
                     <tr key={row.username}>
                       <td>{row.rank}</td>
                       <th scope="row" className={hiscores.name}>
-                        <a
-                          className={frame.link}
-                          href={`/hiscores/player/${encodeURIComponent(row.username)}`}
-                        >
+                        <a className={frame.link} href={logHref(row.username)}>
                           {row.name}
                         </a>
                       </th>

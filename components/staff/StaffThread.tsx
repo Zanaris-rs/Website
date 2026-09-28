@@ -3,6 +3,7 @@ import styles from "@/components/messages/Messages.module.css";
 import frame from "@/components/site/Frame.module.css";
 import Panel from "@/components/site/Panel";
 import TitleBox from "@/components/site/TitleBox";
+import { logHref } from "@/lib/adventurer-log/href";
 import { toDisplayName } from "@/lib/base37";
 import {
   formatWhen,
@@ -45,7 +46,7 @@ export default function StaffThread({ ticket }: { ticket: Thread }) {
             <div className={styles.meta}>
               <a
                 className={frame.link}
-                href={`/hiscores/player/${encodeURIComponent(owner)}`}
+                href={`${logHref(owner)}#skills`}
               >
                 Hiscores for {toDisplayName(owner)}
               </a>

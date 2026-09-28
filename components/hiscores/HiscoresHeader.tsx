@@ -9,19 +9,13 @@ import { PROFILES } from "@/lib/hiscores/params";
 import styles from "./Hiscores.module.css";
 
 /**
- * The top of every hiscores screen: the site's title box with the community
- * bar in it, then the profile picker.
- *
- * Shared by the table and the personal page so the two cannot drift. On the
- * table, Hiscores is the page you are on; on the personal page (`current`
- * null) it is the way back to the table. The record board, a hiscores page of
- * its own (`/hiscores/records`), is in the bar too.
+ * The top of the hiscores table: the site's title box with the community
+ * bar in it, Hiscores the page you are on, then the profile picker. The
+ * record board, a hiscores page of its own (`/hiscores/records`), is in the
+ * bar too. One player's hiscores are their Adventurer Log's Skills box now
+ * (`/hiscores/player/<name>` redirects there).
  */
-export default function HiscoresHeader({
-  current = "hiscores",
-}: {
-  current?: "hiscores" | null;
-}) {
+export default function HiscoresHeader() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const profile = searchParams.get("profile") ?? PROFILES[0].id;
@@ -36,7 +30,7 @@ export default function HiscoresHeader({
 
   return (
     <>
-      <TitleBox title="Zanaris Hiscores" links={communityLinks(current)} width={COMMUNITY_BAR_WIDTH} />
+      <TitleBox title="Zanaris Hiscores" links={communityLinks("hiscores")} width={COMMUNITY_BAR_WIDTH} />
 
       <form className={styles.profileForm} method="GET">
         <select
