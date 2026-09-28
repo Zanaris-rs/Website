@@ -86,3 +86,12 @@
   padding-top: 8px;
   border-top: 1px solid var(--panel-border);
 }
+
+/* "Recent activity": the list's heading, under the search. */
+.heading {
+  margin: 4px 0 6px;
+  font-size: 13px;
+  font-weight: bold;
+  text-align: left;
+  color: #fff;
+}

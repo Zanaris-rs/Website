@@ -79,7 +79,7 @@ export default function PlayerHiscores({ username }: { username: string }) {
 
   return (
     <>
-      <HiscoresHeader showAllLink />
+      <HiscoresHeader current={null} />
 
       <div className={`${frame.panel} ${styles.playerPanel}`}>
         {state.kind === "missing" ? (

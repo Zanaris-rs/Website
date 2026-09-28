@@ -1629,6 +1629,14 @@ scrolls, as the game records them - mixed with the updates they post.
   `(at, username)`). It is never ordered by logins: the directory says
   nothing sooner, or more, than the logs do. A name box (a plain GET form)
   goes to anyone's log. `/title`'s Adventurer Logs tile opens it.
+- **The community bar.** `/adventurers`, a log, `/clans`, a clan's page,
+  `/hiscores` and `/hiscores/records` share one row of links in their title
+  box (`communityLinks`, `lib/community/href.ts`): Main menu - Community -
+  Hiscores - Records - Adventurer Logs - Clans, the page you are on in bold
+  (none on a log or a clan's page). A signed-in player also gets "Your log:
+  View - Character - Clan - Records - Log settings" (`yourLogLinks`) on the
+  directory and, without View, on their own log. `/community` itself is the
+  hub (W7).
 - Everyone else sees an adventure **twenty minutes** after it happened, so a
   log cannot be used to follow someone around the game; the owner sees theirs
   at once. That rule, and every other one - who may write, blocks, the rates -
@@ -1674,7 +1682,8 @@ scrolls, as the game records them - mixed with the updates they post.
 
   It (titled "Log settings"), Character (`/account/adventurer-log/character`:
   Look, Words and Sheet), Clan and the log itself link to each other from
-  their title boxes (`OwnerNav`). The old Outfits page redirects to Character.
+  their title boxes (`OwnerNav`: View your log · Character · Clan · Records ·
+  Log settings · Community). The old Outfits page redirects to Character.
   The Account Centre reaches them from its "Your Adventurer" panel, beside
   "Account services".
 - **Posting.** The owner posts updates; anyone signed in who is not muted,

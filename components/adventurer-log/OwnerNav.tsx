@@ -1,11 +1,15 @@
 import TitleBox from "@/components/site/TitleBox";
 import { CHARACTER_HREF, CLAN_TAB_HREF, LOG_SETTINGS_HREF, logHref } from "@/lib/adventurer-log/href";
+import { COMMUNITY_BAR_WIDTH, COMMUNITY_HREF } from "@/lib/community/href";
+import { SET_RECORD_HREF } from "@/lib/records/api";
 
 /**
  * The owner has three homes besides the log itself - Character (who you
  * are), Clan (who you're with) and Log settings (how the log reads) - and
  * each links to the others from its title box, the way `/economy`'s sections
- * do, with the Account Centre they are reached from.
+ * do: View your log · Character · Clan · Records · Log settings · Community.
+ * Records is their own Start/Stop page; Community is the hub the log is part
+ * of. The Account Centre stays on the title page and in Account Services.
  */
 export default function OwnerNav({
   title,
@@ -20,13 +24,14 @@ export default function OwnerNav({
   return (
     <TitleBox
       title={title}
-      width="min(460px, 100%)"
+      width={COMMUNITY_BAR_WIDTH}
       links={[
         { href: logHref(username), text: "View your log" },
         { href: CHARACTER_HREF, text: "Character", current: current === "character" },
         { href: CLAN_TAB_HREF, text: "Clan", current: current === "clan" },
+        { href: SET_RECORD_HREF, text: "Records" },
         { href: LOG_SETTINGS_HREF, text: "Log settings", current: current === "settings" },
-        { href: "/account", text: "Account Centre" },
+        { href: COMMUNITY_HREF, text: "Community" },
       ]}
     />
   );

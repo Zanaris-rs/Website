@@ -17,6 +17,7 @@ import type { Look } from "@/lib/chathead/look";
 import { formatCitizen } from "@/lib/invite/format";
 import type { Citizen } from "@/lib/invite/queries";
 import { unreadLabel } from "@/lib/messages/format";
+import { SET_RECORD_HREF } from "@/lib/records/api";
 import { isStaff } from "@/lib/staff/level";
 
 import LogoutButton from "./LogoutButton";
@@ -194,7 +195,7 @@ export default function AccountCentre({
                   </a>
                 </li>
                 <li>
-                  <a className={frame.link} href="/account/records">
+                  <a className={frame.link} href={SET_RECORD_HREF}>
                     Set a record
                   </a>
                 </li>

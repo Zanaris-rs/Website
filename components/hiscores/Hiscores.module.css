@@ -1,22 +1,12 @@
 /*
  * Layout for the hiscores screens, matching the 2004 tables the original used:
- * a 250px header box, then a 150px category list beside a 300px results panel,
- * then the two stone search boxes.
+ * the site's title box (with the community bar), then a 150px category list
+ * beside a 300px results panel, then the two stone search boxes.
  *
  * On a phone the two columns stack — the category list becomes a wrapped row
  * of links above the results, each as wide as the frame allows — and from
  * 600px the 2004 side-by-side layout comes back.
  */
-
-.header {
-  width: min(250px, 100%);
-  margin: 0 auto;
-  text-align: center;
-}
-
-.spacer {
-  height: 13px;
-}
 
 .profileForm {
   margin: 0 0 4px;

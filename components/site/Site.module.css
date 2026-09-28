@@ -29,6 +29,18 @@
   color: #fff;
 }
 
+/* A title box's second row: the reader's own pages ("Your log: ..."), ruled
+   off from the section's links above it, its label quieter than its links. */
+.titleBoxSub {
+  margin-top: 3px;
+  padding-top: 3px;
+  border-top: 1px solid var(--panel-border);
+}
+
+.titleBoxSubLabel {
+  color: var(--text-muted);
+}
+
 /* --- 500px content panel --- */
 
 .panelBox {

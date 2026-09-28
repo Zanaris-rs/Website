@@ -8,11 +8,12 @@ import Frame from "@/components/site/Frame";
 import Panel from "@/components/site/Panel";
 import TitleBox from "@/components/site/TitleBox";
 import { formatMonth } from "@/lib/adventurer-log/format";
-import { CLAN_TAB_HREF, DIRECTORY_HREF } from "@/lib/adventurer-log/href";
+import { CLAN_TAB_HREF } from "@/lib/adventurer-log/href";
 import { crestName } from "@/lib/clans/crests";
 import { clanHref } from "@/lib/clans/href";
 import { loadClanDirectory } from "@/lib/clans/page-data";
 import type { ClanListing } from "@/lib/clans/queries";
+import { COMMUNITY_BAR_WIDTH, communityLinks } from "@/lib/community/href";
 
 export const metadata: Metadata = {
   title: "Clans",
@@ -34,7 +35,7 @@ export default async function Clans() {
     console.error("[clans] directory read failed", error);
     return (
       <Frame>
-        <TitleBox title="Clans" />
+        <TitleBox title="Clans" links={communityLinks("clans")} width={COMMUNITY_BAR_WIDTH} />
         <Panel>
           <p>Clans are unavailable right now. Try again shortly.</p>
         </Panel>
@@ -44,7 +45,7 @@ export default async function Clans() {
 
   return (
     <Frame>
-      <TitleBox title="Clans" links={[{ href: DIRECTORY_HREF, text: "Adventurer Logs" }]} />
+      <TitleBox title="Clans" links={communityLinks("clans")} width={COMMUNITY_BAR_WIDTH} />
       <Panel width="100%">
         {clans.length === 0 ? (
           <p className={styles.empty}>No clans yet.</p>
