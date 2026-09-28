@@ -23,9 +23,13 @@ const HEAD_SCALE = 96 / tables.frame.width;
  * first page after the last, and has the figure act out the next page. An
  * outfit a reader tries on from the Wardrobe shows here too.
  *
+ * The line the figure is saying overhead now (`PersonaStage`'s `line`) is
+ * marked `al-line--said`, lightly highlighted, so a reader can follow along.
+ *
  * Its lines are a polite live region, so a new page is read out. The
  * editor's preview turns that off (`live={false}`): there the lines change
- * with every key typed, and would all be read out.
+ * with every key typed, and would all be read out. The mark is a class, not
+ * text, so moving it is never read out.
  */
 export default function DialogueBox({
   name,
@@ -58,7 +62,9 @@ export default function DialogueBox({
         <p className="al-dialogue-name">{name}</p>
         <div className="al-dialogue-text" aria-live={live ? "polite" : undefined}>
           {page.lines.map((line, i) => (
-            <p key={i}>{line}</p>
+            <p key={i} className={i === stage.line ? "al-line--said" : undefined}>
+              {line}
+            </p>
           ))}
         </div>
         {pages.length > 1 ? (

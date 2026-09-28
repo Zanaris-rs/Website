@@ -153,7 +153,7 @@
 }
 
 /* The figure standing in a scene: the spot's 240x300 backdrop with the
-   figure drawn into it, all one canvas, and the headline over the figure's
+   figure drawn into it, all one canvas, and the line said over the figure's
    head, where the game draws overhead chat. The figure stands at the same
    size in every spot, its head about 135-150 pixels above the frame's foot,
    so the chat's foot is set just above that. */
@@ -275,6 +275,11 @@
   font: 12px "Zanaris p12";
   color: #000;
   text-align: center;
+}
+
+/* The line the figure is saying overhead now: a lighter band of parchment. */
+.root :global(.al-dialogue-text p.al-line--said) {
+  background: #d8caa4;
 }
 
 .root :global(.al-continue) {

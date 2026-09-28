@@ -1,6 +1,5 @@
 import RankIcon from "@/components/clans/RankIcon";
 import Chathead from "@/components/game/Chathead";
-import ChatText from "@/components/game/ChatText";
 import { cardMode, type SheetRow, sheetRows } from "@/lib/adventurer-log/card";
 import { formatMonth } from "@/lib/adventurer-log/format";
 import { CHARACTER_HREF, logHref } from "@/lib/adventurer-log/href";
@@ -12,6 +11,7 @@ import type { ClanOf } from "@/lib/clans/queries";
 import { sceneOf } from "@/lib/scenes/spots";
 
 import CardFigure from "./CardFigure";
+import Overhead from "./Overhead";
 
 /** One row of the character sheet, as `sheetRows` gives it. */
 function sheetRow(row: SheetRow) {
@@ -72,9 +72,6 @@ export default function Card({
   const mode = cardMode({ hasOutfit: outfitLook !== null, pages: persona.dialogue });
   const rows = sheetRows(persona);
   const scene = sceneOf(persona.scene);
-  // The greeting: page 1's first line, in page 1's colour and effect.
-  const first = persona.dialogue[0];
-  const greeting = first ? { text: first.lines[0] ?? "", colour: first.colour, effect: first.effect } : null;
   return (
     <section className="al-header al-card al-box">
       <h1 className="al-title">{name}</h1>
@@ -84,18 +81,14 @@ export default function Card({
         <CardFigure
           name={name}
           look={outfitLook}
-          headline={greeting?.text ?? ""}
-          colour={greeting?.colour ?? 0}
-          effect={greeting?.effect ?? 0}
           scene={scene}
           outfits={outfits}
         />
       ) : mode === "strip" ? (
-        greeting?.text ? (
-          <p className="al-chat-strip">
-            <ChatText className="al-overhead al-headline" text={greeting.text} colour={greeting.colour} effect={greeting.effect} />
-          </p>
-        ) : null
+        // No outfit to stand over: the page's lines are said here instead, the same way.
+        <p className="al-chat-strip">
+          <Overhead />
+        </p>
       ) : (
         <div className="al-chathead">
           <Chathead look={headLook} label={`${name}'s chathead`} />

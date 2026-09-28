@@ -44,6 +44,7 @@ const CLASSES: readonly [string, string][] = [
   [".al-turn-said", "which way your figure faces after a turn: read aloud, never drawn"],
   [".al-sheet, .al-sheet-row, .al-sheet--clan, .al-rank, .al-clan-link", "your character sheet; the clan row, its rank icon and its link"],
   [".al-stats, .al-skill", "the skills table (.al-skill--<category> for one)"],
+  [".al-dialogue, .al-line--said", "the dialogue box, and the line your figure is saying overhead now"],
   [".al-about", "about you"],
   [
     ".al-wardrobe, .al-wardrobe-hint, .al-outfits, .al-outfit, .al-outfit--default, .al-outfit--shown, .al-outfit-button, .al-outfit-name",

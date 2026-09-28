@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 
-import ChatText from "@/components/game/ChatText";
 import Figure from "@/components/game/Figure";
 import SceneFigure from "@/components/game/SceneFigure";
 import { useTurnGesture } from "@/components/game/useTurnGesture";
@@ -11,19 +10,21 @@ import { nearestFacing } from "@/lib/chathead/facing";
 import { type Look, lookKey } from "@/lib/chathead/look";
 import type { SceneSpot } from "@/lib/scenes/spots";
 
+import Overhead from "./Overhead";
 import { usePersonaStage } from "./PersonaStage";
 
 /**
- * The headline sits outside the button, not inside it: a non-empty
- * `aria-label` on the button would replace its accessible name entirely
- * (the WAI-ARIA name algorithm), which would hide `ChatText`'s hidden plain
- * copy of the headline from screen readers - the exact thing that hidden
- * copy exists for. Keeping the headline as a sibling means it is read once,
- * plainly, the way it always was, and the button's own name only has to
+ * The overhead chat (`Overhead`: the line of the current dialogue page the
+ * figure is saying now, in the page's colour and effect) sits outside the
+ * button, not inside it: a non-empty `aria-label` on the button would
+ * replace its accessible name entirely (the WAI-ARIA name algorithm), which
+ * would hide `ChatText`'s hidden plain copy of the line from screen readers
+ * - the exact thing that hidden copy exists for. Keeping it as a sibling
+ * means it is read once, plainly, and the button's own name only has to
  * describe what clicking it does.
  *
  * With a scene, the two sit in its frame (`al-scene`), in the same order:
- * the headline over the figure's head, as the game draws overhead chat, and
+ * the line over the figure's head, as the game draws overhead chat, and
  * the figure standing in the spot, with the spot's name under the frame. The
  * look is passed straight through, as the figures' drawings are kept per
  * look. A scene that fails to load (`SceneFigure`'s `onFail`) gives way to
@@ -50,17 +51,11 @@ import { usePersonaStage } from "./PersonaStage";
 export default function CardFigure({
   name,
   look,
-  headline,
-  colour,
-  effect,
   scene,
   outfits = [],
 }: {
   name: string;
   look: Look;
-  headline: string;
-  colour: number;
-  effect: number;
   /** The spot the figure stands in, or null for the plain figure frame. */
   scene: SceneSpot | null;
   /** The Wardrobe's outfits, to name the one a reader is trying on. */
@@ -85,9 +80,7 @@ export default function CardFigure({
 
   const gesture = useTurnGesture({ facing, setFacing: stage.setFacing, turns, onClick: stage.replayEmote });
 
-  const overhead = headline ? (
-    <ChatText className="al-overhead al-headline" text={headline} colour={colour} effect={effect} />
-  ) : null;
+  const overhead = <Overhead />;
   const figure = (
     <button
       type="button"

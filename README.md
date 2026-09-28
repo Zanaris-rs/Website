@@ -1620,10 +1620,14 @@ content bump, re-run `chathead:update`, and commit what it writes.
 
 ## Adventurer Log
 
-`/adventurer/<name>` is a player's public page (engine migrations 11-13):
-their chathead, headline, skills and about on one side, and on the other a
-timeline of their adventures - levels, milestones, quests, rare drops, clue
-scrolls, as the game records them - mixed with the updates they post.
+`/adventurer/<name>` is a player's public page (engine migrations 11-18):
+their character card, skills and about on one side, and on the other their
+dialogue and a timeline of their adventures - levels, milestones, quests,
+rare drops, clue scrolls, as the game records them - mixed with the updates
+they post. The card's figure says the dialogue page being read overhead, a
+line every 3 seconds (a scroll line for one whole pass), in that page's own
+colour and effect (`lib/adventurer-log/overhead.ts`); page 1's first line is
+the player's greeting in Community lists and link previews.
 
 - **`/adventurers`** is the directory: every log with something to show,
   ordered by the latest thing it shows the public - an adventure once its

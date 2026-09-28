@@ -2,7 +2,7 @@
 
 import "./game-fonts.css";
 
-import { useEffect, useRef, useSyncExternalStore } from "react";
+import { useEffect, useLayoutEffect, useRef, useSyncExternalStore } from "react";
 
 import { onCycle, prefersReducedMotion, subscribeReducedMotion } from "@/lib/game-chat/clock";
 import { colourAt, cssColour, scrollOffset, waveOffset, waveRuns } from "@/lib/game-chat/effects";
@@ -50,19 +50,24 @@ const serverReducedMotion = () => false;
  * with a ResizeObserver; the game's 100 px until then), and moves at the
  * game's pixel speed, so a wider box takes proportionally longer to cross.
  * Its pass starts when the line appears, entering at the window's right
- * edge; before that - and without script - the text sits at the window's
- * left edge, so it reads.
+ * edge, where it is put before it is first painted; without script the
+ * text sits at the window's left edge, so it reads. `onScrollWindow` hears
+ * the window's width each time it is measured, so overhead chat can hold a
+ * scroll line for exactly one pass (`lib/adventurer-log/overhead.ts`).
  */
 export default function ChatText({
   text,
   colour,
   effect,
   className,
+  onScrollWindow,
 }: {
   text: string;
   colour: number;
   effect: number;
   className?: string;
+  /** Hears the scroll window's width in CSS pixels whenever it is measured; scroll only. */
+  onScrollWindow?: (width: number) => void;
 }) {
   const root = useRef<HTMLSpanElement>(null);
   const scrollWindow = useRef<HTMLSpanElement>(null);
@@ -72,17 +77,29 @@ export default function ChatText({
   const moving = colour >= 6 || effect !== 0;
   const drawnEffect = reduced ? 0 : effect;
 
+  useLayoutEffect(() => {
+    // A scroll enters at its window's right edge. Put it there before the
+    // first paint, so a line drawn afresh (overhead chat's next line) is not
+    // seen at the left edge for a frame before its pass begins.
+    const frame = scrollWindow.current;
+    const slider = frame?.querySelector<HTMLSpanElement>("[data-scroll]");
+    if (drawnEffect !== 2 || !frame || !slider) return;
+    slider.style.transform = `translateX(${frame.clientWidth || GAME_WINDOW}px)`;
+  }, [drawnEffect, text]);
+
   useEffect(() => {
     const frame = scrollWindow.current;
     if (drawnEffect !== 2 || !frame) return;
     windowWidth.current = frame.clientWidth || GAME_WINDOW;
+    onScrollWindow?.(windowWidth.current);
     if (typeof ResizeObserver !== "function") return;
     const observer = new ResizeObserver(([entry]) => {
       windowWidth.current = Math.round(entry.contentRect.width) || GAME_WINDOW;
+      onScrollWindow?.(windowWidth.current);
     });
     observer.observe(frame);
     return () => observer.disconnect();
-  }, [drawnEffect]);
+  }, [drawnEffect, onScrollWindow]);
 
   useEffect(() => {
     const element = root.current;

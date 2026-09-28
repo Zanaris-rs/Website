@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { CHAT_COLOUR_NAMES, colourAt, cssColour, scrollOffset, waveOffset, waveRuns } from "./effects";
+import {
+  CHAT_COLOUR_NAMES,
+  colourAt,
+  cssColour,
+  scrollOffset,
+  scrollPass,
+  waveOffset,
+  waveRuns,
+} from "./effects";
 
 describe("colourAt (Client.ts, the overhead chat)", () => {
   it("draws the six fixed colours as the client's CHAT_COLOURS", () => {
@@ -119,6 +127,35 @@ describe("scrollOffset", () => {
         expect((life * (width + 100)) / 150).toBeGreaterThanOrEqual(width + frame);
         if (frame === 100) expect(life).toBe(150);
       }
+    }
+  });
+});
+
+describe("scrollPass", () => {
+  it("is the client's 150-cycle life through the game's 100 px window", () => {
+    for (const width of [0, 37, 80, 400]) expect(scrollPass(width, 100)).toBe(150);
+  });
+
+  // Worked by hand: a pass is (text + window) px at the game's speed,
+  // (text + 100) / 150 px a cycle, rounded up to a whole cycle.
+  const PASSES: [text: number, window: number, cycles: number][] = [
+    [80, 240, 267], // 320 / 1.2 = 266.7
+    [0, 240, 360], // 240 / (100 / 150)
+    [0, 160, 240], // 160 / (100 / 150)
+    [400, 240, 192], // 640 / (500 / 150), exactly
+    [37, 280, 348], // 317 / (137 / 150) = 347.1
+    [1, 160, 240], // 161 / (101 / 150) = 239.1
+    [189, 240, 223], // "Welcome to my log, traveller!": 429 / (289 / 150) = 222.7
+  ];
+
+  it("is one pass of the text across a wider window, at the game's pixel speed", () => {
+    for (const [text, window, cycles] of PASSES) expect(scrollPass(text, window), `${text} through ${window}`).toBe(cycles);
+  });
+
+  it("is the cycle scrollOffset starts its next pass on", () => {
+    for (const [text, window, cycles] of PASSES) {
+      expect(scrollOffset(text, cycles - 1, window), `${text} through ${window}`).toBeGreaterThan(0);
+      expect(scrollOffset(text, cycles, window), `${text} through ${window}`).toBe(0);
     }
   });
 });

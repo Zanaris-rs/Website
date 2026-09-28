@@ -34,6 +34,7 @@ const LOG_SOURCES = [
   "adventurer-log/Composer.tsx",
   "adventurer-log/ReportButton.tsx",
   "adventurer-log/Records.tsx",
+  "adventurer-log/Overhead.tsx",
   "clans/RankIcon.tsx",
   "game/ChatText.tsx",
 ];
