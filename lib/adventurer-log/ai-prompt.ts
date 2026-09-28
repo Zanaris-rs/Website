@@ -2,7 +2,7 @@ import { CATEGORIES } from "@/lib/hiscores/categories";
 import { RECORD_DURATIONS } from "@/lib/records/durations";
 
 import { ADVENTURE_CATEGORIES } from "./categories";
-import { CSS_MAX } from "./format";
+import { CSS_MAX, UPDATE_MAX } from "./format";
 import { cssUrl, type Picture, SITE_ART, SKILL_PICTURES, TEXTURE_PICTURES } from "./pictures";
 
 /**
@@ -127,7 +127,7 @@ const OUTLINE = `<div class="al-root">                 <!-- the log; your CSS re
           <div class="al-post">                                 <!-- the owner's "post an update" box -->
             <form class="al-composer">
               <textarea></textarea>
-              <div class="al-actions"><button>Post update</button> <button>Add an item or skill</button> <span class="al-time">0/2000</span></div>
+              <div class="al-actions"><button>Post update</button> <button>Add an item or skill</button> <span class="al-time">0/${UPDATE_MAX}</span></div>
               <div class="al-picker"><input type="search"><div class="al-picker-results"><button><img> Coins</button> ...</div></div>
             </form>
           </div>

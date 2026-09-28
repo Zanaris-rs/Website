@@ -43,6 +43,11 @@ describe("CLAN_MESSAGES", () => {
     expect(clanMessages("answer").full).toBe(`That clan is full: ${CLAN_LIMITS.members} members.`);
   });
 
+  it("gives a notice's length from CLAN_LIMITS", () => {
+    expect(CLAN_MESSAGES.bad_body).toBe(`A notice is 1 to ${CLAN_LIMITS.noticeBody} characters.`);
+    expect(CLAN_MESSAGES.bad_title).toBe(`A notice's title is 1 to ${CLAN_LIMITS.noticeTitle} characters, on one line.`);
+  });
+
   it("reads not_found as the caller's own account: every write asks who is writing first", () => {
     expect(CLAN_MESSAGES.not_found).toBe("Your account could not be found.");
   });

@@ -2,12 +2,17 @@
  * The Adventurer Log's text rules, the same numbers migration 13 checks
  * (`CHECK (length(...))`, `accounts.adventure_text`). The site refuses first,
  * with a sentence naming the field; the database is the authority.
+ *
+ * Updates and replies are short posts: 200 characters, not a wall of text
+ * (sprint 6). Migration 18's writers cap at the same 200; until it is
+ * applied the site is the stricter of the two. Posts written before stay as
+ * they are, and an edit must bring one within the limit.
  */
 
 export const HEADLINE_MAX = 80;
 export const ABOUT_MAX = 1000;
-export const UPDATE_MAX = 2000;
-export const REPLY_MAX = 500;
+export const UPDATE_MAX = 200;
+export const REPLY_MAX = 200;
 export const REASON_MAX = 500;
 export const CSS_MAX = 20000;
 
