@@ -1647,6 +1647,24 @@ the player's greeting in Community lists and link previews.
   their log. The hiscores' "Search by name" opens it at the Skills box
   (`#skills`), whose rows open the table at that player's rank
   (`hiscoreRowHref`).
+- **`/community`** is the hub the bar's Community link opens. At the top is
+  **the square**: Varrock square with up to five adventurers standing in it,
+  the players whose logs have shown the public something most recently (the
+  directory's ten newest, so a log with its Adventures hidden is never there).
+  Only players with a saved default outfit stand in it, since only a saved
+  outfit is ever drawn whole; anyone else is skipped and the next most recent
+  fills in. The most recent stands in the middle and the rest out to either
+  side, and they say their greetings overhead one at a time, each in its
+  colour and effect. Each figure is a link to their log, over the box their
+  body was drawn in; pointing at one shows the game's mouse-over at the top
+  left, "View log <name>", with their combat level in green when it is exact.
+  Beside the square are **Your log** (your chathead and your log's links, or a
+  way to log in), **Find a player** (a name box that opens their log), **Top
+  of the hiscores** (Overall's top five) and **Record holders** (each
+  duration's #1 on the Overall board); under them are **Recent activity** (the
+  directory's five newest) and **Clans** (the three largest). Each box reads
+  on its own (`lib/community/hub.ts`): one that fails says so in a line, and
+  the rest of the page stands.
 - Everyone else sees an adventure **twenty minutes** after it happened, so a
   log cannot be used to follow someone around the game; the owner sees theirs
   at once. That rule, and every other one - who may write, blocks, the rates -
