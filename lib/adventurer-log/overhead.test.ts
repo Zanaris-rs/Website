@@ -39,6 +39,17 @@ describe("lineAt", () => {
     expect(lineAt(["a", "b"], 1, () => 0)).toEqual({ index: 1, startedAt: 1 });
     expect(lineAt(["a", "b"], 2, () => 0)).toEqual({ index: 0, startedAt: 2 });
   });
+
+  it("counts whole cycles: a fractional count, or a fractional line length, is taken down", () => {
+    // 449.9 cycles is still in cycle 449, the last of line c; 450.3 is in cycle 450, line a again.
+    expect(lineAt(["a", "b", "c"], 449.9, even)).toEqual({ index: 2, startedAt: 300 });
+    expect(lineAt(["a", "b", "c"], 450.3, even)).toEqual({ index: 0, startedAt: 450 });
+    // A line 150.7 cycles long lasts 150: b begins on cycle 150, and a again on 300.
+    const long = () => 150.7;
+    expect(lineAt(["a", "b"], 149.9, long)).toEqual({ index: 0, startedAt: 0 });
+    expect(lineAt(["a", "b"], 150, long)).toEqual({ index: 1, startedAt: 150 });
+    expect(lineAt(["a", "b"], 301.4, long)).toEqual({ index: 0, startedAt: 300 });
+  });
 });
 
 describe("lineCyclesFor", () => {

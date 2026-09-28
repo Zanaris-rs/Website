@@ -21,11 +21,18 @@ import { onCycle, prefersReducedMotion, subscribeReducedMotion } from "@/lib/gam
 
 /** The line said overhead now, in its page's colour and effect. */
 export type Said = {
+  /** The line being said now; blank while a blank line is (a line not yet typed on the Words tab). */
   text: string;
   colour: number;
   effect: number;
   /** Changes whenever a line is said afresh, so its `ChatText` starts a new pass. */
   key: string;
+  /**
+   * All of the page's lines, the one being said among them (`Stage.line`):
+   * overhead chat keeps room for the tallest, so nothing under it moves as
+   * a short line follows one that wraps.
+   */
+  lines: readonly string[];
 };
 
 export type Stage = {
@@ -83,8 +90,9 @@ export type Stage = {
    */
   line: number;
   /**
-   * That line as overhead chat draws it (`Overhead`): null with no pages,
-   * and while the line is blank (a new page on the Words tab).
+   * That line as overhead chat draws it (`Overhead`), with its page's other
+   * lines: null with no pages, and while none of the page's lines has
+   * anything in it (a new page on the Words tab).
    */
   said: Said | null;
   /** The width of overhead chat's scroll window, as `ChatText` measured it (`onScrollWindow`). */
@@ -168,6 +176,7 @@ export default function PersonaStage({
   // The line the clock last heard, for the saying it was heard in.
   const [heard, setHeard] = useState({ key: "", line: 0 });
   const reduced = useSyncExternalStore(subscribeReducedMotion, prefersReducedMotion, serverReducedMotion);
+  const [shownReduced, setShownReduced] = useState(reduced);
   // Where the saying began on the clock, and how wide the scroll window is:
   // read and written only by the clock and `ChatText`, never while rendering.
   const started = useRef<{ key: string; at: number } | null>(null);
@@ -182,6 +191,13 @@ export default function PersonaStage({
     setPageState(0);
     setSpoken((count) => count + 1);
     setFacingState(nearestFacing(initialFacing, turns));
+  }
+  if (reduced !== shownReduced) {
+    // Reduced motion turned on or off mid-page: the page is said afresh, so
+    // it stands still on its first line, and moves again from its first
+    // line rather than jumping to wherever the clock would have got to.
+    setShownReduced(reduced);
+    setSpoken((count) => count + 1);
   }
   // Clamped once, here, rather than by each reader: `pages` can shrink under
   // an unchanged `pageState` (the Words tab's live stage, when a page is
@@ -201,12 +217,12 @@ export default function PersonaStage({
   const lines = currentPage?.lines ?? NO_LINES;
   const lineEffect = currentPage?.effect ?? 0;
   const saying = `${page}:${spoken}`;
-  const line = heard.key === saying ? Math.min(heard.line, Math.max(0, lines.length - 1)) : 0;
+  const line = reduced ? 0 : heard.key === saying ? Math.min(heard.line, Math.max(0, lines.length - 1)) : 0;
   const text = lines[line] ?? "";
   const said = useMemo<Said | null>(
     () =>
-      currentPage && text.trim() !== ""
-        ? { text, colour: currentPage.colour, effect: currentPage.effect, key: `${saying}:${line}` }
+      currentPage && currentPage.lines.some((each) => each.trim() !== "")
+        ? { text, colour: currentPage.colour, effect: currentPage.effect, key: `${saying}:${line}`, lines: currentPage.lines }
         : null,
     [currentPage, text, saying, line],
   );

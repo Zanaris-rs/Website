@@ -54,6 +54,8 @@ const serverReducedMotion = () => false;
  * text sits at the window's left edge, so it reads. `onScrollWindow` hears
  * the window's width each time it is measured, so overhead chat can hold a
  * scroll line for exactly one pass (`lib/adventurer-log/overhead.ts`).
+ * A `still` line is laid out as it would be drawn but never moves: overhead
+ * chat's hidden copies of a page's other lines, which only hold its height.
  */
 export default function ChatText({
   text,
@@ -61,6 +63,7 @@ export default function ChatText({
   effect,
   className,
   onScrollWindow,
+  still = false,
 }: {
   text: string;
   colour: number;
@@ -68,13 +71,15 @@ export default function ChatText({
   className?: string;
   /** Hears the scroll window's width in CSS pixels whenever it is measured; scroll only. */
   onScrollWindow?: (width: number) => void;
+  /** Laid out as drawn, but never animated: its colour stays the first, and a wave or scroll stays put. */
+  still?: boolean;
 }) {
   const root = useRef<HTMLSpanElement>(null);
   const scrollWindow = useRef<HTMLSpanElement>(null);
   /** The scroll window's width in CSS pixels, kept by a ResizeObserver. */
   const windowWidth = useRef(GAME_WINDOW);
   const reduced = useSyncExternalStore(subscribeReducedMotion, prefersReducedMotion, serverReducedMotion);
-  const moving = colour >= 6 || effect !== 0;
+  const moving = !still && (colour >= 6 || effect !== 0);
   const drawnEffect = reduced ? 0 : effect;
 
   useLayoutEffect(() => {

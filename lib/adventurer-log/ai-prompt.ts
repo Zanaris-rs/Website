@@ -44,12 +44,14 @@ const OUTLINE = `<div class="al-root">                 <!-- the log; your CSS re
       <section class="al-header al-card al-box">
         <h1 class="al-title">Zezima</h1>
         <p class="al-persona-title">the Unready</p>                  <!-- only when set -->
-        <span class="al-chat al-chat--c9 al-chat--e1 al-overhead al-headline">A line of the dialogue</span>   <!-- the line the figure is saying now, in its page's colour and effect; outside the button, so its plain text is still read -->
+        <span class="al-overhead-lines">                        <!-- all of the page's lines in one cell, so it is as tall as the tallest; only the one being said is seen -->
+          <span class="al-chat al-chat--c9 al-chat--e1 al-overhead al-headline">A line of the dialogue</span>   <!-- the line the figure is saying now, in its page's colour and effect; outside the button, so its plain text is still read -->
+        </span>
         <button class="al-figure" aria-label="Zezima: play the emote again">   <!-- a saved outfit, standing; a click replays its emote, a drag or the arrow keys turn it -->
           <canvas></canvas>
         </button>
         <!-- or, standing in a scene the owner picked, the same two inside its frame, and the place under it:
-             <div class="al-scene"><span class="al-chat … al-overhead al-headline"></span><button class="al-figure"><canvas></canvas></button></div>
+             <div class="al-scene"><span class="al-overhead-lines"><span class="al-chat … al-overhead al-headline"></span></span><button class="al-figure"><canvas></canvas></button></div>
              <p class="al-scene-name">Varrock square</p>
              .al-scene is 240×300 with the backdrop drawn in the canvas; you can frame it, not recolour it -->
         <div class="al-turn">                                   <!-- under the figure, in a scene or not -->
@@ -57,7 +59,8 @@ const OUTLINE = `<div class="al-root">                 <!-- the log; your CSS re
           <span class="al-turn-said" aria-live="polite">a little left</span>   <!-- hidden: tells a screen reader which way it faces after a turn -->
         </div>
         <p class="al-tryon" aria-live="polite">Zezima is wearing Rune.</p>   <!-- hidden: tells a screen reader which outfit the figure has on as a reader tries them -->
-        <!-- or, with no outfit (no figure to turn):<p class="al-chat-strip"><span class="al-chat … al-overhead al-headline"></span></p>,
+        <!-- or, with no outfit (no figure to turn), while there is something to say:
+             <p class="al-chat-strip"><span class="al-overhead-lines"><span class="al-chat … al-overhead al-headline"></span></span></p>,
              or with no words either: <div class="al-chathead"><canvas></canvas></div> -->
         <p class="al-examine">Examine text</p>
         <dl class="al-sheet">
@@ -222,7 +225,7 @@ ${OUTLINE}
 ${FENCE}
 
 - One column on a phone. From 900px wide there are two: \`.al-side\` is 280px on the left and \`.al-main\` takes the rest (a CSS grid on \`.al-page\`).
-- The figure says each dialogue page's lines overhead, one at a time, 3 seconds each; \`.al-chat--c<0-11>\` is the page's colour and \`.al-chat--e<0-2>\` its effect, so they change from page to page. The colour is set by the page every frame, so a \`color\` rule won't stick. In the dialogue box, \`.al-line--said\` is the line being said now.
+- The figure says each dialogue page's lines overhead, one at a time, 3 seconds each; \`.al-chat--c<0-11>\` is the page's colour and \`.al-chat--e<0-2>\` its effect, so they change from page to page. The colour is set by the page every frame, so a \`color\` rule won't stick. \`.al-overhead-lines\` keeps room for the page's longest line, so the card doesn't move as they change. In the dialogue box, \`.al-line--said\` is the line being said now.
 - \`.al-sheet--<home|hangout|god|clan|goals>\` is one row of the character sheet.
 - \`.al-rank\` is a clan rank's 13x13 icon, drawn in SVG (size and place it, don't recolour it); \`.al-clan-link\` goes to the clan's page.
 - \`.al-skill--<id>\` is one skill's row: ${skills}.

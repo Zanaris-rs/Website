@@ -40,6 +40,7 @@ const CLASSES: readonly [string, string][] = [
   [".al-side / .al-main", "the narrow and the wide column"],
   [".al-box, .al-box > h2", "every box, and its title bar"],
   [".al-header, .al-title, .al-chathead, .al-headline", "who you are"],
+  [".al-overhead, .al-overhead-lines", "the line your figure is saying overhead, and the room kept for its page's longest"],
   [".al-figure, .al-turn, .al-turn-hint", "your figure, and the hint under it that says how to turn it"],
   [".al-turn-said", "which way your figure faces after a turn: read aloud, never drawn"],
   [".al-sheet, .al-sheet-row, .al-sheet--clan, .al-rank, .al-clan-link", "your character sheet; the clan row, its rank icon and its link"],

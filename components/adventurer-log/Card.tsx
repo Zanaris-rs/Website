@@ -85,10 +85,9 @@ export default function Card({
           outfits={outfits}
         />
       ) : mode === "strip" ? (
-        // No outfit to stand over: the page's lines are said here instead, the same way.
-        <p className="al-chat-strip">
-          <Overhead />
-        </p>
+        // No outfit to stand over: the page's lines are said in a strip here
+        // instead, the same way; no strip while there is nothing to say.
+        <Overhead strip />
       ) : (
         <div className="al-chathead">
           <Chathead look={headLook} label={`${name}'s chathead`} />
