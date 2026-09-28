@@ -15,7 +15,7 @@ import { readSession } from "@/lib/account/session-server";
 import { DIRECTORY_HREF, logHref } from "@/lib/adventurer-log/href";
 import { crestName } from "@/lib/clans/crests";
 import { clanHref, CLANS_HREF } from "@/lib/clans/href";
-import { COMMUNITY_BAR_WIDTH, communityLinks, yourLogLinks } from "@/lib/community/href";
+import { COMMUNITY_BAR_WIDTH, communityLinks, HISCORES_HREF, yourLogLinks } from "@/lib/community/href";
 import { loadHub, loadYourLook } from "@/lib/community/hub";
 import { displayName, formatNumber } from "@/lib/hiscores/format";
 import { BOARD_PATH } from "@/lib/records/api";
@@ -70,8 +70,8 @@ function Unavailable({ line }: { line: string }) {
 export default async function Community() {
   const session = await readSession();
   const me = session?.u ?? null;
-  const hub = await loadHub();
-  const myLook = me ? await loadYourLook(me) : null;
+  // Your own chathead needs only your name, so it is read alongside the boxes.
+  const [hub, myLook] = await Promise.all([loadHub(), me ? loadYourLook(me) : null]);
 
   // "View your log" here, where the row stands alone rather than under a title.
   const yours = me
@@ -116,10 +116,19 @@ export default async function Community() {
             <Box id="hub-find" title="Find a player">
               <form className={styles.find} action={DIRECTORY_HREF} method="get">
                 <label htmlFor="hub-find-name">Player name</label>
-                <input id="hub-find-name" name="name" type="text" maxLength={12} autoComplete="off" />
+                <input
+                  id="hub-find-name"
+                  name="name"
+                  type="text"
+                  maxLength={12}
+                  autoComplete="off"
+                  aria-describedby="hub-find-hint"
+                />
                 <button type="submit">Go</button>
               </form>
-              <p className={styles.hint}>Opens their Adventurer Log.</p>
+              <p id="hub-find-hint" className={styles.hint}>
+                Opens their Adventurer Log.
+              </p>
             </Box>
 
             <Box id="hub-top" title="Top of the hiscores">
@@ -158,7 +167,7 @@ export default async function Community() {
                   </tbody>
                 </table>
               )}
-              <More href="/hiscores">Full hiscores</More>
+              <More href={HISCORES_HREF}>Full hiscores</More>
             </Box>
 
             <Box id="hub-records" title="Record holders">
