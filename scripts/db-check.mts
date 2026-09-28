@@ -363,8 +363,8 @@ async function main(): Promise<void> {
     "accounts.adventure_log_pin(text, int)",
     // 16_adventure_persona: a log's persona - the card's words and picks and
     // the dialogue - read by anyone (17 replaced its one save). 13's
-    // adventure_log_save (18 drops it) and staff_adventure_resolve are
-    // replaced in place, same signatures, so they are listed once, above.
+    // adventure_log_save is dropped by 18. staff_adventure_resolve is
+    // replaced in place, same signature, so it's listed once, above.
     "accounts.adventure_persona(text)",
     // 17_adventure_clans: the persona saved one tab at a time (16's save is
     // dropped; adventure_persona, above, is re-created with `facing`), the
