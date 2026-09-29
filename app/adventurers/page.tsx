@@ -9,11 +9,13 @@ import frame from "@/components/site/Frame.module.css";
 import Frame from "@/components/site/Frame";
 import Panel from "@/components/site/Panel";
 import TitleBox from "@/components/site/TitleBox";
+import { readSession } from "@/lib/account/session-server";
 import { type DirectoryPage, loadDirectory } from "@/lib/adventurer-log/directory";
 import { formatWhen } from "@/lib/adventurer-log/format";
 import { DIRECTORY_HREF, logHref } from "@/lib/adventurer-log/href";
 import { logStatement, parseDirectoryCursor, parseLog } from "@/lib/adventurer-log/queries";
 import { INVALID_NAME, toDisplayName, toSafeName } from "@/lib/base37";
+import { COMMUNITY_BAR_WIDTH, communityLinks, yourLogLinks } from "@/lib/community/href";
 import { query } from "@/lib/db";
 
 export const metadata: Metadata = {
@@ -35,9 +37,21 @@ function one(value: string | string[] | undefined): string | null {
  * twenty minutes are up, or an update), and a box to go to anyone's by name.
  * Nothing here is sooner or more than the logs themselves show; in
  * particular it is never ordered by when anyone logged in.
+ *
+ * Its title box has the community bar, and a signed-in player's "Your log"
+ * row under it.
  */
 export default async function AdventurerLogs({ searchParams }: Params) {
   const params = await searchParams;
+  const session = await readSession();
+  const title = (
+    <TitleBox
+      title="Adventurer Logs"
+      links={communityLinks("logs")}
+      sub={session ? { label: "Your log:", links: yourLogLinks(session.u, false) } : undefined}
+      width={COMMUNITY_BAR_WIDTH}
+    />
+  );
 
   // The name box is a plain GET form, so it works without a script: a name
   // with a log goes to it, anything else stays here and says so.
@@ -72,7 +86,7 @@ export default async function AdventurerLogs({ searchParams }: Params) {
     console.error("[adventurer-log] directory read failed", error);
     return (
       <Frame>
-        <TitleBox title="Adventurer Logs" />
+        {title}
         <Panel>
           <p>Adventurer Logs are unavailable right now. Try again shortly.</p>
         </Panel>
@@ -82,7 +96,7 @@ export default async function AdventurerLogs({ searchParams }: Params) {
 
   return (
     <Frame>
-      <TitleBox title="Adventurer Logs" />
+      {title}
       <Panel width="100%">
         <form className={styles.search} action={DIRECTORY_HREF} method="get">
           <label htmlFor="log-name">Find a player&rsquo;s log</label>
@@ -91,6 +105,7 @@ export default async function AdventurerLogs({ searchParams }: Params) {
         </form>
         {notice ? <p className={styles.notice}>{notice}</p> : null}
 
+        <h2 className={styles.heading}>Recent activity</h2>
         {page.entries.length === 0 ? (
           <p className={styles.notice}>{before ? "There are no older logs." : "Nobody has anything to show yet."}</p>
         ) : (

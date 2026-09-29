@@ -3,7 +3,7 @@ import Chathead from "@/components/game/Chathead";
 import ChatText from "@/components/game/ChatText";
 import { cardMode, type SheetRow, sheetRows } from "@/lib/adventurer-log/card";
 import { formatMonth } from "@/lib/adventurer-log/format";
-import { CHARACTER_HREF } from "@/lib/adventurer-log/href";
+import { CHARACTER_HREF, logHref } from "@/lib/adventurer-log/href";
 import type { Persona } from "@/lib/adventurer-log/persona";
 import type { WardrobeOutfit } from "@/lib/adventurer-log/wardrobe";
 import type { Look } from "@/lib/chathead/look";
@@ -123,7 +123,7 @@ export default function Card({
 
       <p className="al-joined">Adventuring since {formatMonth(joinedAt)}</p>
       <p className="al-links">
-        <a href={`/hiscores/player/${encodeURIComponent(username)}`}>Hiscores</a>
+        <a href={`${logHref(username)}#skills`}>Hiscores</a>
         {viewerIsOwner ? (
           <>
             {" - "}

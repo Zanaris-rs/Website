@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   DEFAULT_PROFILE,
+  hiscoreRowHref,
   MAX_RANK,
   parsePlayerParams,
   parseTableParams,
@@ -133,6 +134,26 @@ describe("parsePlayerParams", () => {
       ok: false,
       error: "bad_name",
     });
+  });
+});
+
+describe("hiscoreRowHref", () => {
+  it("is a category's table searched for one player", () => {
+    expect(hiscoreRowHref("zezima", 0)).toBe("/hiscores?category=0&name=zezima");
+    expect(hiscoreRowHref("lynx_titan", 21)).toBe("/hiscores?category=21&name=lynx_titan");
+  });
+
+  it("is read back as that category, opened at that player's row", () => {
+    const href = hiscoreRowHref("the_inducted", 7);
+    expect(ok(parseTableParams(new URL(href, "https://zanaris.rs").searchParams))).toEqual({
+      profile: DEFAULT_PROFILE,
+      category: 7,
+      selection: { kind: "name", username: "the_inducted" },
+    });
+  });
+
+  it("escapes what a URL cannot carry", () => {
+    expect(hiscoreRowHref("a b&c", 1)).toBe("/hiscores?category=1&name=a%20b%26c");
   });
 });
 

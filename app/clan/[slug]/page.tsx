@@ -19,11 +19,12 @@ import { logHref } from "@/lib/adventurer-log/href";
 import { toDisplayName } from "@/lib/base37";
 import type { Look } from "@/lib/chathead/look";
 import { crestName } from "@/lib/clans/crests";
-import { clanHref, CLANS_HREF } from "@/lib/clans/href";
+import { clanHref } from "@/lib/clans/href";
 import { slugFrom } from "@/lib/clans/names";
 import { type LoadedClan, loadClan, loadPhotoSitters, type PhotoSitter } from "@/lib/clans/page-data";
 import { byRank, RANK_NAMES } from "@/lib/clans/ranks";
 import { clanWorldName } from "@/lib/clans/worlds";
+import { COMMUNITY_BAR_WIDTH, communityLinks } from "@/lib/community/href";
 import { chatheadLooks } from "@/lib/outfits/looks";
 import { photoSitters, photoSpot } from "@/lib/scenes/photo";
 
@@ -111,7 +112,7 @@ export default async function ClanPage({ params }: PageProps<"/clan/[slug]">) {
 
   return (
     <Frame>
-      <TitleBox title={clan.name} links={[{ href: CLANS_HREF, text: "All clans" }]} />
+      <TitleBox title={clan.name} links={communityLinks(null)} width={COMMUNITY_BAR_WIDTH} />
       {viewer && !isMember ? (
         <div className={styles.bar}>
           <ReportButton target={{ kind: "clan", id: clan.id }} label="Report this clan" />
@@ -248,7 +249,7 @@ export default async function ClanPage({ params }: PageProps<"/clan/[slug]">) {
 function Unavailable() {
   return (
     <Frame>
-      <TitleBox title="Clan" links={[{ href: CLANS_HREF, text: "All clans" }]} />
+      <TitleBox title="Clan" links={communityLinks(null)} width={COMMUNITY_BAR_WIDTH} />
       <Panel>
         <p>Clans are unavailable right now. Try again shortly.</p>
       </Panel>

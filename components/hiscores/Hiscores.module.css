@@ -1,22 +1,12 @@
 /*
  * Layout for the hiscores screens, matching the 2004 tables the original used:
- * a 250px header box, then a 150px category list beside a 300px results panel,
- * then the two stone search boxes.
+ * the site's title box (with the community bar), then a 150px category list
+ * beside a 300px results panel, then the two stone search boxes.
  *
  * On a phone the two columns stack — the category list becomes a wrapped row
  * of links above the results, each as wide as the frame allows — and from
  * 600px the 2004 side-by-side layout comes back.
  */
-
-.header {
-  width: min(250px, 100%);
-  margin: 0 auto;
-  text-align: center;
-}
-
-.spacer {
-  height: 13px;
-}
 
 .profileForm {
   margin: 0 0 4px;
@@ -170,42 +160,8 @@
   font-size: 13px;
 }
 
-/* The personal page: Skill / Rank / Level / XP. Four no-wrap columns are
-   about as wide as a phone, so the panel scrolls sideways if it has to. */
-.playerPanel {
-  display: inline-block;
-  max-width: 100%;
-  overflow-x: auto;
-  text-align: left;
-}
-
-.playerTable {
-  border-collapse: collapse;
-  font-size: 13px;
-}
-
-.playerTable th,
-.playerTable td {
-  padding: 0 6px;
-  font-weight: normal;
-  white-space: nowrap;
-}
-
-.playerTable thead th {
-  font-weight: bold;
-}
-
-.playerTable .skill {
-  width: 120px;
-  text-align: left;
-}
-
-.playerTable .figure {
-  width: 80px;
-  text-align: right;
-}
-
-.playerHeading {
-  text-align: center;
-  padding-bottom: 8px;
+/* Under "Search by name": where it goes, since it leaves the table. */
+.searchHint {
+  margin: 4px 0 0;
+  font-size: 11px;
 }

@@ -2,26 +2,20 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 
+import TitleBox from "@/components/site/TitleBox";
+import { COMMUNITY_BAR_WIDTH, communityLinks } from "@/lib/community/href";
 import { PROFILES } from "@/lib/hiscores/params";
-import { BOARD_PATH } from "@/lib/records/api";
-
-import frame from "@/components/site/Frame.module.css";
 
 import styles from "./Hiscores.module.css";
 
 /**
- * The box at the top of every hiscores screen, plus the profile picker.
- *
- * Shared by the table and the personal page so the two cannot drift; the only
- * difference between them is the extra "All Hiscores" link, which the personal
- * page needs and the table does not. Both link to the record board, which is
- * a hiscores page of its own (`/hiscores/records`).
+ * The top of the hiscores table: the site's title box with the community
+ * bar in it, Hiscores the page you are on, then the profile picker. The
+ * record board, a hiscores page of its own (`/hiscores/records`), is in the
+ * bar too. One player's hiscores are their Adventurer Log's Skills box now
+ * (`/hiscores/player/<name>` redirects there).
  */
-export default function HiscoresHeader({
-  showAllLink = false,
-}: {
-  showAllLink?: boolean;
-}) {
+export default function HiscoresHeader() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const profile = searchParams.get("profile") ?? PROFILES[0].id;
@@ -36,27 +30,7 @@ export default function HiscoresHeader({
 
   return (
     <>
-      <div className={styles.spacer} />
-      <div className={`${frame.panel} ${styles.header}`}>
-        <b>Zanaris Hiscores</b>
-        <br />
-        <a className={frame.link} href="/title">
-          Main menu
-        </a>
-        {showAllLink && (
-          <>
-            {" - "}
-            <a className={frame.link} href="/hiscores">
-              All Hiscores
-            </a>
-          </>
-        )}
-        {" - "}
-        <a className={frame.link} href={BOARD_PATH}>
-          Records
-        </a>
-      </div>
-      <div className={styles.spacer} />
+      <TitleBox title="Zanaris Hiscores" links={communityLinks("hiscores")} width={COMMUNITY_BAR_WIDTH} />
 
       <form className={styles.profileForm} method="GET">
         <select

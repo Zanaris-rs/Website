@@ -8,10 +8,10 @@ import Panel from "@/components/site/Panel";
 import TitleBox from "@/components/site/TitleBox";
 import { readSession } from "@/lib/account/session-server";
 import { sanitizeCss } from "@/lib/adventurer-log/css";
-import { CHARACTER_HREF, CLAN_TAB_HREF, DIRECTORY_HREF, LOG_SETTINGS_HREF } from "@/lib/adventurer-log/href";
 import { nameFrom } from "@/lib/adventurer-log/name";
 import { loadLogPage, type LogPageData } from "@/lib/adventurer-log/page-data";
 import { toDisplayName } from "@/lib/base37";
+import { COMMUNITY_BAR_WIDTH, communityLinks, yourLogLinks } from "@/lib/community/href";
 
 export const dynamic = "force-dynamic";
 
@@ -91,24 +91,17 @@ export default async function AdventurerLog({ params, searchParams }: Params) {
       }
     : null;
 
-  // The owner's way to their settings sits in the site's own title box, on
-  // its own line, the way OwnerNav puts the same links on the settings pages,
-  // where no stylesheet of theirs can hide it. The log's header repeats the
-  // edit link next to Hiscores, where the eye already goes.
-  const links = [
-    { href: DIRECTORY_HREF, text: "All Adventurer Logs" },
-    ...(data.header.isOwner
-      ? [
-          { href: CHARACTER_HREF, text: "Character", br: true },
-          { href: CLAN_TAB_HREF, text: "Clan" },
-          { href: LOG_SETTINGS_HREF, text: "Log settings" },
-        ]
-      : []),
-  ];
+  // The site's own title box, where no stylesheet of the owner's can hide
+  // it: the community bar, with nothing current (a log is no one section's
+  // page), and on the owner's own log their "Your log" row - the pages it is
+  // written from, as OwnerNav links them on those pages. The log's header
+  // repeats the edit link next to Hiscores, where the eye already goes.
+  const sub =
+    viewer && data.header.isOwner ? { label: "Your log:", links: yourLogLinks(viewer, true) } : undefined;
 
   return (
     <Frame>
-      <TitleBox title="Adventurer Log" links={links} />
+      <TitleBox title="Adventurer Log" links={communityLinks(null)} sub={sub} width={COMMUNITY_BAR_WIDTH} />
       <LogView
         header={data.header}
         name={data.name}
@@ -132,7 +125,7 @@ export default async function AdventurerLog({ params, searchParams }: Params) {
 function Unavailable({ text }: { text: string }) {
   return (
     <Frame>
-      <TitleBox title="Adventurer Log" />
+      <TitleBox title="Adventurer Log" links={communityLinks(null)} width={COMMUNITY_BAR_WIDTH} />
       <Panel>
         <p>{text}</p>
       </Panel>

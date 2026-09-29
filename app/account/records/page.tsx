@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
+import OwnerNav from "@/components/adventurer-log/OwnerNav";
 import RecordsPanel from "@/components/records/RecordsPanel";
 import Frame from "@/components/site/Frame";
 import Panel from "@/components/site/Panel";
@@ -30,7 +31,8 @@ export const dynamic = "force-dynamic";
 
 /**
  * `/account/records` — start a record, watch the timer, stop it, and see why
- * it did or did not count.
+ * it did or did not count. One of the owner's pages, so its title box is
+ * theirs (`OwnerNav`); the public board is a link in the rules.
  *
  * Three reads, one after another on the site's two-connection pool: where the
  * player is and their newest attempt, that attempt's skills if it has
@@ -68,6 +70,7 @@ export default async function AccountRecords() {
 
   return (
     <Frame>
+      <OwnerNav title="Your records" username={username} current="records" />
       <RecordsPanel current={current} skills={skills} history={history} blocked={blocked} />
     </Frame>
   );

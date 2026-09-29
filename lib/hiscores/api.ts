@@ -183,32 +183,6 @@ export function parseHiscoresResponse(json: unknown): HiscoresResponse {
   };
 }
 
-export function parsePlayerResponse(json: unknown): PlayerResponse {
-  const where = "player response";
-  const body = asRecord(json, where);
-
-  return {
-    username: requireString(body, "username", where),
-    name: requireString(body, "name", where),
-    citizen:
-      typeof body.citizen === "number" &&
-      Number.isInteger(body.citizen) &&
-      body.citizen > 0
-        ? body.citizen
-        : null,
-    skills: requireArray(body, "skills", where).map((raw, index) => {
-      const at = `${where}: skills[${index}]`;
-      const skill = asRecord(raw, at);
-      return {
-        category: requireNumber(skill, "category", at),
-        rank: requireNumber(skill, "rank", at),
-        level: requireNumber(skill, "level", at),
-        xp: requireNumber(skill, "xp", at),
-      };
-    }),
-  };
-}
-
 /** The one place the cache policy for both hiscores routes is written down. */
 export const HISCORES_CACHE_CONTROL =
   "public, s-maxage=60, stale-while-revalidate=600";

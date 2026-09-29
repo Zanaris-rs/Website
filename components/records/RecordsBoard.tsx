@@ -4,7 +4,15 @@ import { useEffect, useState } from "react";
 
 import { useSearchParams } from "next/navigation";
 
-import { boardHref, parseBoardParams, parseBoardResponse, type BoardResponse } from "@/lib/records/api";
+import { logHref } from "@/lib/adventurer-log/href";
+import { COMMUNITY_BAR_WIDTH, communityLinks } from "@/lib/community/href";
+import {
+  boardHref,
+  parseBoardParams,
+  parseBoardResponse,
+  SET_RECORD_HREF,
+  type BoardResponse,
+} from "@/lib/records/api";
 import { DEFAULT_DURATION, RECORD_DURATIONS, recordDuration } from "@/lib/records/durations";
 import { formatElapsed } from "@/lib/records/format";
 import { CATEGORIES, categoryName } from "@/lib/hiscores/categories";
@@ -14,6 +22,7 @@ import { statOfCategory } from "@/lib/skills/icons";
 import SkillIcon from "@/components/game/SkillIcon";
 import hiscores from "@/components/hiscores/Hiscores.module.css";
 import frame from "@/components/site/Frame.module.css";
+import TitleBox from "@/components/site/TitleBox";
 
 import styles from "./Records.module.css";
 
@@ -22,8 +31,9 @@ import styles from "./Records.module.css";
  * duration and one hiscore category.
  *
  * A hiscores page in all but the numbers it ranks, so it lives under
- * `/hiscores` (`/records` redirects here), with a link each way between the
- * two headers. Built the way the table is, and on its stylesheet: the URL is
+ * `/hiscores` (`/records` redirects here), and its title box carries the
+ * community bar, as the table's does. Built the way the table is, and on its
+ * stylesheet: the URL is
  * the whole state (`?category=N`), the API's own parser runs here first so a
  * bad parameter is a message rather than a request, and the category list
  * down the side is the hiscores' list.
@@ -79,37 +89,28 @@ export default function RecordsBoard() {
 
   return (
     <>
-      <div className={hiscores.spacer} />
-      <div className={`${frame.panel} ${hiscores.header}`}>
-        <b>Zanaris Records</b>
-        <br />
-        <a className={frame.link} href="/title">
-          Main menu
-        </a>
-        {" - "}
-        <a className={frame.link} href="/hiscores">
-          Hiscores
-        </a>
-        {" - "}
-        <a className={frame.link} href="/account/records">
+      <TitleBox title="Zanaris Records" links={communityLinks("records")} width={COMMUNITY_BAR_WIDTH} />
+      {/* The lengths, keeping the category you are on: three durations are
+          three boards, and the URL is still the whole state. Then the way to
+          set one of your own. */}
+      <div className={styles.durations}>
+        <span className={styles.durationsLabel}>Record length</span>
+        {RECORD_DURATIONS.map((entry) => (
+          <a
+            key={entry.seconds}
+            className={entry.seconds === durationSeconds ? frame.highlight : frame.link}
+            href={boardHref({ durationSeconds: entry.seconds, category })}
+          >
+            {entry.label}
+          </a>
+        ))}
+        <span className={styles.durationsLabel} aria-hidden="true">
+          &middot;
+        </span>
+        <a className={frame.link} href={SET_RECORD_HREF}>
           Set a record
         </a>
-        {/* The lengths, keeping the category you are on: three durations are
-            three boards, and the URL is still the whole state. */}
-        <div className={`${styles.durations} ${styles.boardDurations}`}>
-          <span className={styles.durationsLabel}>Record length</span>
-          {RECORD_DURATIONS.map((entry) => (
-            <a
-              key={entry.seconds}
-              className={entry.seconds === durationSeconds ? frame.highlight : frame.link}
-              href={boardHref({ durationSeconds: entry.seconds, category })}
-            >
-              {entry.label}
-            </a>
-          ))}
-        </div>
       </div>
-      <div className={hiscores.spacer} />
 
       <div className={hiscores.columns}>
         <div className={hiscores.left}>
@@ -171,10 +172,7 @@ export default function RecordsBoard() {
                     <tr key={row.username}>
                       <td>{row.rank}</td>
                       <th scope="row" className={hiscores.name}>
-                        <a
-                          className={frame.link}
-                          href={`/hiscores/player/${encodeURIComponent(row.username)}`}
-                        >
+                        <a className={frame.link} href={logHref(row.username)}>
                           {row.name}
                         </a>
                       </th>

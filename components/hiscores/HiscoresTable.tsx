@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 
+import { DIRECTORY_HREF, logHref } from "@/lib/adventurer-log/href";
 import {
   parseHiscoresResponse,
   type HiscoresResponse,
@@ -29,7 +30,12 @@ import styles from "./Hiscores.module.css";
  * The URL is the whole state: `category`, plus `rank` or `name`/`username`.
  * The same parser the API uses runs here first, so a bad parameter is a
  * message rather than a request, and the heading is right before the fetch
- * comes back.
+ * comes back. A `name` opens the table at that player's row: a log's Skills
+ * box links here that way (`hiscoreRowHref`).
+ *
+ * Every name opens the player's Adventurer Log, the one player page, and so
+ * does "Search by name": a plain GET to the directory, which redirects a
+ * name with a log to it, the `#skills` fragment carried over the redirect.
  */
 
 type State =
@@ -72,6 +78,8 @@ export default function HiscoresTable() {
   );
   const state: State =
     loaded && loaded.query === query ? loaded.state : { kind: "loading" };
+  // The name box's hint says where it goes; the box names it as its description.
+  const nameHintId = useId();
 
   useEffect(() => {
     if (query === null) return;
@@ -167,13 +175,12 @@ export default function HiscoresTable() {
                     const lit = row.username === state.data.highlight;
                     return (
                       <tr key={row.username} className={lit ? frame.highlight : undefined}>
-                        {/* The 2004 table prints the rank plain; only the
-                            personal page groups it. */}
+                        {/* The 2004 table prints the rank plain. */}
                         <td>{row.rank}</td>
                         <th scope="row" className={styles.name}>
                           <a
                             className={lit ? frame.highlight : frame.link}
-                            href={`/hiscores/player/${encodeURIComponent(row.username)}`}
+                            href={logHref(row.username)}
                           >
                             {row.name}
                           </a>
@@ -222,7 +229,10 @@ export default function HiscoresTable() {
 
         <div className={styles.searchBox}>
           <div className={frame.stone}>
-            <form action="/hiscores" autoComplete="off">
+            {/* Not the table: the player's log, at their skills. The
+                directory's own name box takes `name`, and an unknown name
+                stays there and says so. */}
+            <form action={`${DIRECTORY_HREF}#skills`} autoComplete="off">
               <b>Search by name</b>
               <br />
               <input
@@ -236,14 +246,17 @@ export default function HiscoresTable() {
                 }
                 autoComplete="off"
                 aria-label="Name"
+                aria-describedby={nameHintId}
               />
               <br />
-              <input type="hidden" name="category" value={category} />
               <input
                 className={styles.searchButton}
                 type="submit"
                 value="Search"
               />
+              <p id={nameHintId} className={styles.searchHint}>
+                Opens their Adventurer Log, at their skills.
+              </p>
             </form>
           </div>
         </div>

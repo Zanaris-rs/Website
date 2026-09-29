@@ -154,3 +154,14 @@ export function tableHref({
   search.set("category", String(category));
   return `/hiscores?${search.toString()}`;
 }
+
+/**
+ * One player's row in one category's table:
+ * `/hiscores?category=<n>&name=<username>`, which `parseTableParams` reads as
+ * a name search, so the table opens at their rank with their row lit. The
+ * log's Skills box links every skill, Overall included, here. The default
+ * profile is left out, as `tableHref` leaves it out.
+ */
+export function hiscoreRowHref(username: string, category: number): string {
+  return `/hiscores?category=${category}&name=${encodeURIComponent(username)}`;
+}

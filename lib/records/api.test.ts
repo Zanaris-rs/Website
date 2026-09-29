@@ -4,10 +4,12 @@ import { CATEGORIES } from "@/lib/hiscores/categories";
 
 import {
   BOARD_CACHE_CONTROL,
+  BOARD_PATH,
   boardHref,
   parseBoardParams,
   parseBoardResponse,
   parseRecordCurrentResponse,
+  SET_RECORD_HREF,
   toBoardResponse,
 } from "./api";
 import { RECORD_DURATIONS } from "./durations";
@@ -40,6 +42,13 @@ describe("parseBoardParams", () => {
     expect(parseBoardParams(q("category=1e3"))).toEqual({ ok: false, error: "bad_category" });
     expect(parseBoardParams(q("duration=60"))).toEqual({ ok: false, error: "bad_duration" });
     expect(parseBoardParams(q("duration=abc"))).toEqual({ ok: false, error: "bad_duration" });
+  });
+});
+
+describe("SET_RECORD_HREF", () => {
+  it("is the owner's own Start/Stop page, apart from the public board", () => {
+    expect(SET_RECORD_HREF).toBe("/account/records");
+    expect(SET_RECORD_HREF).not.toBe(BOARD_PATH);
   });
 });
 
