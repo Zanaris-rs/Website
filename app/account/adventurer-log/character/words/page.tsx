@@ -13,7 +13,7 @@ import { displayName } from "@/lib/hiscores/format";
 
 export const metadata: Metadata = {
   title: "Character › Words",
-  description: "What your adventurer says: overhead chat, and the dialogue visitors click through.",
+  description: "What your adventurer says: the dialogue visitors click through, each page with its own look overhead.",
 };
 
 export const dynamic = "force-dynamic";
@@ -36,7 +36,7 @@ export default async function CharacterWordsPage() {
           username={header.username}
           joinedAt={header.joinedAt}
           persona={persona}
-          initial={wordsOf(persona, header.headline)}
+          initial={wordsOf(persona)}
           // The header's look is the worn outfit (as on the log page,
           // `page-data.ts`): the only look ever drawn whole.
           outfitLook={header.look}

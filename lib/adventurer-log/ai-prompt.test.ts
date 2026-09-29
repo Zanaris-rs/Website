@@ -34,6 +34,7 @@ const LOG_SOURCES = [
   "adventurer-log/Composer.tsx",
   "adventurer-log/ReportButton.tsx",
   "adventurer-log/Records.tsx",
+  "adventurer-log/Overhead.tsx",
   "clans/RankIcon.tsx",
   "game/ChatText.tsx",
 ];
@@ -57,6 +58,24 @@ describe("aiPrompt", () => {
   it("names every al- class the log draws, and none it does not", () => {
     const drawn = classes(LOG_SOURCES.map((file) => readFileSync(path.join(COMPONENTS, file), "utf8")).join("\n"));
     expect(classes(prompt)).toEqual(drawn);
+  });
+
+  it("names nothing the log stopped drawing, in the prompt or in the CSS editor", () => {
+    const editor = readFileSync(path.join(COMPONENTS, "adventurer-log/CssEditor.tsx"), "utf8");
+    for (const gone of ["al-turn-left", "al-turn-right", "al-tryon-back"]) {
+      expect(prompt, gone).not.toContain(gone);
+      expect(editor, gone).not.toContain(gone);
+    }
+  });
+
+  it("keeps the CSS editor's quick reference to classes the log draws and a reader can see", () => {
+    const drawn = new Set(classes(LOG_SOURCES.map((file) => readFileSync(path.join(COMPONENTS, file), "utf8")).join("\n")));
+    const editor = readFileSync(path.join(COMPONENTS, "adventurer-log/CssEditor.tsx"), "utf8");
+    const reference = classes(editor.slice(editor.indexOf("const CLASSES"), editor.indexOf("const STARTER")));
+    expect(reference.length).toBeGreaterThan(20);
+    for (const name of reference) expect(drawn.has(name), name).toBe(true);
+    // The try-on's line is only ever read aloud now, so there is nothing to style.
+    expect(reference).not.toContain("al-tryon");
   });
 
   it("lists only pictures the sanitiser keeps", () => {

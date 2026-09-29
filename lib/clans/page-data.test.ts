@@ -67,7 +67,7 @@ describe("loadPhotoSitters", () => {
     worn: [1163, -1, -1, -1, 1127, -1, -1, -1, -1, -1, -1, -1, -1, -1],
   };
   const PERSONA = {
-    headline_colour: 0, headline_effect: 0, title: "", examine: "", hangout: "", goals: [], god: null,
+    title: "", examine: "", hangout: "", goals: [], god: null,
     home_town: null, scene: "draynor", facing: 0, signature_emote: null, dialogue: [],
   };
   const member = (username: string, rank: ClanMember["rank"]): ClanMember => ({

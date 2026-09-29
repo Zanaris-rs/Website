@@ -14,7 +14,7 @@ import { displayName } from "@/lib/hiscores/format";
 
 export const metadata: Metadata = {
   title: "Character › Sheet",
-  description: "Who your adventurer is: title, examine, home town, hangout, god and goals.",
+  description: "Who your adventurer is: title, examine, home town, hangout, god, goals and About.",
 };
 
 export const dynamic = "force-dynamic";
@@ -44,9 +44,9 @@ export default async function CharacterSheetPage() {
           name={displayName(header.username)}
           username={header.username}
           joinedAt={header.joinedAt}
-          headline={header.headline}
           persona={persona}
-          initial={sheetOf(persona)}
+          // About lives on the log's header (`adventure_log`), and is saved with the sheet.
+          initial={sheetOf(persona, header.about)}
           outfitLook={header.look}
           headLook={headLook}
           clan={clan}

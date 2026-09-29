@@ -10,19 +10,16 @@ import {
   CSS_MAX,
   formatMonth,
   formatWhen,
-  HEADLINE_MAX,
   REASON_MAX,
   REPLY_MAX,
   UPDATE_MAX,
 } from "./format";
 import {
-  aboutSaveStatement,
   cursorOf,
   gzGiveStatement,
   gzTakeStatement,
   logStatement,
   logStatusFor,
-  parseAboutSave,
   parseCursor,
   parseLog,
   parsePost,
@@ -33,6 +30,7 @@ import {
   pinnedStatement,
   pinStatement,
   reportStatement,
+  showsSaveStatement,
   timelineStatement,
   updateEditStatement,
 } from "./queries";
@@ -141,7 +139,7 @@ describe("checkText", () => {
     expect(checkText("  a\r\nb \n", "X", 10)).toEqual({ ok: true, value: "a\nb" });
     expect(checkText("", "X", 10).ok).toBe(false);
     expect(checkText("", "X", 10, { emptyOk: true })).toEqual({ ok: true, value: "" });
-    expect(checkText("x".repeat(HEADLINE_MAX + 1), "X", HEADLINE_MAX).ok).toBe(false);
+    expect(checkText("x".repeat(ABOUT_MAX + 1), "X", ABOUT_MAX).ok).toBe(false);
     expect(checkText("a\u0007", "X", 10).ok).toBe(false);
     expect(checkText("a\tb", "X", 10).ok).toBe(true);
     expect(checkText("a\nb", "X", 10, { oneLine: true }).ok).toBe(false);
@@ -207,36 +205,61 @@ describe("queries", () => {
       updateEditStatement(HOSTILE, 1, HOSTILE),
       pinStatement(HOSTILE, 1),
       reportStatement(HOSTILE, "log", null, HOSTILE, HOSTILE),
-      aboutSaveStatement(HOSTILE, HOSTILE, HOSTILE, 0),
+      showsSaveStatement(HOSTILE, 0, 0),
     ]) {
       expect(statement.text).not.toContain("drop");
     }
   });
 
-  it("read the header, always one row", () => {
+  /** A header row as migration 18's adventure_log answers it. */
+  const HEADER = {
+    result: "ok",
+    username: "hero",
+    joined_at: new Date("2026-09-01T00:00:00Z"),
+    about: "a",
+    custom_css: "",
+    css_disabled: false,
+    hidden_categories: 16,
+    is_owner: true,
+    viewer_blocked: false,
+    viewer_can_post: true,
+    gender: null,
+    kits: null,
+    colours: null,
+    worn: null,
+    greeting: "Welcome to my log!",
+    greeting_colour: 9,
+    greeting_effect: 1,
+    hidden_parts: 8,
+  };
+
+  it("read the header, always one row, with migration 18's greeting and hidden parts", () => {
     expect(parseLog([{ result: "not_found" }])).toEqual({ result: "not_found" });
-    const ok = parseLog([
-      {
-        result: "ok",
-        username: "hero",
-        joined_at: new Date("2026-09-01T00:00:00Z"),
-        headline: "h",
-        about: "a",
-        custom_css: "",
-        css_disabled: false,
-        hidden_categories: 16,
-        is_owner: true,
-        viewer_blocked: false,
-        viewer_can_post: true,
-        gender: null,
-        kits: null,
-        colours: null,
-        worn: null,
-      },
-    ]);
-    expect(ok).toMatchObject({ result: "ok", username: "hero", hiddenCategories: 16, isOwner: true, look: null });
+    const ok = parseLog([HEADER]);
+    expect(ok).toMatchObject({
+      result: "ok",
+      username: "hero",
+      hiddenCategories: 16,
+      isOwner: true,
+      look: null,
+      greeting: "Welcome to my log!",
+      greetingColour: 9,
+      greetingEffect: 1,
+      hiddenParts: 8,
+    });
+    expect(ok).not.toHaveProperty("headline");
     expect(() => parseLog([])).toThrow(/always one/);
     expect(() => parseLog([{ result: "maybe" }])).toThrow(/maybe/);
+  });
+
+  it("throw on a header from before migration 18, or a greeting look out of range", () => {
+    const old: Record<string, unknown> = { ...HEADER, headline: "h" };
+    for (const column of ["greeting", "greeting_colour", "greeting_effect", "hidden_parts"]) delete old[column];
+    expect(() => parseLog([old])).toThrow(/greeting/);
+    expect(() => parseLog([{ ...HEADER, greeting_colour: 12 }])).toThrow(/greeting_colour/);
+    expect(() => parseLog([{ ...HEADER, greeting_effect: 3 }])).toThrow(/greeting_effect/);
+    expect(() => parseLog([{ ...HEADER, hidden_parts: 32 }])).toThrow(/hidden_parts/);
+    expect(() => parseLog([{ ...HEADER, hidden_parts: null }])).toThrow(/hidden_parts/);
   });
 
   it("read a page and say whether there is another", () => {
@@ -378,21 +401,18 @@ describe("queries", () => {
     expect(parsePost([{ result: "ok", update_id: 9 }], "update_id", "post")).toEqual({ result: "ok", id: 9 });
     expect(parsePost([{ result: "muted", update_id: null }], "update_id", "post")).toEqual({ result: "muted", id: null });
     expect(() => parseWrite("whatever", "w")).toThrow(/whatever/);
-    for (const code of ["bad_colour", "bad_effect", "bad_facing"]) expect(parseWrite(code, "w")).toBe(code);
-    expect(() => parseWrite("bad_clan", "w")).toThrow(/bad_clan/);
+    for (const code of ["bad_facing", "bad_about", "bad_mask"]) expect(parseWrite(code, "w")).toBe(code);
+    // Nothing answers these since migration 17 (the clan) and 18 (the headline and its look).
+    for (const code of ["bad_clan", "bad_headline", "bad_colour", "bad_effect"]) {
+      expect(() => parseWrite(code, "w")).toThrow(code);
+    }
   });
 
-  it("save About you in one statement, the filters only after the text", () => {
-    const statement = aboutSaveStatement("hero", "h", "a", 16);
-    expect(statement.values).toEqual(["hero", "h", "a", 16]);
-    expect(statement.text.match(/accounts\.adventure_log_save\(/g)).toHaveLength(1);
-    expect(statement.text).toContain("case when saved.result = 'ok' then accounts.adventure_log_set_hidden($1, $4) end");
-
-    expect(parseAboutSave({ text_result: "ok", mask_result: "ok" })).toBe("ok");
-    expect(parseAboutSave({ text_result: "muted", mask_result: null })).toBe("muted");
-    expect(parseAboutSave({ text_result: "ok", mask_result: "bad_mask" })).toBe("bad_mask");
-    expect(() => parseAboutSave({ text_result: "ok", mask_result: null })).toThrow(/set_hidden/);
-    expect(() => parseAboutSave(undefined)).toThrow(/not a row/);
+  it("save what the log shows in one call: the kinds of adventure, then the parts", () => {
+    expect(showsSaveStatement("hero", 16, 9)).toEqual({
+      text: "select accounts.adventure_log_save_shows($1, $2, $3) as result",
+      values: ["hero", 16, 9],
+    });
   });
 
   it("give each answer a status", () => {

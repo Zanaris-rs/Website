@@ -12,8 +12,8 @@ import { type Persona, parsePersona, personaStatement } from "./persona";
 import { type LogHeader, logStatement, parseLog } from "./queries";
 
 /**
- * What every Character tab reads: the log's header first (the name, the
- * headline, the worn outfit's look, and whether there is a log at all),
+ * What every Character tab reads: the log's header first (the name, About,
+ * the worn outfit's look, and whether there is a log at all),
  * then, together, the chathead's look, the persona and - for the Look tab,
  * which shows them - the ten outfits. Those need only the header, not each
  * other, so they go at once, as the staff report page's reads do: the pool

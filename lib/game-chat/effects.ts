@@ -94,9 +94,20 @@ export function waveRuns(text: string): WaveRun[] {
  * come out exact (75 cycles at 1.2 px is 90, not 89.99...).
  */
 export function scrollOffset(textWidth: number, cycle: number, window = 100): number {
-  const life = Math.ceil(((textWidth + window) * CHAT_LIFE) / (textWidth + 100));
+  const life = scrollPass(textWidth, window);
   const delta = ((cycle % life) + life) % life;
   return Math.trunc((delta * (textWidth + 100)) / CHAT_LIFE);
+}
+
+/**
+ * How many client cycles one full scroll pass takes (`scrollOffset`'s loop)
+ * for text `textWidth` px wide through a window `windowWidth` px wide: the
+ * line's 150 through the game's 100 px window, and proportionally longer
+ * through a wider one, at the same pixel speed. Overhead chat holds a scroll
+ * line for one pass (`lib/adventurer-log/overhead.ts`).
+ */
+export function scrollPass(textWidth: number, windowWidth: number): number {
+  return Math.ceil(((textWidth + windowWidth) * CHAT_LIFE) / (textWidth + 100));
 }
 
 export function cssColour(rgb: number): string {

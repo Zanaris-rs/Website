@@ -6,7 +6,9 @@ import type { Statement } from "@/lib/account/register";
  * staff verb that changes what players see (`lib/staff/actor-server.ts`).
  * Migration 17 adds the `clan` kind: its target is the clan's id, `log_owner`
  * the clan's name, `author` its Leader, and `content` its motto, a newline
- * and its About.
+ * and its About. Since migration 18 a log report's `content` is the log's
+ * greeting (dialogue page 1's first line), a blank line and its About;
+ * there is no headline any more.
  */
 
 export type StaffAction = "hide" | "disable_css" | "dismiss";

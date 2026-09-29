@@ -3,14 +3,14 @@ import { placeName } from "./places";
 
 /**
  * What the character card draws where the figure goes (the spec's table):
- * a saved outfit is drawn whole; without one, the headline or dialogue get a
- * chat strip under the title and the chathead lives in the dialogue box;
- * with neither, the card keeps today's chathead.
+ * a saved outfit is drawn whole; without one, the dialogue's lines are said
+ * in a chat strip under the title and the chathead lives in the dialogue
+ * box; with no pages, the card keeps today's chathead.
  */
-export function cardMode(input: { hasOutfit: boolean; headline: string; pages: readonly DialoguePage[] }):
+export function cardMode(input: { hasOutfit: boolean; pages: readonly DialoguePage[] }):
   "figure" | "strip" | "chathead" {
   if (input.hasOutfit) return "figure";
-  return input.headline !== "" || input.pages.length > 0 ? "strip" : "chathead";
+  return input.pages.length > 0 ? "strip" : "chathead";
 }
 
 export type SheetRow =

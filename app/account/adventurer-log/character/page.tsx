@@ -38,7 +38,6 @@ export default async function CharacterLookPage() {
           name={displayName(header.username)}
           username={header.username}
           joinedAt={header.joinedAt}
-          headline={header.headline}
           persona={persona}
           initialOutfits={outfits}
           headLook={headLook}

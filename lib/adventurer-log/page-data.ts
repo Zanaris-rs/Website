@@ -12,6 +12,7 @@ import { gameLooks } from "@/lib/outfits/looks";
 import { outfitsStatement, parseOutfits } from "@/lib/outfits/queries";
 
 import { type Filter, FILTERS, filterOf, showsPosts, visibleFilters } from "./filters";
+import { isPartHidden, readPart } from "./parts";
 import { EMPTY_PERSONA, parsePersona, personaStatement, type Persona } from "./persona";
 import { type LogHeader, logStatement, parseLog } from "./queries";
 import { type LogRecord, parseRecords, recordsStatement } from "./records";
@@ -34,6 +35,14 @@ import { type WardrobeOutfit, wardrobeOf } from "./wardrobe";
  * whole page failing on a function that doesn't exist yet. The owner's clan
  * (`loadClanOf`, migration 17) is forgiving the same way: a failed read is a
  * card with no Clan row.
+ *
+ * A part the owner hides (migration 18's `hidden_parts`, `parts.ts`) is not
+ * read at all: each of those reads goes through `readPart`, the same gate the
+ * timeline API uses. Adventures skips the pinned update and the timeline
+ * (`first` is null, so the page draws no timeline), Wardrobe the outfits and
+ * Records the records. About comes in the header's own row, so it is dropped
+ * here, before anything draws it. Dialogue is still read: the figure says
+ * the pages overhead without the box.
  */
 
 export type LogPageData =
@@ -46,7 +55,8 @@ export type LogPageData =
       show: Filter["slug"];
       /** The pinned update, when there is one and the filter shows updates. */
       pinned: PinnedView | null;
-      first: TimelinePage;
+      /** The timeline's first page; null when the owner hides Adventures. */
+      first: TimelinePage | null;
       skills: PlayerSkill[];
       outfits: WardrobeOutfit[];
       records: LogRecord[];
@@ -77,14 +87,22 @@ export async function loadLogPage(
   );
   if (header.result !== "ok") return { result: header.result };
   const look = await logLook(header);
+  const { hiddenParts } = header;
 
   // A filter for kinds the owner hides has no button, so a link to one
   // (shared before they hid it) shows Everything rather than an empty list
   // with no button lit.
   const asked = filterOf(show);
   const filter = visibleFilters(header.hiddenCategories).includes(asked) ? asked : FILTERS[0];
-  const pinned = showsPosts(filter) ? await loadPinned(username, viewer) : null;
-  const first = await loadTimeline(username, viewer, null, filter.mask);
+  const pinned = showsPosts(filter)
+    ? await readPart(hiddenParts, "adventures", () => loadPinned(username, viewer), null)
+    : null;
+  const first = await readPart(
+    hiddenParts,
+    "adventures",
+    () => loadTimeline(username, viewer, null, filter.mask),
+    null,
+  );
 
   const hiscores = playerQuery({ profile: DEFAULT_PROFILE, username });
   const rows = await query<PlayerRow>(hiscores.text, hiscores.values);
@@ -93,20 +111,30 @@ export async function loadLogPage(
   // `accounts.outfits` is the owner's own list; the log page is already
   // behind `adventure_log`'s ban check, so reading it for anyone is the same
   // list the Wardrobe promises to show.
-  const wanted = outfitsStatement(header.username);
-  const outfits = wardrobeOf(
-    parseOutfits(await query<Record<string, unknown>>(wanted.text, wanted.values)),
+  const outfits = await readPart(
+    hiddenParts,
+    "wardrobe",
+    async () => {
+      const wanted = outfitsStatement(header.username);
+      return wardrobeOf(parseOutfits(await query<Record<string, unknown>>(wanted.text, wanted.values)));
+    },
+    [],
   );
 
-  let records: LogRecord[] = [];
-  try {
-    const wantedRecords = recordsStatement(header.username);
-    records = parseRecords(
-      await query<Record<string, unknown>>(wantedRecords.text, wantedRecords.values),
-    );
-  } catch (error) {
-    console.error("[adventurer-log] records read failed", error);
-  }
+  const records = await readPart(
+    hiddenParts,
+    "records",
+    async (): Promise<LogRecord[]> => {
+      try {
+        const wantedRecords = recordsStatement(header.username);
+        return parseRecords(await query<Record<string, unknown>>(wantedRecords.text, wantedRecords.values));
+      } catch (error) {
+        console.error("[adventurer-log] records read failed", error);
+        return [];
+      }
+    },
+    [],
+  );
 
   let persona = EMPTY_PERSONA;
   try {
@@ -120,7 +148,7 @@ export async function loadLogPage(
 
   return {
     result: "ok",
-    header: { ...header, look },
+    header: { ...header, look, about: isPartHidden(hiddenParts, "about") ? "" : header.about },
     name: displayName(header.username),
     show: filter.slug,
     pinned,

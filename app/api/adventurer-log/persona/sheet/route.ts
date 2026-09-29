@@ -5,9 +5,10 @@ import { fail, readJson, runWrite, writer } from "@/lib/adventurer-log/route";
 
 /**
  * `POST /api/adventurer-log/persona/sheet` - Character › Sheet's one Save:
- * title, examine, hangout, goals, god and home town (migration 17's
- * `adventure_persona_save_sheet`). A mute is refused a changed title,
- * examine, hangout or goal; the god and home town are picks.
+ * title, examine, hangout, goals, god, home town and About (migration 18's
+ * eight-argument `adventure_persona_save_sheet`, which writes About to the
+ * log in the same transaction). A mute is refused a changed title, examine,
+ * hangout, goal or About; the god and home town are picks.
  */
 
 export const runtime = "nodejs";

@@ -179,35 +179,23 @@
   color: var(--text);
 }
 
-/* --- overhead chat: twelve colour chips and None / Wave / Scroll --- */
+/* A row whose control is taller than a line (the Sheet's About): its label at the top. */
+.rowTop {
+  align-items: start;
+}
 
-.chips {
+.workspace textarea {
+  resize: vertical;
+}
+
+/* Under About: the hint, and the count. */
+.aboutNote {
   display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-/* Black behind the game's colours, as in game. */
-.workspace .chip {
-  padding: 2px 6px 3px;
-  background: #000;
-  border: 2px solid var(--panel-border);
-  cursor: pointer;
-  line-height: 1;
-}
-
-.workspace .chip[aria-pressed="true"] {
-  border-color: var(--link-green);
-}
-
-.segments {
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-.segments button[aria-pressed="true"] {
-  outline: 2px solid var(--link-green);
+  justify-content: space-between;
+  gap: 8px;
+  margin: 2px 0 0;
+  color: var(--text-muted);
+  font-size: 11px;
 }
 
 /* --- what you say: one row per page --- */
@@ -443,6 +431,14 @@
   font-weight: bold;
 }
 
+/* Page 1's line on what it is for. */
+.pageNote {
+  margin-left: 8px;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: normal;
+}
+
 .pageRowBody {
   display: grid;
   grid-template-columns: 96px minmax(0, 1fr);
@@ -586,6 +582,40 @@
   width: 66px;
   height: 100px;
   background: #1a1a1a;
+}
+
+/* The row's right-hand column: the parchment, and the overhead look under it. */
+.pageWords {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+/* Overhead: colour, effect, and a sample of the page's first line in that
+   look, on black as in game. */
+.overhead {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  font-size: 12px;
+}
+
+.overheadLabel {
+  color: var(--link);
+  font-weight: bold;
+}
+
+.workspace .overhead select {
+  width: auto;
+}
+
+.sample {
+  flex: 1 1 140px;
+  min-width: 0;
+  padding: 2px 6px;
+  background: #000;
+  border: 1px solid var(--panel-border);
 }
 
 /* The dialogue's parchment, as the log draws it (Log.module.css). */

@@ -1,15 +1,8 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
-import {
-  followMove,
-  followRemove,
-  moved,
-  pageAfterRemove,
-  typeHeadline,
-} from "@/lib/adventurer-log/character-draft";
-import { HEADLINE_MAX } from "@/lib/adventurer-log/format";
+import { followMove, followRemove, moved, pageAfterRemove } from "@/lib/adventurer-log/character-draft";
 import { type DialoguePage, type Persona, PERSONA_LIMITS } from "@/lib/adventurer-log/persona";
 import { checkWordsInput, type WordsInput } from "@/lib/adventurer-log/persona-input";
 import type { Look } from "@/lib/chathead/look";
@@ -19,19 +12,20 @@ import type { ClanOf } from "@/lib/clans/queries";
 import styles from "./Character.module.css";
 import CharacterTabs from "./CharacterTabs";
 import CharacterWorkspace from "./CharacterWorkspace";
-import ColourPicker from "./ColourPicker";
 import PageRow from "./PageRow";
 import { usePersonaStage } from "./PersonaStage";
 import { useTabDraft } from "./useTabDraft";
 
-const NEW_PAGE: DialoguePage = { mood: "neutral", emote: null, lines: [""] };
+const NEW_PAGE: DialoguePage = { mood: "neutral", emote: null, lines: [""], colour: 0, effect: 0 };
 
 /**
- * Character › Words: what the adventurer says - the headline as overhead
- * chat, and the dialogue as rows (`PageRow`), each page's emote, mood and
- * lines together, the way it plays - with one Save
- * (`/api/adventurer-log/persona/words`). Choosing a row plays it on the
- * stage beside it. With no pages, the one signature emote.
+ * Character › Words: what the adventurer says - the dialogue as rows
+ * (`PageRow`), each page's emote, mood, lines and overhead look together,
+ * the way it plays - with one Save (`/api/adventurer-log/persona/words`,
+ * `{ signatureEmote, dialogue }`). There is no headline: page 1's first line
+ * is the greeting, and each page is said overhead in its own colour and
+ * effect. Choosing a row plays it on the stage beside it. With no pages, the
+ * one signature emote.
  *
  * The browser checks the draft as the server will (`checkWordsInput`); the
  * database has the last word, and draws a mute's line: picks may change,
@@ -63,7 +57,7 @@ export default function CharacterWords({
   /** The owner's clan and rank, for the stage card's Clan row; null for none. */
   clan: ClanOf | null;
 }) {
-  const { draft, change, set, dirty, busy, message, refused, marked, save } = useTabDraft(
+  const { draft, set, dirty, busy, message, refused, marked, save } = useTabDraft(
     initial,
     "/api/adventurer-log/persona/words",
     checkWordsInput,
@@ -71,17 +65,9 @@ export default function CharacterWords({
   // A key per page that follows it when it moves, so a row keeps its focus
   // and caret through a reorder.
   const [pageKeys, setPageKeys] = useState(() => initial.dialogue.map((_, index) => index));
-  const headlineId = useId();
-  const headlineCountId = useId();
   const pageCount = draft.dialogue.length;
   const shown = useMemo<Persona>(
-    () => ({
-      ...persona,
-      colour: draft.colour,
-      effect: draft.effect,
-      signatureEmote: draft.signatureEmote,
-      dialogue: draft.dialogue,
-    }),
+    () => ({ ...persona, signatureEmote: draft.signatureEmote, dialogue: draft.dialogue }),
     [persona, draft],
   );
 
@@ -109,7 +95,6 @@ export default function CharacterWords({
       name={name}
       username={username}
       joinedAt={joinedAt}
-      headline={draft.headline}
       persona={shown}
       outfitLook={outfitLook}
       headLook={headLook}
@@ -118,43 +103,11 @@ export default function CharacterWords({
       <CharacterTabs current="words" />
       <form onSubmit={save} className={styles.form}>
         <fieldset className={styles.section}>
-          <legend>Overhead chat</legend>
-          {/* The count sits outside the label, as a description: in the label it
-              would be part of the field's name, and change with every key. */}
-          <div className={styles.row}>
-            <span className={styles.label}>
-              <label htmlFor={headlineId}>Headline</label>{" "}
-              <span id={headlineCountId} className={styles.count}>
-                {draft.headline.length}/{HEADLINE_MAX}
-              </span>
-            </span>
-            <input
-              id={headlineId}
-              type="text"
-              value={draft.headline}
-              maxLength={HEADLINE_MAX}
-              aria-describedby={headlineCountId}
-              aria-invalid={marked("headline")}
-              onChange={(event) => change(typeHeadline(draft, event.target.value))}
-            />
-          </div>
-          <ColourPicker
-            colour={draft.colour}
-            effect={draft.effect}
-            onColour={(colour) => set("colour", colour)}
-            onEffect={(effect) => set("effect", effect)}
-          />
+          <legend>Dialogue</legend>
           <p className={styles.hint}>
-            Or type it the in-game way: <code>glow1:wave:Selling lobbies</code> picks the colour and effect for
-            you.
-          </p>
-        </fieldset>
-
-        <fieldset className={styles.section}>
-          <legend>What you say</legend>
-          <p className={styles.hint}>
-            Up to {PERSONA_LIMITS.pages} pages that visitors click through, like talking to an NPC. Click a page,
-            or type in it, to see your card play it. With no pages, your headline fills the dialogue box.
+            Each page is one beat: what your figure does, the face you say it with, the words, and how they look
+            above your head. Visitors click to continue, and your figure says each line as they read it. Up to{" "}
+            {PERSONA_LIMITS.pages} pages; click one, or type in it, to see your card play it.
           </p>
           <DialogueRows
             dialogue={draft.dialogue}
@@ -168,6 +121,10 @@ export default function CharacterWords({
             onRemove={removePage}
             onAdd={addPage}
           />
+          <p className={styles.hint}>
+            The in-game way works too: start a line with <code>glow1:wave:</code> and it sets that page&rsquo;s
+            overhead look.
+          </p>
           {pageCount === 0 ? (
             <>
               <label className={styles.row}>

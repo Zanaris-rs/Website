@@ -17,7 +17,8 @@ import { loadStaff } from "@/lib/staff/staff-server";
 
 /**
  * `POST /api/staff/adventure-reports/<id>/resolve` `{ action, note, password }`
- * — hide the reported update or reply (or clear a log's headline and about,
+ * — hide the reported update or reply (or clear a log's words: its about,
+ * title, examine, hangout, goals and dialogue, the greeting with it;
  * or, for a clan, blank its motto and About, delete its notices and rename
  * it `Clan <id>`), turn a log's stylesheet off, or dismiss. One decision
  * answers every open report on the same thing. The password is re-typed, as

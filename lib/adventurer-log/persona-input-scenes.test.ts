@@ -20,7 +20,7 @@ describe("the stage, against the scenes there are backdrops for", () => {
     expect(checkStageInput({ scene: "lumbridge", facing: 2 }).ok).toBe(false);
     expect(stageOf(stored)).toEqual({ scene: null, facing: 2 });
     expect(checkStageInput(stageOf(stored)).ok).toBe(true);
-    expect(sheetOf(stored).homeTown).toBe("lumbridge");
+    expect(sheetOf(stored, "").homeTown).toBe("lumbridge");
   });
   it("keeps a scene there is a backdrop for", () => {
     expect(stageOf({ ...stored, scene: "varrock" }).scene).toBe("varrock");

@@ -59,13 +59,11 @@ import {
   parseOutfitImport,
 } from "../lib/outfits/queries.ts";
 import {
-  aboutSaveStatement,
   blockStatement,
   blocksStatement,
   directoryStatement,
   gzGiveStatement,
   gzTakeStatement,
-  logSaveStatement,
   logStatement,
   parseDirectory,
   parseLog,
@@ -79,7 +77,7 @@ import {
   repliesStatement,
   reportStatement,
   saveCssStatement,
-  setHiddenStatement,
+  showsSaveStatement,
   timelineStatement,
   unblockStatement,
   updateDeleteStatement,
@@ -337,8 +335,6 @@ async function main(): Promise<void> {
     "accounts.adventure_log(text, text)",
     "accounts.adventure_timeline(text, text, timestamptz, int, int, int)",
     "accounts.adventure_replies(text, text, int[])",
-    "accounts.adventure_log_save(text, text, text)",
-    "accounts.adventure_log_set_hidden(text, int)",
     "accounts.adventure_log_save_css(text, text)",
     "accounts.adventure_update_post(text, text)",
     "accounts.adventure_update_delete(text, int)",
@@ -367,16 +363,14 @@ async function main(): Promise<void> {
     "accounts.adventure_log_pin(text, int)",
     // 16_adventure_persona: a log's persona - the card's words and picks and
     // the dialogue - read by anyone (17 replaced its one save). 13's
-    // adventure_log_save and staff_adventure_resolve are replaced in place,
-    // same signatures, so they are listed once, above.
+    // adventure_log_save is dropped by 18. staff_adventure_resolve is
+    // replaced in place, same signature, so it's listed once, above.
     "accounts.adventure_persona(text)",
     // 17_adventure_clans: the persona saved one tab at a time (16's save is
     // dropped; adventure_persona, above, is re-created with `facing`), the
     // clan reads and the clan writes. 13's adventure_report,
     // staff_adventure_reports and staff_adventure_resolve are replaced in
     // place, same signatures, so they are listed once, above.
-    "accounts.adventure_persona_save_words(text, text, int, int, text, jsonb)",
-    "accounts.adventure_persona_save_sheet(text, text, text, text, jsonb, text, text)",
     "accounts.adventure_persona_save_stage(text, text, int)",
     "accounts.clan_page(text)",
     "accounts.clan_members(int)",
@@ -398,6 +392,16 @@ async function main(): Promise<void> {
     "accounts.clan_disband(text)",
     "accounts.clan_notice_post(text, text, text)",
     "accounts.clan_notice_delete(text, int)",
+    // 18_adventure_community: the headline folded into the dialogue, About
+    // moved onto the Sheet, and whole parts of the log hidden. 13's
+    // adventure_log_save and adventure_log_set_hidden are dropped (Log
+    // settings saves both masks in one call now), and 17's words and sheet
+    // writers are replaced by these, with new signatures. adventure_log,
+    // adventure_log_directory and adventure_persona are re-created with new
+    // columns and regranted, same signatures, so they are listed once, above.
+    "accounts.adventure_persona_save_words(text, text, jsonb)",
+    "accounts.adventure_persona_save_sheet(text, text, text, text, jsonb, text, text, text)",
+    "accounts.adventure_log_save_shows(text, int, int)",
   ];
   const withheld = [
     "accounts.throttled(text, text)",
@@ -440,6 +444,9 @@ async function main(): Promise<void> {
     "accounts.clan_name_ok(text)",
     "accounts.clan_membership(int)",
     "accounts.adventure_dialogue_lines(jsonb)",
+    // 18_adventure_community's helper: page 1's first line and its look, the
+    // greeting the log and the directory answer with. Not an API.
+    "accounts.adventure_greeting(jsonb)",
   ];
 
   // ...and nothing else: every function in `accounts` this role can run is
@@ -1113,39 +1120,64 @@ async function checkAdventurerLog(): Promise<void> {
     }
   }
 
-  // 17_adventure_clans made adventure_persona anew: `facing` in, `clan` and
-  // `playstyle` out. A name nobody has gives no rows, so the shape is read
-  // from the catalogue instead: a database still on 16 answers every call
-  // above, and would only fail later, in parsePersona, on a real log.
-  try {
-    const [shape] = await query<{ result: string | null }>(
-      "select pg_get_function_result('accounts.adventure_persona(text)'::regprocedure) as result",
-    );
-    const result = shape?.result ?? "";
-    // "TABLE(headline_colour integer, …, facing integer, …)": each column's
-    // name is the first word after "TABLE(" or ", ".
-    const columns = [...result.matchAll(/(?:^TABLE\(|, )([a-z_][a-z0-9_]*) /g)].map((match) => match[1]);
-    const wrong = [
-      ...(columns.includes("facing") ? [] : ["has no facing"]),
-      ...["clan", "playstyle"].filter((column) => columns.includes(column)).map((column) => `still has ${column}`),
-    ];
-    if (wrong.length === 0) {
-      console.log(`accounts.adventure_persona(text) returns ${columns.length} columns: facing, and no clan or playstyle (expected)`);
-    } else {
-      console.error(`FAIL: accounts.adventure_persona(text) ${wrong.join(" and ")}; it returns ${result || "nothing"}.`);
+  // The reads whose columns 17 and 18 changed. A name nobody has gives no
+  // rows (or adventure_log's one not_found row, with no columns filled), so
+  // the shapes are read from the catalogue instead: a database a migration
+  // behind answers every call above, and would only fail later, in a parser,
+  // on a real log. 17 made adventure_persona anew (`facing` in, `clan` and
+  // `playstyle` out); 18 folded the headline into the dialogue (`greeting`
+  // and its look in, `headline` and the persona's headline colour and effect
+  // out) and added `hidden_parts`.
+  for (const [signature, has, hasNot] of [
+    [
+      "accounts.adventure_log(text, text)",
+      ["greeting", "greeting_colour", "greeting_effect", "hidden_parts", "about", "hidden_categories"],
+      ["headline"],
+    ],
+    [
+      "accounts.adventure_log_directory(timestamptz, text, int)",
+      ["greeting", "greeting_colour", "greeting_effect"],
+      ["headline"],
+    ],
+    [
+      "accounts.adventure_persona(text)",
+      ["facing", "dialogue"],
+      ["headline_colour", "headline_effect", "clan", "playstyle"],
+    ],
+  ] as const) {
+    try {
+      const [shape] = await query<{ result: string | null }>(
+        "select pg_get_function_result($1::regprocedure) as result",
+        [signature],
+      );
+      const result = shape?.result ?? "";
+      // "TABLE(title text, …, facing integer, …)": each column's name is the
+      // first word after "TABLE(" or ", ".
+      const columns = [...result.matchAll(/(?:^TABLE\(|, )([a-z_][a-z0-9_]*) /g)].map((match) => match[1]);
+      const wrong = [
+        ...has.filter((column) => !columns.includes(column)).map((column) => `has no ${column}`),
+        ...hasNot.filter((column) => columns.includes(column)).map((column) => `still has ${column}`),
+      ];
+      if (wrong.length === 0) {
+        console.log(
+          `${signature} returns ${columns.length} columns: ${has.join(", ")}, and no ${hasNot.join(" or ")} (expected)`,
+        );
+      } else {
+        console.error(`FAIL: ${signature} ${wrong.join(" and ")}; it returns ${result || "nothing"}.`);
+        process.exitCode = 1;
+      }
+    } catch (error) {
+      console.error(
+        `FAIL: ${signature}'s result could not be read. ${error instanceof Error ? error.message : String(error)}`,
+      );
       process.exitCode = 1;
     }
-  } catch (error) {
-    console.error(
-      `FAIL: accounts.adventure_persona(text)'s result could not be read. ${error instanceof Error ? error.message : String(error)}`,
-    );
-    process.exitCode = 1;
   }
 
   const writes: [string, { text: string; values: readonly unknown[] }][] = [
-    ["adventure_log_save", logSaveStatement("__db_check__", "", "")],
-    ["adventure_log_set_hidden", setHiddenStatement("__db_check__", 0)],
     ["adventure_log_save_css", saveCssStatement("__db_check__", "")],
+    // 18_adventure_community: Log settings' "What your log shows", both masks at once.
+    ["adventure_log_save_shows", showsSaveStatement("__db_check__", 0, 0)],
     ["adventure_update_delete", updateDeleteStatement("__db_check__", 1)],
     ["adventure_reply_delete", replyDeleteStatement("__db_check__", 1)],
     ["adventure_block", blockStatement("__db_check__", "__db_check__")],
@@ -1158,23 +1190,23 @@ async function checkAdventurerLog(): Promise<void> {
     ["adventure_log_pin (unpin)", pinStatement("__db_check__", null)],
     ["adventure_gz_give", gzGiveStatement("__db_check__", 1)],
     ["adventure_gz_take", gzTakeStatement("__db_check__", [1])],
-    // 17_adventure_clans' three persona writers, with the arguments the site
-    // sends (lib/adventurer-log/persona-input.ts). Written out rather than
-    // imported: persona-input.ts reaches its lists through the `@/` alias,
-    // which this script, run by node, cannot resolve. Each asks who is
-    // writing first.
+    // The three persona writers (17's stage, 18's words and sheet), with the
+    // arguments the site sends (lib/adventurer-log/persona-input.ts). Written
+    // out rather than imported: persona-input.ts reaches its lists through
+    // the `@/` alias, which this script, run by node, cannot resolve. Each
+    // asks who is writing first.
     [
       "adventure_persona_save_words",
       {
-        text: "select accounts.adventure_persona_save_words($1, $2, $3, $4, $5, $6::jsonb) as result",
-        values: ["__db_check__", "", 0, 0, null, "[]"],
+        text: "select accounts.adventure_persona_save_words($1, $2, $3::jsonb) as result",
+        values: ["__db_check__", null, "[]"],
       },
     ],
     [
       "adventure_persona_save_sheet",
       {
-        text: "select accounts.adventure_persona_save_sheet($1, $2, $3, $4, $5::jsonb, $6, $7) as result",
-        values: ["__db_check__", "", "", "", "[]", null, null],
+        text: "select accounts.adventure_persona_save_sheet($1, $2, $3, $4, $5::jsonb, $6, $7, $8) as result",
+        values: ["__db_check__", "", "", "", "[]", null, null, ""],
       },
     ],
     [
@@ -1193,17 +1225,6 @@ async function checkAdventurerLog(): Promise<void> {
       console.error(`FAIL: ${name} answered ${JSON.stringify(row?.result)}; expected not_found.`);
       process.exitCode = 1;
     }
-  }
-
-  // "About you" saves both in one statement; the second only runs when the
-  // first said 'ok', so a name nobody has answers not_found and no mask.
-  const about = aboutSaveStatement("__db_check__", "", "", 0);
-  const [aboutRow] = await query<Record<string, unknown>>(about.text, about.values);
-  if (aboutRow?.text_result === "not_found" && aboutRow?.mask_result === null) {
-    console.log("adventure_log_save + adventure_log_set_hidden ('__db_check__', one statement): not_found (expected)");
-  } else {
-    console.error(`FAIL: the about save answered ${JSON.stringify(aboutRow)}; expected not_found and no mask.`);
-    process.exitCode = 1;
   }
 
   for (const [name, statement] of [

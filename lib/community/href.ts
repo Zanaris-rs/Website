@@ -20,8 +20,8 @@ import { BOARD_PATH, SET_RECORD_HREF } from "@/lib/records/api";
 
 export const COMMUNITY_HREF = "/community";
 
-/** The hiscores table. Its links elsewhere carry a category (`tableHref`); the bar's does not. */
-const HISCORES_HREF = "/hiscores";
+/** The hiscores table. Its links elsewhere carry a category (`tableHref`); the bar's and the hub's do not. */
+export const HISCORES_HREF = "/hiscores";
 
 export type CommunitySection = "community" | "hiscores" | "records" | "logs" | "clans";
 

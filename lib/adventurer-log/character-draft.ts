@@ -1,7 +1,7 @@
 import { CHAT_COLOUR_NAMES } from "@/lib/game-chat/effects";
 import { parseChatPrefix } from "@/lib/game-chat/prefix";
 
-import { type Persona, PERSONA_LIMITS } from "./persona";
+import { type DialoguePage, type Persona, PERSONA_LIMITS } from "./persona";
 import type { Check, SheetInput, StageInput, WordsInput } from "./persona-input";
 
 /**
@@ -9,25 +9,6 @@ import type { Check, SheetInput, StageInput, WordsInput } from "./persona-input"
  * saving do to them, kept out of the components so each can be tested.
  * Browser-safe: nothing here reaches the server.
  */
-
-/**
- * Typing into the headline. A prefix typed the in-game way (`glow1:wave:hi`)
- * moves into the colour and effect pickers, leaving the text. Only what the
- * prefix names changes, so `wave:` keeps the colour already picked.
- */
-export function typeHeadline<T extends { headline: string; colour: number; effect: number }>(draft: T, value: string): T {
-  const found = parseChatPrefix(value);
-  if (found.text === value) return { ...draft, headline: value };
-  const prefix = value.slice(0, value.length - found.text.length);
-  const namesColour = CHAT_COLOUR_NAMES.some((name) => prefix.startsWith(`${name}:`));
-  const namesEffect = prefix.endsWith("wave:") || prefix.endsWith("scroll:");
-  return {
-    ...draft,
-    headline: found.text,
-    colour: namesColour ? found.colour : draft.colour,
-    effect: namesEffect ? found.effect : draft.effect,
-  };
-}
 
 /** `list` with the item at `from` moved to `to`; unchanged past either end. */
 export function moved<T>(list: readonly T[], from: number, to: number): T[] {
@@ -53,6 +34,36 @@ export function linesWith(lines: readonly string[], index: number, value: string
   return next;
 }
 
+/**
+ * What a prefix typed the in-game way (`glow1:wave:hi`) at the start of a
+ * line names: the text without it, and the colour and the effect, each null
+ * when the prefix names none. `wave:` names an effect and no colour, so the
+ * colour already picked stays; `yellow:` names colour 0.
+ */
+export function typedPrefix(value: string): { text: string; colour: number | null; effect: number | null } {
+  const found = parseChatPrefix(value);
+  if (found.text === value) return { text: value, colour: null, effect: null };
+  const prefix = value.slice(0, value.length - found.text.length);
+  const namesColour = CHAT_COLOUR_NAMES.some((name) => prefix.startsWith(`${name}:`));
+  const namesEffect = prefix.endsWith("wave:") || prefix.endsWith("scroll:");
+  return { text: found.text, colour: namesColour ? found.colour : null, effect: namesEffect ? found.effect : null };
+}
+
+/**
+ * Typing into box `index` of a page's lines (`linesWith`). A prefix typed the
+ * in-game way, on any line, moves into the page's overhead colour and effect
+ * and leaves the text: every line of a page is said in the page's look.
+ */
+export function typeLine(page: DialoguePage, index: number, value: string): DialoguePage {
+  const typed = typedPrefix(value);
+  return {
+    ...page,
+    lines: linesWith(page.lines, index, typed.text),
+    colour: typed.colour ?? page.colour,
+    effect: typed.effect ?? page.effect,
+  };
+}
+
 /** How many of a page's lines will be saved: up to the last that is not blank. */
 export function usedLines(lines: readonly string[]): number {
   let used = lines.length;
@@ -69,14 +80,13 @@ export function previewPersona(persona: Persona): Persona {
 export type DraftField = keyof WordsInput | keyof SheetInput | keyof StageInput;
 
 /**
- * Which fields each of migration 17's refusals is about, so they can be
- * highlighted. `bad_key` is a home town or a scene key; the database does
- * not say which. Each tab marks only the fields it has.
+ * Which fields each of the persona writers' refusals (migration 18's) is
+ * about, so they can be highlighted. `bad_key` is a home town or a scene key;
+ * the database does not say which. A page's colour or effect is part of the
+ * dialogue, so a bad one is `bad_dialogue`. Each tab marks only the fields it
+ * has.
  */
 export const BAD_FIELDS: Readonly<Record<string, readonly DraftField[]>> = {
-  bad_headline: ["headline"],
-  bad_colour: ["colour"],
-  bad_effect: ["effect"],
   bad_emote: ["signatureEmote", "dialogue"],
   bad_dialogue: ["dialogue"],
   bad_title: ["title"],
@@ -86,6 +96,7 @@ export const BAD_FIELDS: Readonly<Record<string, readonly DraftField[]>> = {
   bad_god: ["god"],
   bad_key: ["homeTown", "scene"],
   bad_facing: ["facing"],
+  bad_about: ["about"],
 };
 
 /** The saves' refusals as sentences, ahead of the log's shared ones (`send`). */

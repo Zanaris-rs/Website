@@ -32,6 +32,17 @@ export interface ClientModel {
   set(src: ClientModel, shareAlpha: boolean): void;
   calcBoundingCylinder(): void;
   /**
+   * How far the model reaches above its base, a positive height, as
+   * `calcBoundingCylinder` leaves it. `ClientPlayer.getTempModel` takes it
+   * as the player's `height`, which the overhead chat hangs from.
+   */
+  readonly minY: number;
+  /** The points, as posed: `numPoints` of each array is the model. */
+  readonly numPoints: number;
+  readonly pointX: Int32Array | null;
+  readonly pointY: Int32Array | null;
+  readonly pointZ: Int32Array | null;
+  /**
    * Light the model. A model component lights its copy last, after the
    * animation (`IfType.ts:393`, `light()` in `draw.ts`).
    */

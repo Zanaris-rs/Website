@@ -2,16 +2,13 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import styles from "@/components/adventurer-log/Directory.module.css";
-import ChatheadFace from "@/components/game/ChatheadFace";
-import ItemIcon from "@/components/game/ItemIcon";
-import SkillIcon from "@/components/game/SkillIcon";
+import DirectoryEntryRow from "@/components/adventurer-log/DirectoryEntryRow";
 import frame from "@/components/site/Frame.module.css";
 import Frame from "@/components/site/Frame";
 import Panel from "@/components/site/Panel";
 import TitleBox from "@/components/site/TitleBox";
 import { readSession } from "@/lib/account/session-server";
 import { type DirectoryPage, loadDirectory } from "@/lib/adventurer-log/directory";
-import { formatWhen } from "@/lib/adventurer-log/format";
 import { DIRECTORY_HREF, logHref } from "@/lib/adventurer-log/href";
 import { logStatement, parseDirectoryCursor, parseLog } from "@/lib/adventurer-log/queries";
 import { INVALID_NAME, toDisplayName, toSafeName } from "@/lib/base37";
@@ -111,30 +108,7 @@ export default async function AdventurerLogs({ searchParams }: Params) {
         ) : (
           <ul className={styles.logs}>
             {page.entries.map((entry) => (
-              <li key={entry.username} className={styles.log}>
-                <ChatheadFace look={entry.look} size={48} label={`${entry.name}'s chathead`} className={styles.face} />
-                <div className={styles.main}>
-                  <a className={`${frame.link} ${styles.name}`} href={logHref(entry.username)}>
-                    {entry.name}
-                  </a>
-                  {entry.headline ? <span className={styles.headline}>&ldquo;{entry.headline}&rdquo;</span> : null}
-                  <div className={styles.activity}>
-                    {entry.icon ? (
-                      <span className={styles.icon} aria-hidden>
-                        {entry.icon.type === "skill" ? (
-                          <SkillIcon stat={entry.icon.stat} size={20} />
-                        ) : (
-                          <ItemIcon id={entry.icon.id} size={20} />
-                        )}
-                      </span>
-                    ) : null}
-                    <span>{entry.activity}</span>
-                  </div>
-                  <time className={styles.time} dateTime={entry.at}>
-                    {formatWhen(entry.at)}
-                  </time>
-                </div>
-              </li>
+              <DirectoryEntryRow key={entry.username} entry={entry} />
             ))}
           </ul>
         )}

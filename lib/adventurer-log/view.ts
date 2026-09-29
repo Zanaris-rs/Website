@@ -73,6 +73,13 @@ export type TimelinePage = {
   looks: Record<string, Look>;
 };
 
+/**
+ * The page a log with no adventures answers: nothing, and no page after it.
+ * The timeline API answers it for a log whose owner hides Adventures
+ * (`readPart`), so a hidden timeline can't be told from an empty one.
+ */
+export const EMPTY_TIMELINE: TimelinePage = { entries: [], next: null, looks: {} };
+
 /** The update pinned to the top of a log, and the looks its repliers need. */
 export type PinnedView = {
   entry: UpdateEntry;

@@ -3,9 +3,10 @@ import type { NextRequest } from "next/server";
 import { readSession } from "@/lib/account/session-server";
 import { filterOf } from "@/lib/adventurer-log/filters";
 import { nameFrom } from "@/lib/adventurer-log/name";
-import { parseCursor } from "@/lib/adventurer-log/queries";
-import { loadTimeline } from "@/lib/adventurer-log/view";
-import { isConfigured } from "@/lib/db";
+import { readPart } from "@/lib/adventurer-log/parts";
+import { logStatement, parseCursor, parseLog } from "@/lib/adventurer-log/queries";
+import { EMPTY_TIMELINE, loadTimeline } from "@/lib/adventurer-log/view";
+import { isConfigured, query } from "@/lib/db";
 
 /**
  * `GET /api/adventurer-log/<name>/timeline?at=&rank=&id=&show=` — the next
@@ -15,6 +16,13 @@ import { isConfigured } from "@/lib/db";
  * the signed session's name, if any: the owner sees their own adventures
  * without the twenty minutes. Never cached - it depends on who is asking and
  * on the clock.
+ *
+ * A log whose owner hides Adventures (migration 18's `hidden_parts`) answers
+ * `EMPTY_TIMELINE`, 200, exactly as a log with no adventures does, and its
+ * timeline is not read (`readPart`): the part is hidden from this route as
+ * from the page. That is for everyone, the owner included; they turn it back
+ * on in Log settings. A log that is not there, or banned, has no parts to
+ * hide: its timeline read answers for it, as it always has.
  */
 
 export const runtime = "nodejs";
@@ -42,7 +50,15 @@ export async function GET(
   const show = filterOf(request.nextUrl.searchParams.get("show")).mask;
   const viewer = (await readSession())?.u ?? null;
   try {
-    const page = await loadTimeline(username, viewer, before, show);
+    const wanted = logStatement(username, viewer);
+    const header = parseLog(await query<Record<string, unknown>>(wanted.text, wanted.values));
+    const hiddenParts = header.result === "ok" ? header.hiddenParts : 0;
+    const page = await readPart(
+      hiddenParts,
+      "adventures",
+      () => loadTimeline(username, viewer, before, show),
+      EMPTY_TIMELINE,
+    );
     return Response.json(page, { status: 200, headers: NO_STORE });
   } catch (error) {
     console.error("[adventurer-log] timeline read failed", error);

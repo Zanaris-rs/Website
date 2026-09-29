@@ -13,30 +13,49 @@ import {
   SAVE_MESSAGES,
   saveDraft,
   saveStatusText,
-  typeHeadline,
+  typedPrefix,
+  typeLine,
   usedLines,
 } from "./character-draft";
 import { EMPTY_PERSONA } from "./persona";
 import { checkSheetInput, checkWordsInput, type SheetInput, type WordsInput } from "./persona-input";
 
-const draft: WordsInput = { headline: "", colour: 3, effect: 2, signatureEmote: null, dialogue: [] };
+const page = { mood: "happy" as const, emote: null, lines: ["hi"], colour: 3, effect: 2 };
+const draft: WordsInput = { signatureEmote: null, dialogue: [] };
 
-describe("typeHeadline", () => {
-  it("moves a typed prefix into the pickers and keeps the text", () => {
-    expect(typeHeadline(draft, "glow1:wave:hi")).toMatchObject({ headline: "hi", colour: 9, effect: 1 });
-  });
-  it("changes only what the prefix names", () => {
-    expect(typeHeadline(draft, "wave:hi")).toMatchObject({ headline: "hi", colour: 3, effect: 1 });
-    expect(typeHeadline(draft, "red:hi")).toMatchObject({ headline: "hi", colour: 1, effect: 2 });
+describe("typedPrefix", () => {
+  it("reads a prefix typed the in-game way, and what it names", () => {
+    expect(typedPrefix("glow1:wave:hi")).toEqual({ text: "hi", colour: 9, effect: 1 });
+    expect(typedPrefix("scroll:hi")).toEqual({ text: "hi", colour: null, effect: 2 });
     // yellow is colour 0: a prefix, even though it names the default
-    expect(typeHeadline(draft, "yellow:hi")).toMatchObject({ headline: "hi", colour: 0, effect: 2 });
+    expect(typedPrefix("yellow:hi")).toEqual({ text: "hi", colour: 0, effect: null });
   });
-  it("leaves plain text alone, a colon or not", () => {
-    expect(typeHeadline(draft, "Selling: lobbies")).toMatchObject({ headline: "Selling: lobbies", colour: 3, effect: 2 });
-    expect(typeHeadline(draft, "glow1")).toMatchObject({ headline: "glow1", colour: 3 });
+  it("names nothing in plain text, a colon or not", () => {
+    expect(typedPrefix("Selling: lobbies")).toEqual({ text: "Selling: lobbies", colour: null, effect: null });
+    expect(typedPrefix("glow1")).toEqual({ text: "glow1", colour: null, effect: null });
   });
   it("reads the prefix as the client does", () => {
-    expect(typeHeadline(draft, "green:red:hi")).toMatchObject({ headline: "red:hi", colour: 2, effect: 2 });
+    expect(typedPrefix("green:red:hi")).toEqual({ text: "red:hi", colour: 2, effect: null });
+    expect(typedPrefix("wave:scroll:hi")).toEqual({ text: "hi", colour: null, effect: 2 });
+  });
+});
+
+describe("typeLine", () => {
+  it("moves a prefix typed on any line into the page's overhead look, and keeps the text", () => {
+    expect(typeLine(page, 0, "glow1:wave:hi")).toEqual({ ...page, lines: ["hi"], colour: 9, effect: 1 });
+    expect(typeLine(page, 2, "red:there")).toEqual({ ...page, lines: ["hi", "", "there"], colour: 1, effect: 2 });
+  });
+  it("changes only what the prefix names", () => {
+    expect(typeLine(page, 0, "wave:hi")).toMatchObject({ colour: 3, effect: 1 });
+    expect(typeLine(page, 0, "purple:hi")).toMatchObject({ colour: 4, effect: 2 });
+  });
+  it("types plain text as it is, as linesWith does", () => {
+    expect(typeLine(page, 1, "Selling: lobbies")).toEqual({ ...page, lines: ["hi", "Selling: lobbies"] });
+    expect(typeLine(page, 0, "")).toEqual({ ...page, lines: [""] });
+    expect(typeLine(page, 4, "x")).toEqual(page);
+  });
+  it("leaves a line that is only a prefix empty, the look taken", () => {
+    expect(typeLine({ ...page, lines: ["hi", "x"] }, 1, "flash1:")).toEqual({ ...page, lines: ["hi"], colour: 6 });
   });
 });
 
@@ -75,21 +94,25 @@ describe("the save's refusals", () => {
   it("cover every bad_ answer the three persona writers give", () => {
     expect(Object.keys(BAD_FIELDS).sort()).toEqual(
       [
-        "bad_headline", "bad_colour", "bad_effect", "bad_emote", "bad_dialogue",
-        "bad_title", "bad_examine", "bad_hangout", "bad_goals", "bad_god", "bad_key", "bad_facing",
+        "bad_emote", "bad_dialogue",
+        "bad_title", "bad_examine", "bad_hangout", "bad_goals", "bad_god", "bad_key", "bad_about",
+        "bad_facing",
       ].sort(),
     );
-    expect(BAD_FIELDS).not.toHaveProperty("bad_clan");
+    expect(BAD_FIELDS.bad_about).toEqual(["about"]);
+    for (const gone of ["bad_clan", "bad_headline", "bad_colour", "bad_effect"]) {
+      expect(BAD_FIELDS).not.toHaveProperty(gone);
+    }
   });
 });
 
 describe("draftDirty", () => {
   it("compares a draft with what was saved by value, not by identity", () => {
-    const page = { mood: "happy" as const, emote: null, lines: ["hi"] };
     expect(draftDirty(draft, { ...draft })).toBe(false);
     expect(draftDirty({ ...draft, dialogue: [page] }, { ...draft, dialogue: [{ ...page, lines: ["hi"] }] })).toBe(false);
-    expect(draftDirty({ ...draft, headline: "hi" }, draft)).toBe(true);
+    expect(draftDirty({ ...draft, signatureEmote: "wave" }, draft)).toBe(true);
     expect(draftDirty({ ...draft, dialogue: [page] }, draft)).toBe(true);
+    expect(draftDirty({ ...draft, dialogue: [{ ...page, colour: 4 }] }, { ...draft, dialogue: [page] })).toBe(true);
   });
 });
 
@@ -105,7 +128,9 @@ describe("saveStatusText", () => {
 });
 
 describe("saveDraft", () => {
-  const sheet: SheetInput = { title: "  the Ready ", examine: "", hangout: "", goals: ["", "b"], god: null, homeTown: null };
+  const sheet: SheetInput = {
+    title: "  the Ready ", examine: "", hangout: "", goals: ["", "b"], god: null, homeTown: null, about: " Cook. ",
+  };
 
   it("posts what the check made of the draft, and answers with it", async () => {
     const posted: unknown[] = [];
@@ -113,18 +138,18 @@ describe("saveDraft", () => {
       posted.push(value);
       return { ok: true };
     });
-    const value = { ...sheet, title: "the Ready", goals: ["b"] };
+    const value = { ...sheet, title: "the Ready", goals: ["b"], about: "Cook." };
     expect(outcome).toEqual({ ok: true, value });
     expect(posted).toEqual([value]);
   });
 
   it("posts nothing when the check refuses, and gives its sentence with no field marked", async () => {
     let posts = 0;
-    const outcome = await saveDraft({ ...draft, colour: 12 }, checkWordsInput, async () => {
+    const outcome = await saveDraft({ ...draft, dialogue: [{ ...page, colour: 12 }] }, checkWordsInput, async () => {
       posts++;
       return { ok: true };
     });
-    expect(outcome).toEqual({ ok: false, message: "Pick one of the twelve colours.", fields: [] });
+    expect(outcome).toEqual({ ok: false, message: "Page 1: pick an overhead colour from the list.", fields: [] });
     expect(posts).toBe(0);
   });
 

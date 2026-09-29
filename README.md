@@ -1625,10 +1625,14 @@ content bump, re-run `chathead:update`, and commit what it writes.
 
 ## Adventurer Log
 
-`/adventurer/<name>` is a player's public page (engine migrations 11-13):
-their chathead, headline, skills and about on one side, and on the other a
-timeline of their adventures - levels, milestones, quests, rare drops, clue
-scrolls, as the game records them - mixed with the updates they post.
+`/adventurer/<name>` is a player's public page (engine migrations 11-18):
+their character card, skills and about on one side, and on the other their
+dialogue and a timeline of their adventures - levels, milestones, quests,
+rare drops, clue scrolls, as the game records them - mixed with the updates
+they post. The card's figure says the dialogue page being read overhead, a
+line every 3 seconds (a scroll line for one whole pass), in that page's own
+colour and effect (`lib/adventurer-log/overhead.ts`); page 1's first line is
+the player's greeting in Community lists and link previews.
 
 - **`/adventurers`** is the directory: every log with something to show,
   ordered by the latest thing it shows the public - an adventure once its
@@ -1648,6 +1652,24 @@ scrolls, as the game records them - mixed with the updates they post.
   their log. The hiscores' "Search by name" opens it at the Skills box
   (`#skills`), whose rows open the table at that player's rank
   (`hiscoreRowHref`).
+- **`/community`** is the hub the bar's Community link opens. At the top is
+  **the square**: Varrock square with up to five adventurers standing in it,
+  the players whose logs have shown the public something most recently (the
+  directory's ten newest, so a log with its Adventures hidden is never there).
+  Only players with a saved default outfit stand in it, since only a saved
+  outfit is ever drawn whole; anyone else is skipped and the next most recent
+  fills in. The most recent stands in the middle and the rest out to either
+  side, and they say their greetings overhead one at a time, each in its
+  colour and effect. Each figure is a link to their log, over the box their
+  body was drawn in; pointing at one shows the game's mouse-over at the top
+  left, "View log <name>", with their combat level in green when it is exact.
+  Beside the square are **Your log** (your chathead and your log's links, or a
+  way to log in), **Find a player** (a name box that opens their log), **Top
+  of the hiscores** (Overall's top five) and **Record holders** (each
+  duration's #1 on the Overall board); under them are **Recent activity** (the
+  directory's five newest) and **Clans** (the three largest). Each box reads
+  on its own (`lib/community/hub.ts`): one that fails says so in a line, and
+  the rest of the page stands.
 - Everyone else sees an adventure **twenty minutes** after it happened, so a
   log cannot be used to follow someone around the game; the owner sees theirs
   at once. That rule, and every other one - who may write, blocks, the rates -
@@ -1681,10 +1703,16 @@ scrolls, as the game records them - mixed with the updates they post.
   the log's styling contract, so `Log.module.css` styles them through
   `:global()` rather than with hashed module classes.
 - `/account/adventurer-log` is the owner's side, in three boxes:
-  - **About you:** headline, about, and which kinds of adventure the log
-    shows (hidden for everyone, the owner included). One Save sends all three
-    (`POST /api/adventurer-log/about`) as one statement, so they succeed or
-    fail together.
+  - **What your log shows:** which parts of the log show (Dialogue,
+    Wardrobe, Records, About and Adventures; the character card and Skills
+    always do) and which kinds of adventure, hidden for everyone, the owner
+    included. One Save sends both masks (`POST /api/adventurer-log/shows`,
+    migration 18's `adventure_log_save_shows`). A hidden part is neither
+    drawn nor read (`readPart`, `lib/adventurer-log/parts.ts`), and the
+    timeline API answers a hidden timeline as an empty one; with Dialogue
+    hidden the figure still says the pages overhead, a page at a time, and a
+    log with Adventures hidden leaves the directory. About itself is written
+    on Character › Sheet, and saved with the sheet.
   - **Your adventurer log's style:** the owner's CSS (below).
   - **Blocked players:** unblock, or block someone by name, and the latest
     replies on the log (`accounts.adventure_log_recent_replies`, migration
@@ -1733,14 +1761,16 @@ scrolls, as the game records them - mixed with the updates they post.
   answers the same way. The settings page sends the log's
   Content-Security-Policy as well (plus `data:` pictures, which the editor's
   lint marks use), as a backstop.
-- **Copy a prompt for an AI.** For owners who would rather describe a look
+- **Get AI to design for you.** For owners who would rather describe a look
   than write it. The button in the style box copies a prompt
   (`lib/adventurer-log/ai-prompt.ts`) for any AI chat: the log's markup cut
   down, its look before any owner's CSS, the sanitiser's rules in plain words,
   every picture address it keeps, a line for the look they want, and the
-  draft in the box to start from. What comes back is pasted in and checked
-  like anything else. "Style it with an AI" under the editor shows the same
-  text, to copy by hand when the browser refuses the clipboard.
+  draft in the box to start from. A line under the buttons says what it
+  does, and once it has copied, what to do next. What comes back is pasted
+  in and checked like anything else. "Style it with an AI" under the editor
+  shows the same text, to copy by hand when the browser refuses the
+  clipboard.
   `ai-prompt.test.ts` holds it to the page: the outline names exactly the
   `al-` classes the log's components draw, every address passes the
   sanitiser, and each rule is checked against `css.ts`.

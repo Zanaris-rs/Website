@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
-import AboutYou from "@/components/adventurer-log/AboutYou";
 import BlockList, { type ManagedReply } from "@/components/adventurer-log/BlockList";
 import CssEditor from "@/components/adventurer-log/CssEditor";
+import LogShows from "@/components/adventurer-log/LogShows";
 import OwnerNav from "@/components/adventurer-log/OwnerNav";
 import styles from "@/components/adventurer-log/Settings.module.css";
 import Frame from "@/components/site/Frame";
@@ -29,15 +29,16 @@ import { query } from "@/lib/db";
 
 export const metadata: Metadata = {
   title: "Log settings",
-  description: "How your Adventurer Log reads: about you, what it shows, its style, and who may reply.",
+  description: "How your Adventurer Log reads: what it shows, its style, and who may reply.",
 };
 
 export const dynamic = "force-dynamic";
 
 /**
  * `/account/adventurer-log` — Log settings: how the owner's log reads, in
- * three boxes: what it says about them (one Save), its stylesheet, and who
- * may not reply on it. The log itself is one link away ("View your log").
+ * three boxes: what it shows - its parts and kinds of adventure, one Save -
+ * its stylesheet, and who may not reply on it. The log itself is one link
+ * away ("View your log"); About is on Character › Sheet.
  */
 export default async function LogSettingsPage() {
   const session = await requireSession();
@@ -88,8 +89,8 @@ export default async function LogSettingsPage() {
     <Frame>
       <OwnerNav title="Log settings" username={username} current="settings" />
       <Panel align="left" width="100%">
-        <h2 className={styles.title}>About you</h2>
-        <AboutYou initial={{ about: header.about, hidden: header.hiddenCategories }} />
+        <h2 className={styles.title}>What your log shows</h2>
+        <LogShows initial={{ categories: header.hiddenCategories, parts: header.hiddenParts }} />
       </Panel>
       <Panel align="left" width="100%">
         <h2 className={styles.title}>Your adventurer log&rsquo;s style</h2>
