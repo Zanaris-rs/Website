@@ -8,7 +8,8 @@ import StonePanel from "@/components/site/StonePanel";
 import Tile from "@/components/site/Tile";
 import Wordmark from "@/components/site/Wordmark";
 import { readSession } from "@/lib/account/session-server";
-import { DIRECTORY_HREF } from "@/lib/adventurer-log/href";
+import { CHARACTER_HREF, DIRECTORY_HREF, logHref } from "@/lib/adventurer-log/href";
+import { CLANS_HREF } from "@/lib/clans/href";
 import { latest } from "@/lib/news";
 import { formatShortDate, listHref, postHref } from "@/lib/news/parse";
 import { KIT_RELEASES_URL, LOSTHQ_URL, SITE_NAME } from "@/lib/site";
@@ -123,6 +124,49 @@ export default async function Title() {
           </div>
         </StonePanel>
 
+        {/* Where players see each other: the hub, the logs and the clans.
+            None of the three had a 2004 tile, so all three are drawn from the
+            game (`scripts/game-icons/render.ts`, through `titleTileSrc`): the
+            hub's is Varrock square with three adventurers in it, drawn by the
+            clan photo's own drawer; the logs' the game's book; the clans' a
+            Dragon sq shield. */}
+        <StonePanel title="Community" className={styles.sectionPanel}>
+          <div className={styles.tileGrid}>
+            <MenuTile
+              href="/community"
+              image={titleTileSrc("community") ?? undefined}
+              caption="Community"
+              blurb="Who&rsquo;s about, the fastest records and news from every log."
+            />
+            <MenuTile
+              href={DIRECTORY_HREF}
+              image={titleTileSrc("book") ?? undefined}
+              caption="Adventurer Logs"
+              blurb="Every player&rsquo;s levels, quests and drops, in their own words."
+              extra={
+                session ? (
+                  <>
+                    Your log:{" "}
+                    <a href={logHref(session.u)} className={frame.linkGreen}>
+                      View
+                    </a>{" "}
+                    &middot;{" "}
+                    <a href={CHARACTER_HREF} className={frame.linkGreen}>
+                      Edit
+                    </a>
+                  </>
+                ) : null
+              }
+            />
+            <MenuTile
+              href={CLANS_HREF}
+              image={titleTileSrc("clans") ?? undefined}
+              caption="Clans"
+              blurb="Invite-only clans: their crests, notices and members."
+            />
+          </div>
+        </StonePanel>
+
         <StonePanel title="Account Services" className={styles.sectionPanel}>
           <div className={styles.tileGrid}>
             <MenuTile
@@ -138,15 +182,6 @@ export default async function Title() {
               caption="Message Centre"
               blurb="Communicate with our staff."
               linkText="Login"
-            />
-            {/* Public, but beside the Account Centre because that is where a
-                player writes their own. The picture is the game's book,
-                drawn like the two in Game Rules & Resources. */}
-            <MenuTile
-              href={DIRECTORY_HREF}
-              image={titleTileSrc("book") ?? undefined}
-              caption="Adventurer Logs"
-              blurb="Every player&rsquo;s levels, quests and drops, in their own words."
             />
             {staffTile ? (
               <MenuTile

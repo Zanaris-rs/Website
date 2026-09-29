@@ -9,7 +9,7 @@ of somebody else's work with no connection to Jagex Ltd.
 | Path | What is there |
 | --- | --- |
 | `/` and `/disclaimer` | the non-affiliation disclaimer; `/` is the front page, as it is on Lost City |
-| `/title` | the main menu: the wordmark, the live player count, the latest news, and the three menu panels |
+| `/title` | the main menu: the wordmark, the live player count, the latest news, and the four menu panels |
 | `/news` | news posts, from Markdown files in `content/news` — plus `/news/page/N`, `/news/category/<cat>` and `/news/<slug>` |
 | `/rules` and `/rules/original` | what the twelve rules mean here, and the twelve rules themselves |
 | `/worldmap` | the 2004 map applet, drawn from the game's own map data |
@@ -1448,7 +1448,7 @@ game's own, all committed:
 | --- | --- |
 | `public/img/game/items/<id>.png` | 32x32 inventory icon per object id, drop shadow and all |
 | `public/img/game/skills/<stat>.png` | 25x25 stats-tab icon per engine stat id |
-| `public/img/game/tiles/<name>.png` | 77x120 menu tile drawn from one object's model |
+| `public/img/game/tiles/<name>.png` | 77x120 menu tile drawn from one object's model, or (`community`) from a scene |
 | `public/img/game/textures/<id>.png` | each of the fifty textures, 128 or 64 square, holes transparent |
 | `lib/items/icons.json` | the pack's object count, and the ids the client draws as nothing |
 | `lib/title/tiles.json` | the tiles' version and the names the generator drew |
@@ -1467,13 +1467,18 @@ the map applet) under `bun`, fed from the engine's pack. The header of
 Thieving, are recoloured the way the 2004 site's hiscores recoloured them,
 because their black silhouettes vanish on black panels.
 
-The three menu tiles are drawn the same way, for the same reason. `/title`
-gives every tile a picture and 2004 drew none for a wiki, a desktop client or
-a player's diary, so `render.ts` poses those objects' own models instead — the
-sextant for LostHQ, the Dramen staff for Zanaris Kit, the book for Adventurer
-Logs — at four times tile size, averaged down,
-which is where their smooth edges come from beside the 2004 photographs. Its
-`TILES` table is where the object, the angle and the framing live.
+The five menu tiles are drawn the same way, for the same reason. `/title`
+gives every tile a picture and 2004 drew none for a wiki, a desktop client, a
+player's diary, a clan or a hub of them, so `render.ts` poses those objects'
+own models instead — the sextant for LostHQ, the Dramen staff for Zanaris Kit,
+the book for Adventurer Logs, the Dragon sq shield for Clans — at four times
+tile size, averaged down, which is where their smooth edges come from beside
+the 2004 photographs. Its `TILES` table is where the object, the angle and the
+framing live. The Community tile is a scene instead: Varrock square with three
+adventurers standing in it, drawn by the clan photo's own drawer
+(`scripts/game-icons/community.ts`, from the committed `renderer.js`,
+`bodies.bin` and backdrop), a 154x240 window of the photo averaged down to
+77x120.
 
 The textures are for Adventurer Log stylesheets (their picture picker), and
 `scripts/update-game-textures.sh` takes them out of the pack the same way:
