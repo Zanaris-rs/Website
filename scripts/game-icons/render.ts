@@ -22,7 +22,9 @@ import {
 import path from "node:path";
 
 import FileCache from "./cache.ts";
+import { drawCommunityTile } from "./community.ts";
 import { encodePng } from "./png.ts";
+import { BLACK, boxAverage } from "./sample.ts";
 
 // --- the slice of Client-TS this uses -------------------------------------
 
@@ -172,9 +174,6 @@ const WEB_COLOURS: ReadonlyMap<number, number> = new Map([
   [17, 0x6b0000], // thieving, dark red
 ]);
 
-/** The client's black: palette black is stored as 1, since 0 is transparent. */
-const BLACK = 1;
-
 /** A sprite at its full cell size, trimmed margins restored as transparency. */
 function uncrop(sprite: Sprite): Int32Array {
   const out = new Int32Array(sprite.owi * sprite.ohi);
@@ -300,10 +299,11 @@ console.log(`wrote    lib/items/icons.json, lib/skills/icons.json`);
 /**
  * The title screen's menu pictures are 77x120 (`components/site/MenuTile.tsx`).
  * 2004's own are photographs of props Jagex modelled for its website, and
- * `scripts/vendor-2004-assets.sh` recovers those. Three of our pages are pages
+ * `scripts/vendor-2004-assets.sh` recovers those. Five of our pages are pages
  * 2004 never had, and no tile it drew is about them, so we draw the game's own
  * answer instead: an object's model, lit and posed exactly as its inventory
- * icon is, in a tile-shaped box on black.
+ * icon is, in a tile-shaped box on black - or, for the Community hub, a scene:
+ * Varrock square with three adventurers in it (`community.ts`).
  *
  * The client draws icons into 32x32, and a tile straight from it would be a
  * handful of fat pixels next to smooth neighbours. Each one is drawn at
@@ -361,6 +361,11 @@ const TILES: readonly TileSpec[] = [
   // Adventurer Logs, a diary of what every player has done: the game's own
   // book, in the pose its icon has, which already stands it up to be read.
   { file: "book", obj: 1509, what: "Book", scale: 2.8 },
+  // Clans: a shield, which is where a clan's crest goes, and the Dragon sq
+  // shield because it is the one every 2004 player wanted. Turned square on,
+  // out of the icon's quarter turn, so it hangs upright facing you the way a
+  // clan's shield hangs on a wall, its dragon the crest.
+  { file: "clans", obj: 1187, what: "Dragon sq shield", scale: 2.8, yan: 0 },
 ];
 
 /** One tile at SUPERSAMPLE size, straight out of the client's renderer. */
@@ -409,51 +414,35 @@ function drawTile(spec: TileSpec): Int32Array {
   return pixels;
 }
 
-/** Average each SUPERSAMPLE x SUPERSAMPLE block down to one pixel. */
+/** Average each SUPERSAMPLE x SUPERSAMPLE block down to one pixel (`sample.ts`). */
 function shrink(pixels: Int32Array): Int32Array {
   const width = TILE_WIDTH * SUPERSAMPLE;
-  const block = SUPERSAMPLE * SUPERSAMPLE;
-  const out = new Int32Array(TILE_WIDTH * TILE_HEIGHT);
-  for (let y = 0; y < TILE_HEIGHT; y++) {
-    for (let x = 0; x < TILE_WIDTH; x++) {
-      let red = 0;
-      let green = 0;
-      let blue = 0;
-      for (let dy = 0; dy < SUPERSAMPLE; dy++) {
-        const row = (y * SUPERSAMPLE + dy) * width + x * SUPERSAMPLE;
-        for (let dx = 0; dx < SUPERSAMPLE; dx++) {
-          const rgb = pixels[row + dx];
-          red += (rgb >> 16) & 0xff;
-          green += (rgb >> 8) & 0xff;
-          blue += rgb & 0xff;
-        }
-      }
-      const rgb =
-        (((red / block) | 0) << 16) |
-        (((green / block) | 0) << 8) |
-        ((blue / block) | 0);
-      // A tile is opaque: 0 is the encoder's transparent, so black is 1.
-      out[x + y * TILE_WIDTH] = rgb === 0 ? BLACK : rgb;
-    }
-  }
-  return out;
+  return boxAverage((x, y) => pixels[x + y * width], TILE_WIDTH, TILE_HEIGHT, SUPERSAMPLE);
 }
 
 const tileFiles: [string, Buffer][] = TILES.map((spec) => [
   `${spec.file}.png`,
   encodePng(shrink(drawTile(spec)), TILE_WIDTH, TILE_HEIGHT),
 ]);
+// The one tile that is a scene rather than an object: Varrock square with
+// three adventurers in it, drawn by the clan photo's own drawer
+// (`community.ts`), in the same set so it shares the version.
+tileFiles.push([
+  "community.png",
+  encodePng(await drawCommunityTile(OUT_DIR, TILE_WIDTH, TILE_HEIGHT), TILE_WIDTH, TILE_HEIGHT),
+]);
+const tileNames = tileFiles.map(([file]) => file.slice(0, -".png".length));
 const tilesVersion = writeSet(fresh("public/img/game/tiles"), tileFiles);
 writeFileSync(
   path.join(OUT_DIR, "lib/title/tiles.json"),
   JSON.stringify({
     version: tilesVersion,
-    names: TILES.map((spec) => spec.file),
+    names: tileNames,
   }) + "\n",
 );
 console.log(
-  `tiles    ${TILES.length} -> public/img/game/tiles/<name>.png?v=${tilesVersion} (${TILE_WIDTH}x${TILE_HEIGHT}): ` +
-    TILES.map((tile) => tile.what).join(", "),
+  `tiles    ${tileFiles.length} -> public/img/game/tiles/<name>.png?v=${tilesVersion} (${TILE_WIDTH}x${TILE_HEIGHT}): ` +
+    [...TILES.map((tile) => tile.what), "Varrock square"].join(", "),
 );
 console.log(`wrote    lib/title/tiles.json`);
 

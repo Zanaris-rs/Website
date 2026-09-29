@@ -4,10 +4,12 @@ import manifest from "./tiles.json";
  * The menu tiles drawn from the game.
  *
  * Most of `/title`'s pictures are 2004's own, vendored into
- * `public/img/title/`. Three pages had no tile Jagex ever drew — LostHQ,
- * Zanaris Kit and the Adventurer Logs — so those are posed from an object's
- * model by
- * `scripts/game-icons/render.ts`, which writes this manifest beside them.
+ * `public/img/title/`. Five pages had no tile Jagex ever drew — LostHQ,
+ * Zanaris Kit, the Adventurer Logs, the Clans and the Community hub — so
+ * those are drawn from the game by `scripts/game-icons/render.ts`, which
+ * writes this manifest beside them: four posed from an object's model, and
+ * the Community's a crop of Varrock square with three adventurers in it
+ * (`scripts/game-icons/community.ts`).
  *
  * Pure and committed, like `lib/items/icons.ts`: a render never depends on
  * the engine being checked out next to this repository.

@@ -5,8 +5,10 @@
 #   public/img/game/items/<id>.png     32x32, one per object id
 #   public/img/game/skills/<stat>.png  25x25, one per engine stat id
 #   lib/items/icons.json               which object ids have no icon
+#   public/img/game/tiles/<name>.png   77x120 menu tiles for /title
+#   lib/title/tiles.json               the tiles' version and names
 #
-# All three are committed. Re-run after a content bump, once the engine has
+# All of them are committed. Re-run after a content bump, once the engine has
 # been repacked, and commit the result. `lib/items/icons.ts` and
 # `lib/skills/icons.ts` are the only things that should build these paths.
 #

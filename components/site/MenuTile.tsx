@@ -18,7 +18,9 @@ import Tile from "./Tile";
  * `image` is optional. A tile without one is just its caption and blurb.
  *
  * The link under the blurb ("Click Here", "Login") is green: it is the thing
- * on the tile that asks to be followed.
+ * on the tile that asks to be followed. `extra` is a line under it for the
+ * reader's own way in, such as the Adventurer Logs tile's "Your log: View ·
+ * Edit" when signed in.
  */
 export default function MenuTile({
   href,
@@ -27,6 +29,7 @@ export default function MenuTile({
   blurb,
   linkText = "Click Here",
   variant = "grey",
+  extra,
 }: {
   href: string;
   image?: string;
@@ -34,6 +37,7 @@ export default function MenuTile({
   blurb: ReactNode;
   linkText?: string;
   variant?: "grey" | "red";
+  extra?: ReactNode;
 }) {
   return (
     <div className={`${styles.tile} ${image ? "" : styles.tileNoPicture}`}>
@@ -67,6 +71,7 @@ export default function MenuTile({
           <a href={href} className={frame.linkGreen}>
             {linkText}
           </a>
+          {extra ? <div className={styles.tileExtra}>{extra}</div> : null}
         </div>
       </div>
     </div>

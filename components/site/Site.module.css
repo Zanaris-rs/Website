@@ -243,6 +243,13 @@
   padding-top: 2px;
 }
 
+/* A line under the tile's link for the reader's own way in: "Your log:
+   View · Edit". Quieter than the blurb, its links as green as the tile's. */
+.tileExtra {
+  margin-top: 6px;
+  color: var(--link);
+}
+
 @media (min-width: 900px) {
   .tileGrid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -257,6 +264,12 @@
 
   .tileGrid > :nth-child(3n + 1):last-child {
     grid-column: 1 / -1;
+  }
+
+  /* Two tiles - Account Services, for everyone but staff - share the row
+     half and half rather than leaving the third column empty. */
+  .tileGrid:has(> :nth-child(2):last-child) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .tile {

@@ -11,7 +11,7 @@ const TILES = path.join(PUBLIC, "img/game/tiles");
 
 /**
  * The tiles are generated files, so what matters is that the manifest, the
- * folder and the page agree: `/title` asks for two names by hand, and a name
+ * folder and the page agree: `/title` asks for five names by hand, and a name
  * the generator stopped drawing would leave that tile with no picture.
  *
  * The version matters for the same reason it does for the icons: /img/game is
@@ -20,8 +20,8 @@ const TILES = path.join(PUBLIC, "img/game/tiles");
  */
 
 describe("titleTileSrc", () => {
-  it("gives the two tiles /title asks for, stamped with the version", () => {
-    for (const name of ["sextant", "dramen-staff"]) {
+  it("gives the five tiles /title asks for, stamped with the version", () => {
+    for (const name of ["sextant", "dramen-staff", "book", "clans", "community"]) {
       expect(titleTileSrc(name)).toBe(
         `/img/game/tiles/${name}.png?v=${manifest.version}`,
       );
