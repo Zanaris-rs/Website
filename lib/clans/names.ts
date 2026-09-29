@@ -16,7 +16,8 @@ export const CLAN_LIMITS = {
   motto: 80,
   about: 600,
   noticeTitle: 40,
-  noticeBody: 280,
+  // Short, like a log's updates (sprint 6; migration 18's clan_notice_post caps at the same).
+  noticeBody: 200,
   members: 50,
   invites: 20,
 } as const;
