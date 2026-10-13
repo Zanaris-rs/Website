@@ -54,30 +54,25 @@ export default function Disclaimer({ menuLink }: { menuLink: boolean }) {
         </p>
 
         <p>
-          <b className={colourClass.green}>Thank you to the Lost City team.</b>{" "}
-          Everything you can play here exists because of their years of research
-          and care, and they are still improving it every week. We are grateful
-          to be able to stand on their work.
-        </p>
-
-        <p>
           If you want to help, the Lost City project is where the work happens
-          and where contributions belong, not here:
-        </p>
-        <div className={styles.linkRow}>
+          and where contributions belong, not here:{" "}
           <a href={LOSTCITY_SITE_URL} className={frame.linkGreen}>
             Lost City website
           </a>
+          ,{" "}
           <a href={LOSTCITY_URL} className={frame.linkGreen}>
             Source code on GitHub
           </a>
+          ,{" "}
           <a href={LOSTCITY_DISCORD_URL} className={frame.linkGreen}>
             Discord
           </a>
+          ,{" "}
           <a href={LOSTCITY_FORUMS_URL} className={frame.linkGreen}>
             Forums
           </a>
-        </div>
+          .
+        </p>
         <p>
           Our own repositories hold only the changes needed to run this rehost.
         </p>

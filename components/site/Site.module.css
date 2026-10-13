@@ -411,15 +411,6 @@
   padding: 4px 0 8px;
 }
 
-/* The row of Lost City links: the places to go if you want to help. */
-.linkRow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 18px;
-  padding: 0 0 8px 12px;
-  text-align: left;
-}
-
 /* --- title screen --- */
 
 /* The wordmark and the player count, then the news. Stacked on a phone; from
