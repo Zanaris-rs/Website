@@ -122,13 +122,9 @@ export default async function Community() {
                   type="text"
                   maxLength={12}
                   autoComplete="off"
-                  aria-describedby="hub-find-hint"
                 />
                 <button type="submit">Go</button>
               </form>
-              <p id="hub-find-hint" className={styles.hint}>
-                Opens their Adventurer Log.
-              </p>
             </Box>
 
             <Box id="hub-top" title="Top of the hiscores">
@@ -170,7 +166,7 @@ export default async function Community() {
               <More href={HISCORES_HREF}>Full hiscores</More>
             </Box>
 
-            <Box id="hub-records" title="Record holders">
+            <Box id="hub-records" title="Records">
               {!hub.records.ok ? (
                 <Unavailable line="Records are unavailable right now. Try again shortly." />
               ) : (

@@ -142,7 +142,7 @@ export default function LoginForm() {
 
         <div className={styles.form}>
           <div className={styles.heading}>
-            <b>Legacy Login</b>
+            <b>Login</b>
           </div>
 
           <form onSubmit={onSubmit}>
