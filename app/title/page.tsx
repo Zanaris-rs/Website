@@ -8,7 +8,7 @@ import StonePanel from "@/components/site/StonePanel";
 import Tile from "@/components/site/Tile";
 import Wordmark from "@/components/site/Wordmark";
 import { readSession } from "@/lib/account/session-server";
-import { CHARACTER_HREF, DIRECTORY_HREF, logHref } from "@/lib/adventurer-log/href";
+import { CHARACTER_HREF, logHref } from "@/lib/adventurer-log/href";
 import { CLANS_HREF } from "@/lib/clans/href";
 import { latest } from "@/lib/news";
 import { formatShortDate, listHref, postHref } from "@/lib/news/parse";
@@ -124,25 +124,20 @@ export default async function Title() {
           </div>
         </StonePanel>
 
-        {/* Where players see each other: the hub, the logs and the clans.
-            None of the three had a 2004 tile, so all three are drawn from the
-            game (`scripts/game-icons/render.ts`, through `titleTileSrc`): the
-            hub's is Varrock square with three adventurers in it, drawn by the
-            clan photo's own drawer; the logs' the game's book; the clans' a
-            Dragon sq shield. */}
+        {/* Where players see each other. The Town Crier's picture is drawn
+            from the game (`scripts/game-icons/render.ts`, through
+            `titleTileSrc`): Varrock square with three adventurers in it,
+            drawn by the clan photo's own drawer. The clans' is a Dragon sq
+            shield; the economy's is 2004's scales over a ledger of coins.
+            The Adventurer Logs are reached from the Town Crier's page, so the
+            reader's own log rides on its tile. */}
         <StonePanel title="Community" className={styles.sectionPanel}>
           <div className={styles.tileGrid}>
             <MenuTile
               href="/community"
               image={titleTileSrc("community") ?? undefined}
-              caption="Community"
-              blurb="Who&rsquo;s about, the fastest records and news from every log."
-            />
-            <MenuTile
-              href={DIRECTORY_HREF}
-              image={titleTileSrc("book") ?? undefined}
-              caption="Adventurer Logs"
-              blurb="Every player&rsquo;s levels, quests and drops, in their own words."
+              caption="Town Crier"
+              blurb="The word around town: who&rsquo;s levelled, who&rsquo;s set a record, and what the clans are up to."
               extra={
                 session ? (
                   <>
@@ -164,9 +159,17 @@ export default async function Title() {
               caption="Clans"
               blurb="Invite-only clans: their crests, notices and members."
             />
+            <MenuTile
+              href="/economy"
+              image="/img/title/mm_accman.jpg"
+              caption="The Economy"
+              blurb="Every item in the game, counted every hour."
+            />
           </div>
         </StonePanel>
 
+        {/* The reader's own account, and how accounts stand: the Ban Record
+            is 2004's chest with a padlock through its hasp. */}
         <StonePanel title="Account Services" className={styles.sectionPanel}>
           <div className={styles.tileGrid}>
             <MenuTile
@@ -182,6 +185,12 @@ export default async function Title() {
               caption="Message Centre"
               blurb="Communicate with our staff."
               linkText="Login"
+            />
+            <MenuTile
+              href="/bans"
+              image="/img/title/mm_vote.jpg"
+              caption="Ban Record"
+              blurb="Every ban and mute, permanently public."
             />
             {staffTile ? (
               <MenuTile
@@ -212,25 +221,7 @@ export default async function Title() {
               caption="World Map"
               blurb="Great for finding your way around."
             />
-            {/* Two pictures 2004 drew for pages it had and we do not, put to
-                work on two pages we have and it did not: a chest with a
-                padlock through its hasp, and scales over a ledger of coins. */}
-            <MenuTile
-              href="/bans"
-              image="/img/title/mm_vote.jpg"
-              caption="Ban Record"
-              blurb="Every ban and mute, permanently public."
-            />
-            <MenuTile
-              href="/economy"
-              image="/img/title/mm_accman.jpg"
-              caption="The Economy"
-              blurb="Every item in the game, counted every hour."
-            />
             {/* Last, because these two are the links that leave the site.
-                Six tiles fill both grids: three rows of two, or two of
-                three.
-
                 Nothing in the 2004 set is about either of them, so both are
                 drawn from the game itself (`scripts/game-icons/render.ts`):
                 a sextant for the wiki that works out where you are, and the
