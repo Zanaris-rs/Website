@@ -53,6 +53,7 @@ declare global {
           "expired-callback"?: () => void;
           "error-callback"?: () => void;
           theme?: "light" | "dark" | "auto";
+          appearance?: "always" | "execute" | "interaction-only";
         },
       ): string | undefined;
       reset(widgetId?: string): void;
@@ -138,6 +139,9 @@ export default function RegisterForm({ invite }: { invite: { code: string; invit
       // somebody else's page - is refused. See lib/account/turnstile.ts.
       action: TURNSTILE_ACTION,
       theme: "dark",
+      // Invisible unless Cloudflare wants a human to click: most visitors
+      // never see it, but every submit still carries a verified token.
+      appearance: "interaction-only",
       callback: (value) => setToken(value),
       // A token is single-use and short-lived. Dropping it on expiry means the
       // form asks again rather than posting something the server will reject.

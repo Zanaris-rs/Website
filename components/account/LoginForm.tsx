@@ -75,6 +75,9 @@ export default function LoginForm() {
       // widget, so a token solved on the register page mints nothing here.
       action: TURNSTILE_LOGIN_ACTION,
       theme: "dark",
+      // Invisible unless Cloudflare wants a human to click: most visitors
+      // never see it, but every submit still carries a verified token.
+      appearance: "interaction-only",
       callback: (value) => setToken(value),
       "expired-callback": () => setToken(null),
       "error-callback": () => setToken(null),
