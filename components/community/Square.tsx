@@ -138,7 +138,7 @@ export default function Square({
     ? "The square is unavailable right now. Try again shortly."
     : sitters.length === 0
       ? "Nobody’s about yet."
-      : `${SPOT.name} · the adventurers most recently about. Click one to read their log.`;
+      : "Click a character to view their log.";
 
   return (
     <figure className={styles.square}>

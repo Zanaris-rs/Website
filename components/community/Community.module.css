@@ -134,13 +134,7 @@
   padding: 2px 12px;
 }
 
-.hint {
-  margin: 4px 0 0;
-  color: var(--text-muted);
-  font-size: 11px;
-}
-
-/* --- Top of the hiscores and Record holders ------------------------------------ */
+/* --- Top of the hiscores and Records ------------------------------------------- */
 
 .table {
   width: 100%;

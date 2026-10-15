@@ -272,6 +272,16 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  /* Four tiles - Game Rules & Resources, and Account Services for staff -
+     make two rows of two rather than three and a lone fourth. */
+  .tileGrid:has(> :nth-child(4):last-child) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .tileGrid > :nth-child(4):last-child {
+    grid-column: auto;
+  }
+
   .tile {
     flex-direction: row;
     align-items: flex-start;

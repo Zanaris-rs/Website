@@ -30,9 +30,8 @@ export default function InviteDoor({ message }: { message?: string | null }) {
           ) : null}
 
           <p>
-            You can&apos;t sign up here on your own. Every account on{" "}
-            {SITE_NAME} was let in by somebody who already plays, with a link
-            that works once.
+            {SITE_NAME} is an invite-only community. Every account on{" "}
+            {SITE_NAME} was let in by somebody who already plays.
           </p>
           <p>If you were sent a link, open it. If you were sent a code, paste it here:</p>
 

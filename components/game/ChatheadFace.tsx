@@ -2,6 +2,7 @@
 
 import { tables } from "@/lib/chathead/load";
 import type { Look } from "@/lib/chathead/look";
+import { defaultLook } from "@/lib/chathead/validate";
 
 import Chathead from "./Chathead";
 
@@ -10,7 +11,12 @@ import Chathead from "./Chathead";
  * reply: the frame is tall enough for the tallest hats, and at avatar size
  * that leaves the face a dot. The window is centred on the head's origin, a
  * little above it, and anything outside it (a hat's point) is cut off.
+ *
+ * A player who has never saved an outfit has no look; they get the game's
+ * new-character face (`defaultLook(0)`) rather than an empty box.
  */
+const FALLBACK: Look = defaultLook(0);
+
 export default function ChatheadFace({
   look,
   size = 64,
@@ -44,7 +50,7 @@ export default function ChatheadFace({
           top: size * 0.62 - originY * scale,
         }}
       >
-        <Chathead look={look} scale={scale} label={label} />
+        <Chathead look={look ?? FALLBACK} scale={scale} label={label} />
       </span>
     </span>
   );
