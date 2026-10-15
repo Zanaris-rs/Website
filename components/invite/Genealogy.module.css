@@ -135,14 +135,16 @@
    edges are the border-image's slices, so they keep their shape however long
    the tree grows, and only the plain middle stretches. The ink is the quest
    journals' own: dark blue for the words (`@dbl@`, 0x000080) and dark red for
-   names (`@dre@`, 0x800000), the red taken a shade deeper and the grey to a
-   dark ink so both clear 4.5:1 on the brightened parchment. */
+   names (`@dre@`, 0x800000), and black for the rest, as the journals strike
+   through finished steps in. At the game's own shade the red falls short of
+   4.5:1, so the parchment is drawn a quarter brighter instead. Narrow, about
+   the in-game journal's shape, so the names fill it. */
 
 .scroll {
   position: relative;
   isolation: isolate;
   box-sizing: border-box;
-  width: min(720px, 100%);
+  width: min(520px, 100%);
   margin: 0 auto;
   padding: 56px 62px 70px;
   color: #000080;
@@ -150,7 +152,7 @@
 }
 
 /* The parchment, behind the words and a quarter brighter than the game draws
-   it: at the game's own shade the inks fall short of 4.5:1. */
+   it: at the game's own shade its dark red falls short of 4.5:1. */
 .scroll::before {
   content: "";
   position: absolute;
@@ -172,7 +174,7 @@
 
 .scrollTitle {
   text-align: center;
-  color: #600000;
+  color: #800000;
   font-weight: bold;
   font-size: 15px;
 }
@@ -184,11 +186,11 @@
 }
 
 .scroll .founders {
-  color: #600000;
+  color: #800000;
 }
 
 .scroll .person a {
-  color: #600000;
+  color: #800000;
 }
 
 .scroll .total {
@@ -197,21 +199,21 @@
 
 .scroll .citizen,
 .scroll .count {
-  color: #33220c;
+  color: #000000;
 }
 
 .scroll .tree ul > li::before {
-  border-left-color: #33220c;
+  border-left-color: #000000;
 }
 
 .scroll .tree ul > li::after {
-  border-top-color: #33220c;
+  border-top-color: #000000;
 }
 
 .scroll .branch > summary::marker {
-  color: #33220c;
+  color: #000000;
 }
 
 .scroll [role="alert"] {
-  color: #600000;
+  color: #800000;
 }
