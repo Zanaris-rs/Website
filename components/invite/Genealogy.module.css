@@ -89,6 +89,26 @@
   white-space: nowrap;
 }
 
+/* The chathead before a name on the public tree: sunk into the line so the
+   row keeps the height the family-tree ticks are drawn for. */
+.face {
+  margin: -3px 5px -3px 0;
+  vertical-align: middle;
+}
+
+/* "(total-625)": the colour the game gives a level beside a name. */
+.total {
+  color: #ffff00;
+}
+
+/* Over the progenitors - nobody let them in, so each line starts with them -
+   in the orange the game titles its own interfaces with. */
+.founders {
+  padding-top: 10px;
+  color: #ff981f;
+  font-weight: bold;
+}
+
 .citizen,
 .count {
   color: #9a9a9a;
@@ -107,4 +127,93 @@
 .bannedTag {
   color: #ff6b6b;
   font-size: 11px;
+}
+
+/* --- on the quest journal's parchment (`/genealogy`) ----------------------
+   The scroll is `quest-scroll.png`, the 2004 quest journal's own model drawn
+   at twice the game's size; `--scroll` carries its versioned URL. Its torn
+   edges are the border-image's slices, so they keep their shape however long
+   the tree grows, and only the plain middle stretches. The ink is the quest
+   journals' own: dark blue for the words (`@dbl@`, 0x000080) and dark red for
+   names (`@dre@`, 0x800000), and black for the rest, as the journals strike
+   through finished steps in. At the game's own shade the red falls short of
+   4.5:1, so the parchment is drawn a quarter brighter instead. Narrow, about
+   the in-game journal's shape, so the names fill it. */
+
+.scroll {
+  position: relative;
+  isolation: isolate;
+  box-sizing: border-box;
+  width: min(520px, 100%);
+  margin: 0 auto;
+  padding: 56px 62px 70px;
+  color: #000080;
+  text-align: left;
+}
+
+/* The parchment, behind the words and a quarter brighter than the game draws
+   it: at the game's own shade its dark red falls short of 4.5:1. */
+.scroll::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-style: solid;
+  border-width: 30px 28px 36px;
+  border-image-source: var(--scroll);
+  border-image-slice: 60 56 72 fill;
+  border-image-repeat: stretch;
+  filter: brightness(1.25);
+}
+
+@media (max-width: 599px) {
+  .scroll {
+    padding: 44px 30px 56px;
+  }
+}
+
+.scrollTitle {
+  text-align: center;
+  color: #800000;
+  font-weight: bold;
+  font-size: 15px;
+}
+
+.scrollNote {
+  margin: 10px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.scroll .founders {
+  color: #800000;
+}
+
+.scroll .person a {
+  color: #800000;
+}
+
+.scroll .total {
+  color: #000080;
+}
+
+.scroll .citizen,
+.scroll .count {
+  color: #000000;
+}
+
+.scroll .tree ul > li::before {
+  border-left-color: #000000;
+}
+
+.scroll .tree ul > li::after {
+  border-top-color: #000000;
+}
+
+.scroll .branch > summary::marker {
+  color: #000000;
+}
+
+.scroll [role="alert"] {
+  color: #800000;
 }

@@ -1,7 +1,9 @@
+import ChatheadFace from "@/components/game/ChatheadFace";
 import frame from "@/components/site/Frame.module.css";
 import { formatWhen } from "@/lib/account/profile";
 import { toDisplayName } from "@/lib/base37";
 import { formatCitizen } from "@/lib/invite/format";
+import type { Look } from "@/lib/chathead/look";
 import type { GenealogyNode } from "@/lib/invite/genealogy";
 
 import styles from "./Genealogy.module.css";
@@ -14,6 +16,16 @@ import styles from "./Genealogy.module.css";
  *
  * A branch with children is a `<details>`, open to start with, so a large line
  * can be folded away without any script.
+ *
+ * Given `looks`, each name has its chathead before it: their saved outfit,
+ * else their last look in the game, else the new-character face
+ * (`ChatheadFace`'s fallback). Given `totals`, the name is followed by its
+ * total level the way the game's right-click menu follows a name with its
+ * combat level: "Zanaris (total-625)".
+ *
+ * The rest is a family tree's: the progenitors stand under one "Founders"
+ * heading, and the count is of heirs - everyone in their line, at every
+ * depth.
  */
 
 type Shared = {
@@ -21,23 +33,39 @@ type Shared = {
   href: (node: GenealogyNode) => string;
   /** The staff tags: banned, can invite. */
   staff: boolean;
+  /** Chatheads by username; leave out for no faces. */
+  looks?: ReadonlyMap<string, Look>;
+  /** Total levels by username; leave out for none. */
+  totals?: ReadonlyMap<string, number>;
 };
 
-function Person({ node, href, staff }: { node: GenealogyNode } & Shared) {
+const heirs = (count: number) => `${count} ${count === 1 ? "heir" : "heirs"}`;
+
+function Person({ node, href, staff, looks, totals }: { node: GenealogyNode } & Shared) {
   const title = `Joined ${formatWhen(node.joinedAt)}`;
   const banned = staff && node.banned;
+  const total = totals?.get(node.username);
   return (
     <span className={styles.person} title={title}>
+      {looks ? (
+        <ChatheadFace
+          look={looks.get(node.username) ?? null}
+          size={20}
+          label={`${toDisplayName(node.username)}'s chathead`}
+          className={styles.face}
+        />
+      ) : null}
       <a className={`${frame.link} ${banned ? styles.banned : ""}`} href={href(node)}>
         {toDisplayName(node.username)}
-      </a>{" "}
+      </a>
+      {total !== undefined ? <span className={styles.total}> (total-{total})</span> : null}{" "}
       <span className={styles.citizen}>{formatCitizen(node.citizenNumber)}</span>
       {banned ? <span className={styles.bannedTag}> banned</span> : null}
       {staff && node.invitesEnabled ? <span className={styles.inviter}> can invite</span> : null}
       {node.descendants > 0 ? (
         <span className={styles.count}>
           {" "}
-          · {node.descendants} below
+          · {heirs(node.descendants)}
         </span>
       ) : null}
     </span>
@@ -72,10 +100,13 @@ function Branch({ node, ...shared }: { node: GenealogyNode } & Shared) {
 
 export default function GenealogyTree({ tree, ...shared }: { tree: readonly GenealogyNode[] } & Shared) {
   return (
-    <ul className={styles.tree}>
-      {tree.map((node) => (
-        <Branch key={node.citizenNumber} node={node} {...shared} />
-      ))}
-    </ul>
+    <>
+      <div className={styles.founders}>Founders</div>
+      <ul className={styles.tree}>
+        {tree.map((node) => (
+          <Branch key={node.citizenNumber} node={node} {...shared} />
+        ))}
+      </ul>
+    </>
   );
 }
