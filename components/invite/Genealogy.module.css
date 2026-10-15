@@ -89,6 +89,13 @@
   white-space: nowrap;
 }
 
+/* The chathead before a name on the public tree: sunk into the line so the
+   row keeps the height the family-tree ticks are drawn for. */
+.face {
+  margin: -3px 5px -3px 0;
+  vertical-align: middle;
+}
+
 .citizen,
 .count {
   color: #9a9a9a;

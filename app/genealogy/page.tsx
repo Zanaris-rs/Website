@@ -6,6 +6,7 @@ import Frame from "@/components/site/Frame";
 import Panel from "@/components/site/Panel";
 import TitleBox from "@/components/site/TitleBox";
 import { logHref } from "@/lib/adventurer-log/href";
+import type { Look } from "@/lib/chathead/look";
 import { COMMUNITY_BAR_WIDTH, communityLinks } from "@/lib/community/href";
 import { query } from "@/lib/db";
 import { type GenealogyNode, buildGenealogy } from "@/lib/invite/genealogy";
@@ -14,6 +15,8 @@ import {
   parseGenealogyRow,
   publicInviteGenealogyStatement,
 } from "@/lib/invite/queries";
+import { chatheadLooks } from "@/lib/outfits/looks";
+import { DEFAULT_LOOKS_MAX } from "@/lib/outfits/queries";
 import { SITE_NAME } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -26,6 +29,23 @@ export const dynamic = "force-dynamic";
 const logOf = (node: GenealogyNode) => logHref(node.username);
 
 /**
+ * Everyone's chathead, a hundred names a statement (`DEFAULT_LOOKS_MAX`). A
+ * nicety: a failed read is logged and every face falls back to the default.
+ */
+async function looksOf(usernames: readonly string[]): Promise<Map<string, Look>> {
+  const batches: string[][] = [];
+  for (let i = 0; i < usernames.length; i += DEFAULT_LOOKS_MAX) {
+    batches.push(usernames.slice(i, i + DEFAULT_LOOKS_MAX));
+  }
+  try {
+    return new Map((await Promise.all(batches.map(chatheadLooks))).flatMap((looks) => [...looks]));
+  } catch (error) {
+    console.error("[genealogy] chatheads read failed", error);
+    return new Map();
+  }
+}
+
+/**
  * `/genealogy`: the whole invite tree, for everyone. Every account sits under
  * the player whose link it used; each name opens that player's Adventurer
  * Log. Public since migration 19: the staff tree (`/staff/invites/genealogy`)
@@ -34,6 +54,7 @@ const logOf = (node: GenealogyNode) => logHref(node.username);
 export default async function GenealogyPage() {
   let rows: GenealogyRow[] = [];
   let tree: GenealogyNode[] = [];
+  let looks = new Map<string, Look>();
   let error: string | null = null;
 
   try {
@@ -41,6 +62,7 @@ export default async function GenealogyPage() {
     const raw = await query<Record<string, unknown>>(wanted.text, wanted.values);
     rows = raw.map(parseGenealogyRow).filter((row): row is GenealogyRow => row !== null);
     tree = buildGenealogy(rows);
+    looks = await looksOf(rows.map((row) => row.username));
   } catch (readError) {
     console.error("[genealogy] read failed", readError);
     error = "The invite records are unavailable right now. Try again shortly.";
@@ -69,7 +91,7 @@ export default async function GenealogyPage() {
             </p>
 
             <div className={account.scroller}>
-              <GenealogyTree tree={tree} href={logOf} staff={false} />
+              <GenealogyTree tree={tree} href={logOf} staff={false} looks={looks} />
             </div>
           </>
         )}
