@@ -93,7 +93,7 @@ export default async function GenealogyPage() {
 
       <Panel align="left">
         <div className={account.heading}>
-          <b>Who let whom in</b>
+          <b>The Lineage of {SITE_NAME}</b>
         </div>
 
         {error ? (
@@ -103,10 +103,11 @@ export default async function GenealogyPage() {
         ) : (
           <>
             <p className={account.note}>
-              Every one of the {rows.length} {rows.length === 1 ? "citizen" : "citizens"} of{" "}
-              {SITE_NAME} was let in by somebody who already plays. The first citizens are at
-              the top; everyone else sits under the player whose invite they used. Click a
-              name to read their Adventurer Log.
+              No adventurer finds {SITE_NAME} alone. The Founders were here first, and head
+              this scroll; every adventurer since was shown the way by one already inside,
+              and stands beneath them. So far, {rows.length}{" "}
+              {rows.length === 1 ? "adventurer has" : "adventurers have"} found the way.
+              Click a name to read their Adventurer Log.
             </p>
 
             <div className={account.scroller}>
