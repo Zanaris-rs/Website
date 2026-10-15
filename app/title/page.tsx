@@ -98,7 +98,17 @@ export default async function Title() {
         </StonePanel>
       </div>
 
+      {/* The tiles are grouped in threes (Community in two rows of three), so
+          every row on a desktop is as full as Main Features'. Account
+          Services is the exception: a pair, centred, and a full three when
+          the Staff Inbox is shown. */}
       <div className={styles.sections}>
+        {/* The ways into the game: in the browser, by invitation, or through
+            our desktop client. The Kit's picture is drawn from the game
+            (`scripts/game-icons/render.ts`, through `titleTileSrc`, which
+            versions the URL — everything under /img/game is cached for a
+            year): nothing in the 2004 set is a desktop client, so it is the
+            staff you have to be holding to reach Zanaris. */}
         <StonePanel title="Main Features" className={styles.sectionPanel}>
           <div className={styles.tileGrid}>
             <MenuTile
@@ -116,21 +126,22 @@ export default async function Title() {
               blurb="Claim your invite."
             />
             <MenuTile
-              href="/hiscores"
-              image="/img/title/mm_chalice.jpg"
-              caption="Hiscores Table"
-              blurb="See how you compare to other players!"
+              href={KIT_RELEASES_URL}
+              image={titleTileSrc("dramen-staff") ?? undefined}
+              caption="Zanaris Kit"
+              blurb="Our open-source desktop client, still early. Pick your download on GitHub."
+              linkText="Download"
             />
           </div>
         </StonePanel>
 
-        {/* Where players see each other. The Town Crier's picture is drawn
-            from the game (`scripts/game-icons/render.ts`, through
-            `titleTileSrc`): Varrock square with three adventurers in it,
-            drawn by the clan photo's own drawer. The clans' is a Dragon sq
-            shield; the economy's is 2004's scales over a ledger of coins.
-            The Adventurer Logs are reached from the Town Crier's page, so the
-            reader's own log rides on its tile. */}
+        {/* Where players see each other, and the world's public record. The
+            Town Crier's picture is drawn from the game: Varrock square with
+            three adventurers in it, drawn by the clan photo's own drawer. The
+            clans' is a Dragon sq shield; the economy's is 2004's scales over
+            a ledger of coins; the Ban Record is 2004's chest with a padlock
+            through its hasp. The Adventurer Logs are reached from the Town
+            Crier's page, so the reader's own log rides on its tile. */}
         <StonePanel title="Community" className={styles.sectionPanel}>
           <div className={styles.tileGrid}>
             <MenuTile
@@ -154,10 +165,22 @@ export default async function Title() {
               }
             />
             <MenuTile
+              href="/hiscores"
+              image="/img/title/mm_chalice.jpg"
+              caption="Hiscores Table"
+              blurb="See how you compare to other players!"
+            />
+            <MenuTile
               href={CLANS_HREF}
               image={titleTileSrc("clans") ?? undefined}
               caption="Clans"
               blurb="Invite-only clans: their crests, notices and members."
+            />
+            <MenuTile
+              href="/genealogy"
+              image={titleTileSrc("guthix-helm") ?? undefined}
+              caption="Genealogy"
+              blurb="Who let whom in, from the first citizens down."
             />
             <MenuTile
               href="/economy"
@@ -166,16 +189,15 @@ export default async function Title() {
               blurb="Every item in the game, counted every hour."
             />
             <MenuTile
-              href="/genealogy"
-              image={titleTileSrc("guthix-helm") ?? undefined}
-              caption="Genealogy"
-              blurb="Who let whom in, from the first citizens down."
+              href="/bans"
+              image="/img/title/mm_vote.jpg"
+              caption="Ban Record"
+              blurb="Every ban and mute, permanently public."
             />
           </div>
         </StonePanel>
 
-        {/* The reader's own account, and how accounts stand: the Ban Record
-            is 2004's chest with a padlock through its hasp. */}
+        {/* The reader's own account. */}
         <StonePanel title="Account Services" className={styles.sectionPanel}>
           <div className={styles.tileGrid}>
             <MenuTile
@@ -191,12 +213,6 @@ export default async function Title() {
               caption="Message Centre"
               blurb="Communicate with our staff."
               linkText="Login"
-            />
-            <MenuTile
-              href="/bans"
-              image="/img/title/mm_vote.jpg"
-              caption="Ban Record"
-              blurb="Every ban and mute, permanently public."
             />
             {staffTile ? (
               <MenuTile
@@ -227,26 +243,16 @@ export default async function Title() {
               caption="World Map"
               blurb="Great for finding your way around."
             />
-            {/* Last, because these two are the links that leave the site.
-                Nothing in the 2004 set is about either of them, so both are
-                drawn from the game itself (`scripts/game-icons/render.ts`):
-                a sextant for the wiki that works out where you are, and the
-                staff you have to be holding to reach Zanaris. Both go through
-                `titleTileSrc`, which versions the URL — everything under
-                /img/game is cached for a year. */}
+            {/* Last, because it is the link that leaves the site. Nothing in
+                the 2004 set is about a wiki, so it is drawn from the game
+                like the Kit: a sextant, for the wiki that works out where you
+                are. */}
             <MenuTile
               href={LOSTHQ_URL}
               image={titleTileSrc("sextant") ?? undefined}
               caption="LostHQ"
               blurb="Community guides, quest walkthroughs, calculators and item database."
               linkText="Visit"
-            />
-            <MenuTile
-              href={KIT_RELEASES_URL}
-              image={titleTileSrc("dramen-staff") ?? undefined}
-              caption="Zanaris Kit"
-              blurb="Our open-source desktop client, still early. Pick your download on GitHub."
-              linkText="Download"
             />
           </div>
         </StonePanel>

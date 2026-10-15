@@ -10,7 +10,8 @@
  * frame allows, capped by the tokens in `app/globals.css`.
  *
  * Mobile-first. The 900px rule is the title screen's desktop layout; the
- * 600px rule brings the two-column furniture back on the inner pages.
+ * 600px rule brings the two-column furniture back on the inner pages. The
+ * menu tiles go by their own panel's width instead (see "menu tiles").
  */
 
 /* --- title box: `<table width=250 bgcolor=black cellpadding=4>` --- */
@@ -177,13 +178,30 @@
 }
 
 /* --- menu tiles ---
-   One tile, two shapes. On a phone it is the original's compact layout: the
-   caption on top, the picture drawn small at 48x75, the blurb underneath, two
-   to a row. From 900px it is the wide layout: the 77x120 picture on the left,
-   caption and blurb on the right, three to a row. `.tileBody` is
-   `display: contents` on a phone so that the caption and the blurb can sit
-   either side of the picture; on desktop it is the 120px column of the wide
-   tile. */
+   One tile, two shapes. In a narrow panel it is the original's compact
+   layout: the caption on top, the picture drawn small at 48x75, the blurb
+   underneath, two to a row. Once the panel has room for two wide tiles it is
+   the wide layout: the 77x120 picture on the left, caption and blurb on the
+   right. `.tileBody` is `display: contents` in the compact tile so that the
+   caption and the blurb can sit either side of the picture; in the wide tile
+   it is the 120px column.
+
+   The shape follows the panel's own width (a container query), not the
+   window's: the chains and the stone take their bite first, and the tiles
+   only care what is left. A wide tile is 230px (the 100px picture column and
+   the 120px text column, with room to spare) and the columns are 10px apart:
+   - 710px or more: three abreast (3 x 230 + 2 x 10). `/title` groups its
+     tiles in threes so that every row is full; a pair keeps the columns
+     three would have and sits in the middle, and a lone last tile is
+     centred under the row above it;
+   - 470px or more: two abreast (2 x 230 + 10);
+   - narrower: the compact tiles, two to a row.
+   Before this the switch was a 900px window, which left a pane or a tablet
+   an inch short of it with phone tiles adrift in a 750px panel. */
+
+.stoneInterior:has(> .tileGrid) {
+  container-type: inline-size;
+}
 
 .tileGrid {
   display: grid;
@@ -250,36 +268,11 @@
   color: var(--link);
 }
 
-@media (min-width: 900px) {
+/* The wide tile, two abreast. A lone last tile still spans both columns, as
+   in the compact grid above. */
+@container (width >= 470px) {
   .tileGrid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 12px 10px;
-  }
-
-  /* Three columns now, so a third tile is not alone any more — but a fourth
-     is, and the rule that centres it has to move with the column count. */
-  .tileGrid > :nth-child(odd):last-child {
-    grid-column: auto;
-  }
-
-  .tileGrid > :nth-child(3n + 1):last-child {
-    grid-column: 1 / -1;
-  }
-
-  /* Two tiles - Account Services, for everyone but staff - share the row
-     half and half rather than leaving the third column empty. */
-  .tileGrid:has(> :nth-child(2):last-child) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  /* Four tiles - Game Rules & Resources, and Account Services for staff -
-     make two rows of two rather than three and a lone fourth. */
-  .tileGrid:has(> :nth-child(4):last-child) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .tileGrid > :nth-child(4):last-child {
-    grid-column: auto;
   }
 
   .tile {
@@ -322,6 +315,30 @@
   .tilePicture {
     width: 77px;
     height: 120px;
+  }
+}
+
+@container (width >= 710px) {
+  .tileGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  /* Three columns now, so a third tile is not alone any more — but a fourth
+     is, and the rule that centres it has to move with the column count. */
+  .tileGrid > :nth-child(odd):last-child {
+    grid-column: auto;
+  }
+
+  .tileGrid > :nth-child(3n + 1):last-child {
+    grid-column: 1 / -1;
+  }
+
+  /* Two tiles - Account Services, for everyone but staff - keep the columns
+     three would have and sit together in the middle, rather than taking half
+     the row each with a gulf between them. 20px is the two gaps. */
+  .tileGrid:has(> :nth-child(2):last-child) {
+    grid-template-columns: repeat(2, calc((100% - 20px) / 3));
+    justify-content: center;
   }
 }
 

@@ -10,10 +10,12 @@ import Tile from "./Tile";
  * blurb and a link.
  *
  * One markup tree, two layouts, both from the original and both decided by
- * `Site.module.css`: on a phone the caption sits on top, the 77x120 picture
- * is drawn small at 48x75 beneath it and the blurb under that (Lost City's
- * "Secure Services" look); from 900px the picture is on the left at full size
- * with the caption and blurb beside it (the "Main Features" look).
+ * `Site.module.css`: in a narrow panel the caption sits on top, the 77x120
+ * picture is drawn small at 48x75 beneath it and the blurb under that (Lost
+ * City's "Secure Services" look); once the panel has room for two wide tiles
+ * the picture is on the left at full size with the caption and blurb beside
+ * it (the "Main Features" look). It is the panel's width that decides, not
+ * the window's.
  *
  * `image` is optional. A tile without one is just its caption and blurb.
  *
