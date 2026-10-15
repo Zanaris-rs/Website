@@ -28,7 +28,14 @@ export const metadata: Metadata = {
   description: `Who let whom into ${SITE_NAME}, from the first citizens down.`,
 };
 
-export const dynamic = "force-dynamic";
+/**
+ * A minute, like the economy pages' five but shorter: the page asks the
+ * database three things (the tree, every face, every total) and is the same
+ * for everyone, so per request it repeated them for every visitor. A new
+ * citizen, outfit or level shows within the minute. A failed read renders the
+ * "unavailable" scroll, which is likewise kept for at most a minute.
+ */
+export const revalidate = 60;
 
 const logOf = (node: GenealogyNode) => logHref(node.username);
 
