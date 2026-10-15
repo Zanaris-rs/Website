@@ -32,14 +32,15 @@ ids have no picture.
 Order matters — icons come from the engine's **pack**, names from **content**:
 
 ```bash
-npm --prefix /Users/matthewgould/Projects/2004scape/Server/engine run build
-CONTENT_DIR=/Users/matthewgould/Projects/2004scape/Server/content npm run items:update
-ENGINE_DIR=/Users/matthewgould/Projects/2004scape/Server/engine npm run icons:update
-ENGINE_DIR=/Users/matthewgould/Projects/2004scape/Server/engine npm run textures:update
+SERVER=/path/to/Server   # your Server checkout, absolute
+npm --prefix "$SERVER/engine" run build
+CONTENT_DIR="$SERVER/content" npm run items:update
+ENGINE_DIR="$SERVER/engine" npm run icons:update
+ENGINE_DIR="$SERVER/engine" npm run textures:update
 npm test
 ```
 
-- In a worktree the scripts' `../Server/...` defaults point at nothing — always pass the absolute dirs.
+- In a worktree the scripts' `../Server/...` defaults point at nothing — always set `SERVER` to the absolute path.
 - `icons:update` packs only if the pack is *missing*; a stale pack silently gives old icons. Check its `pack … (date)` line is after the content change.
 - It needs `bun`; it clones Client-TS 274 into `.cache/` (ignored).
 - A `warning … past the pack's N objects` line means names.json is newer than the pack: repack, re-run.
