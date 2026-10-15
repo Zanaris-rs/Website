@@ -9,6 +9,8 @@ import { logHref } from "@/lib/adventurer-log/href";
 import type { Look } from "@/lib/chathead/look";
 import { COMMUNITY_BAR_WIDTH, communityLinks } from "@/lib/community/href";
 import { query } from "@/lib/db";
+import { DEFAULT_PROFILE } from "@/lib/hiscores/params";
+import { totalLevelsQuery } from "@/lib/hiscores/queries";
 import { type GenealogyNode, buildGenealogy } from "@/lib/invite/genealogy";
 import {
   type GenealogyRow,
@@ -51,10 +53,26 @@ async function looksOf(usernames: readonly string[]): Promise<Map<string, Look>>
  * Log. Public since migration 19: the staff tree (`/staff/invites/genealogy`)
  * keeps the staff tags.
  */
+/**
+ * Everyone's total level, as the hiscores have it. Also a nicety: a failed
+ * read is logged and the names go without.
+ */
+async function totalsOf(usernames: readonly string[]): Promise<Map<string, number>> {
+  try {
+    const wanted = totalLevelsQuery(DEFAULT_PROFILE, usernames);
+    const rows = await query<{ username: string; level: number }>(wanted.text, wanted.values);
+    return new Map(rows.map((row) => [row.username, Number(row.level)]));
+  } catch (error) {
+    console.error("[genealogy] total levels read failed", error);
+    return new Map();
+  }
+}
+
 export default async function GenealogyPage() {
   let rows: GenealogyRow[] = [];
   let tree: GenealogyNode[] = [];
   let looks = new Map<string, Look>();
+  let totals = new Map<string, number>();
   let error: string | null = null;
 
   try {
@@ -62,7 +80,8 @@ export default async function GenealogyPage() {
     const raw = await query<Record<string, unknown>>(wanted.text, wanted.values);
     rows = raw.map(parseGenealogyRow).filter((row): row is GenealogyRow => row !== null);
     tree = buildGenealogy(rows);
-    looks = await looksOf(rows.map((row) => row.username));
+    const usernames = rows.map((row) => row.username);
+    [looks, totals] = await Promise.all([looksOf(usernames), totalsOf(usernames)]);
   } catch (readError) {
     console.error("[genealogy] read failed", readError);
     error = "The invite records are unavailable right now. Try again shortly.";
@@ -91,7 +110,7 @@ export default async function GenealogyPage() {
             </p>
 
             <div className={account.scroller}>
-              <GenealogyTree tree={tree} href={logOf} staff={false} looks={looks} />
+              <GenealogyTree tree={tree} href={logOf} staff={false} looks={looks} totals={totals} />
             </div>
           </>
         )}

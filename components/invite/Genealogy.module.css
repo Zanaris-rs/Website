@@ -96,6 +96,19 @@
   vertical-align: middle;
 }
 
+/* "(total-625)": the colour the game gives a level beside a name. */
+.total {
+  color: #ffff00;
+}
+
+/* Over the progenitors - nobody let them in, so each line starts with them -
+   in the orange the game titles its own interfaces with. */
+.founders {
+  padding-top: 10px;
+  color: #ff981f;
+  font-weight: bold;
+}
+
 .citizen,
 .count {
   color: #9a9a9a;

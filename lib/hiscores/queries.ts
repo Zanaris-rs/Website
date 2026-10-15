@@ -145,6 +145,21 @@ function rankOf(view: string): string {
       )::int`;
 }
 
+/**
+ * Overall (total) level for each of `usernames` on `profile`, one row per name
+ * that has an Overall row. A name with none - under the hiscores' threshold,
+ * or hidden - is simply missing.
+ */
+export function totalLevelsQuery(profile: string, usernames: readonly string[]): Statement {
+  return {
+    text: `
+    select h.username, h.level
+    from ${OVERALL_VIEW} h
+    where h.profile = $1 and h.type = 0 and h.username = any($2::text[])`,
+    values: [profile, [...usernames]],
+  };
+}
+
 /** Every category one player appears in, with a rank for each. */
 export function playerQuery(params: PlayerParams): Statement {
   return {

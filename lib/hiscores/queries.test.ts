@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { CATEGORIES } from "./categories";
-import { playerQuery, sourceFor, tableQuery } from "./queries";
+import { playerQuery, sourceFor, tableQuery, totalLevelsQuery } from "./queries";
 
 const squash = (text: string) => text.replace(/\s+/g, " ").trim();
 
@@ -131,5 +131,20 @@ describe("playerQuery", () => {
   it("returns the account id, which is the public citizen number", () => {
     const text = squash(statement.text);
     expect(text.match(/h\.account_id,/g)).toHaveLength(2);
+  });
+});
+
+describe("totalLevelsQuery", () => {
+  const statement = totalLevelsQuery("main", ["zanaris", "fish_eye"]);
+
+  it("reads Overall from the public view, for the names given", () => {
+    expect(statement.text).toContain("from hiscores.hiscore_large_public h");
+    expect(statement.text).toContain("h.type = 0");
+    expect(statement.text).toContain("h.username = any($2::text[])");
+  });
+
+  it("binds the profile and the names, never interpolating them", () => {
+    expect(statement.values).toEqual(["main", ["zanaris", "fish_eye"]]);
+    expect(statement.text).not.toContain("zanaris");
   });
 });
