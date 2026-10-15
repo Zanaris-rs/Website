@@ -13,8 +13,9 @@
  * Breakpoints are literal in `@media` (custom properties are not allowed
  * there). There are two, mobile-first:
  *   600px  the 2004 two-column furniture comes back on the inner pages
- *   900px  the title screen's desktop layout: the wordmark beside the news,
- *          the menu tiles three across
+ *   900px  the title screen's desktop layout: the wordmark beside the news
+ * The title screen's menu tiles are not on either: they follow their own
+ * panel's width through `@container` (see `Site.module.css`).
  */
 
 :root {
