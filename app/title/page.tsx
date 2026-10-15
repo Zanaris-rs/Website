@@ -165,6 +165,12 @@ export default async function Title() {
               caption="The Economy"
               blurb="Every item in the game, counted every hour."
             />
+            <MenuTile
+              href="/genealogy"
+              image={titleTileSrc("guthix-helm") ?? undefined}
+              caption="Genealogy"
+              blurb="Who let whom in, from the first citizens down."
+            />
           </div>
         </StonePanel>
 

@@ -1474,7 +1474,8 @@ The five menu tiles are drawn the same way, for the same reason. `/title`
 gives every tile a picture and 2004 drew none for a wiki, a desktop client, a
 player's diary, a clan or a hub of them, so `render.ts` poses those objects'
 own models instead — the sextant for LostHQ, the Dramen staff for Zanaris Kit,
-the book for Adventurer Logs, the Dragon sq shield for Clans — at four times
+the book for Adventurer Logs, the Dragon sq shield for Clans, the Guthix full
+helm for Genealogy — at four times
 tile size, averaged down, which is where their smooth edges come from beside
 the 2004 photographs. Its `TILES` table is where the object, the angle and the
 framing live. The Community tile is a scene instead: Varrock square with three

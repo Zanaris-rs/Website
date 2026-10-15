@@ -1,72 +1,16 @@
 import account from "@/components/account/Account.module.css";
-import frame from "@/components/site/Frame.module.css";
+import GenealogyTree from "@/components/invite/GenealogyTree";
 import Panel from "@/components/site/Panel";
 import TitleBox from "@/components/site/TitleBox";
-import { formatWhen } from "@/lib/account/profile";
-import { toDisplayName } from "@/lib/base37";
-import { formatCitizen } from "@/lib/invite/format";
 import type { GenealogyNode } from "@/lib/invite/genealogy";
 import { staffLinks } from "@/lib/staff/links";
 
-import styles from "./Genealogy.module.css";
-
 /**
- * The server tree: every account, under the account that let it in, with the
- * progenitors - the accounts nobody invited - at the top.
- *
- * A branch with children is a `<details>`, open to start with, so a large line
- * can be folded away without any script. Each name goes to that player on
- * `/staff/invites`, where inviting is switched on and off.
+ * The server tree, for staff: the public tree (`GenealogyTree`) with the staff
+ * tags, and each name going to that player on `/staff/invites`, where inviting
+ * is switched on and off.
  */
-
-function Person({ node }: { node: GenealogyNode }) {
-  const title = `Joined ${formatWhen(node.joinedAt)}`;
-  return (
-    <span className={styles.person} title={title}>
-      <a
-        className={`${frame.link} ${node.banned ? styles.banned : ""}`}
-        href={`/staff/invites?username=${encodeURIComponent(node.username)}`}
-      >
-        {toDisplayName(node.username)}
-      </a>{" "}
-      <span className={styles.citizen}>{formatCitizen(node.citizenNumber)}</span>
-      {node.banned ? <span className={styles.bannedTag}> banned</span> : null}
-      {node.invitesEnabled ? <span className={styles.inviter}> can invite</span> : null}
-      {node.descendants > 0 ? (
-        <span className={styles.count}>
-          {" "}
-          · {node.descendants} below
-        </span>
-      ) : null}
-    </span>
-  );
-}
-
-function Branch({ node }: { node: GenealogyNode }) {
-  if (node.children.length === 0) {
-    return (
-      <li>
-        <div className={styles.leaf}>
-          <Person node={node} />
-        </div>
-      </li>
-    );
-  }
-  return (
-    <li>
-      <details open className={styles.branch}>
-        <summary>
-          <Person node={node} />
-        </summary>
-        <ul>
-          {node.children.map((child) => (
-            <Branch key={child.citizenNumber} node={child} />
-          ))}
-        </ul>
-      </details>
-    </li>
-  );
-}
+const staffHref = (node: GenealogyNode) => `/staff/invites?username=${encodeURIComponent(node.username)}`;
 
 export default function StaffGenealogy({
   tree,
@@ -100,11 +44,7 @@ export default function StaffGenealogy({
             </p>
 
             <div className={account.scroller}>
-              <ul className={styles.tree}>
-                {tree.map((node) => (
-                  <Branch key={node.citizenNumber} node={node} />
-                ))}
-              </ul>
+              <GenealogyTree tree={tree} href={staffHref} staff />
             </div>
           </>
         )}

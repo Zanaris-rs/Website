@@ -299,7 +299,7 @@ console.log(`wrote    lib/items/icons.json, lib/skills/icons.json`);
 /**
  * The title screen's menu pictures are 77x120 (`components/site/MenuTile.tsx`).
  * 2004's own are photographs of props Jagex modelled for its website, and
- * `scripts/vendor-2004-assets.sh` recovers those. Five of our pages are pages
+ * `scripts/vendor-2004-assets.sh` recovers those. Six of our pages are pages
  * 2004 never had, and no tile it drew is about them, so we draw the game's own
  * answer instead: an object's model, lit and posed exactly as its inventory
  * icon is, in a tile-shaped box on black - or, for the Community hub, a scene:
@@ -366,6 +366,10 @@ const TILES: readonly TileSpec[] = [
   // out of the icon's quarter turn, so it hangs upright facing you the way a
   // clan's shield hangs on a wall, its dragon the crest.
   { file: "clans", obj: 1187, what: "Dragon sq shield", scale: 2.8, yan: 0 },
+  // Genealogy, who let whom in: Guthix, who found Gielinor first. He is not in
+  // the 2004 game himself, so his full helm stands in, the treasure-trail rune
+  // helm in his green and gold.
+  { file: "guthix-helm", obj: 2673, what: "Guthix full helm", scale: 2.6, x: 6, y: 4 },
 ];
 
 /** One tile at SUPERSAMPLE size, straight out of the client's renderer. */
