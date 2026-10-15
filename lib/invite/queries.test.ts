@@ -16,6 +16,7 @@ import {
   parseInviterRow,
   parseStaffSetInvitesResult,
   parseTreeRow,
+  publicInviteGenealogyStatement,
   staffInviteGenealogyStatement,
   staffInviteTreeStatement,
   staffInvitersStatement,
@@ -211,6 +212,19 @@ describe("inviteStatusFor", () => {
 });
 
 describe("the genealogy", () => {
+  it("calls public_invite_genealogy with no actor at all", () => {
+    expect(publicInviteGenealogyStatement()).toEqual({
+      text: "select * from accounts.public_invite_genealogy()",
+      values: [],
+    });
+  });
+
+  it("reads a public row, without the staff columns, as no staff tags", () => {
+    expect(
+      parseGenealogyRow({ username: "kipper", citizen_number: 5, invited_by: 2, joined_at: "2026-09-20T10:00:00Z" }),
+    ).toMatchObject({ username: "kipper", citizenNumber: 5, invitedBy: 2, invitesEnabled: false, banned: false });
+  });
+
   it("calls staff_invite_genealogy with the actor alone", () => {
     expect(staffInviteGenealogyStatement("mod")).toEqual({
       text: "select * from accounts.staff_invite_genealogy($1)",

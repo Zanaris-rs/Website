@@ -296,6 +296,14 @@ export function staffInviteGenealogyStatement(actor: string): Statement {
   };
 }
 
+/**
+ * The public tree (migration 19): the same rows without an actor, and without
+ * the staff columns, which `parseGenealogyRow` then reads as false.
+ */
+export function publicInviteGenealogyStatement(): Statement {
+  return { text: "select * from accounts.public_invite_genealogy()", values: [] };
+}
+
 export function parseGenealogyRow(row: unknown): GenealogyRow | null {
   const record = asRecord(row);
   if (!record || !isName(record.username) || !isCount(record.citizen_number)) {
