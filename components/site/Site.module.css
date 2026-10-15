@@ -190,12 +190,10 @@
    window's: the chains and the stone take their bite first, and the tiles
    only care what is left. A wide tile is 230px (the 100px picture column and
    the 120px text column, with room to spare) and the columns are 10px apart:
-   - 710px or more: three abreast (3 x 230 + 2 x 10). A section of four
-     tiles puts all four abreast rather than two rows of two, which left a
-     gulf down the middle of a desktop: from 818px as slim wide tiles, the
-     picture column cut to 80px (4 x 200 + 3 x 6); short of that, stacked
-     like the compact tile but with the picture at full size, which is how
-     2004's "Secure Services" row looked;
+   - 710px or more: three abreast (3 x 230 + 2 x 10). `/title` groups its
+     tiles in threes so that every row is full; a pair keeps the columns
+     three would have and sits in the middle, and a lone last tile is
+     centred under the row above it;
    - 470px or more: two abreast (2 x 230 + 10);
    - narrower: the compact tiles, two to a row.
    Before this the switch was a 900px window, which left a pane or a tablet
@@ -335,56 +333,12 @@
     grid-column: 1 / -1;
   }
 
-  /* Two tiles share the row half and half rather than leaving the third
-     column empty. */
+  /* Two tiles - Account Services, for everyone but staff - keep the columns
+     three would have and sit together in the middle, rather than taking half
+     the row each with a gulf between them. 20px is the two gaps. */
   .tileGrid:has(> :nth-child(2):last-child) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  /* Four tiles - Community, Game Rules & Resources, and Account Services for
-     staff - go four abreast rather than three and a lone fourth. */
-  .tileGrid:has(> :nth-child(4):last-child) {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    column-gap: 6px;
-  }
-
-  .tileGrid > :nth-child(4):last-child {
-    grid-column: auto;
-  }
-}
-
-/* Four abreast, but too narrow for four slim wide tiles: each one stacks,
-   caption over the full-size picture over the blurb, as the compact tile
-   does. */
-@container (width >= 710px) and (width < 818px) {
-  .tileGrid:has(> :nth-child(4):last-child) > .tile {
-    flex-direction: column;
-    align-items: center;
-    width: 100%;
-    max-width: 180px;
-    text-align: center;
-  }
-
-  .tileGrid:has(> :nth-child(4):last-child) .tileBody {
-    display: contents;
-  }
-
-  .tileGrid:has(> :nth-child(4):last-child) .tileImage {
-    order: 2;
-    width: auto;
-    padding: 4px 0;
-  }
-}
-
-/* Four slim wide tiles: the picture column closes in on the 77px picture,
-   and the text column keeps its 120px. */
-@container (width >= 818px) {
-  .tileGrid:has(> :nth-child(4):last-child) > .tile {
-    width: 200px;
-  }
-
-  .tileGrid:has(> :nth-child(4):last-child) .tileImage {
-    width: 80px;
+    grid-template-columns: repeat(2, calc((100% - 20px) / 3));
+    justify-content: center;
   }
 }
 
