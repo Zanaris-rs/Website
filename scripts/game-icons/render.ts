@@ -60,10 +60,13 @@ type Pix3DClass = {
 type ModelClass = {
   init(total: number, provider: { requestModel(id: number): void }): void;
   unpack(id: number, src: Uint8Array | null): void;
+  load(id: number): ObjModel | null;
+  copyForAnim(src: ObjModel, shareColours: boolean, shareAlpha: boolean, shareVertices: boolean): ObjModel;
 };
 /** The slice of a drawable model the icon pose needs. */
 type ObjModel = {
   minY: number;
+  calculateNormals(ambient: number, contrast: number, x: number, y: number, z: number, apply: boolean): void;
   objRender(
     pitch: number,
     yaw: number,
@@ -372,6 +375,61 @@ const TILES: readonly TileSpec[] = [
   { file: "guthix-helm", obj: 2673, what: "Guthix full helm", scale: 2.6, x: 6, y: 4 },
 ];
 
+/**
+ * The parchment the 2004 quest journal is written on
+ * (`content/scripts/quests/interfaces/questjournal_scroll.if`): a model,
+ * `model_3623`, drawn as the client draws an interface model - lit as
+ * `IfType.getTempModel` lights it, centred on its component, `zoom` 643 and
+ * `xan` 510 - at twice the game's size for a page, trimmed to its edges.
+ */
+const QUEST_SCROLL = { model: 3623, zoom: 643, xan: 510, centreX: 37 + 163 + 27, centreY: 37 + 79 + 40 } as const;
+const SCROLL_SCALE = 2;
+
+function drawQuestScroll(): [string, Buffer] {
+  const base = Model.load(QUEST_SCROLL.model);
+  if (!base) throw new Error(`model ${QUEST_SCROLL.model} (the quest journal scroll) is not in the cache`);
+  const model = Model.copyForAnim(base, true, true, false);
+  model.calculateNormals(64, 768, -50, -10, -50, true);
+
+  // Taller than the game's 512x334 viewport: the parchment hangs below it.
+  const width = 512 * SCROLL_SCALE;
+  const height = 480 * SCROLL_SCALE;
+  const pixels = new Int32Array(width * height);
+  Pix3D.lowDetail = false;
+  Pix2D.setPixels(pixels, width, height);
+  Pix2D.fillRect(0, 0, width, height, 0);
+  Pix3D.setRenderClipping();
+  Pix3D.originX = QUEST_SCROLL.centreX * SCROLL_SCALE;
+  Pix3D.originY = QUEST_SCROLL.centreY * SCROLL_SCALE;
+  const zoom = (QUEST_SCROLL.zoom / SCROLL_SCALE) | 0;
+  const { xan } = QUEST_SCROLL;
+  model.objRender(0, 0, 0, xan, 0, (Pix3D.sinTable[xan] * zoom) >> 16, (Pix3D.cosTable[xan] * zoom) >> 16);
+  Pix3D.lowDetail = true;
+
+  // Trim to the drawn pixels (0 is transparent to the PNG encoder).
+  let left = width, top = height, right = -1, bottom = -1;
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      if (pixels[x + y * width] === 0) continue;
+      left = Math.min(left, x);
+      right = Math.max(right, x);
+      top = Math.min(top, y);
+      bottom = Math.max(bottom, y);
+    }
+  }
+  if (right < 0) throw new Error("the quest journal scroll drew nothing");
+  if (top === 0 || left === 0 || bottom === height - 1 || right === width - 1) {
+    throw new Error("the quest journal scroll runs off its canvas");
+  }
+  const w = right - left + 1;
+  const h = bottom - top + 1;
+  const out = new Int32Array(w * h);
+  for (let y = 0; y < h; y++) {
+    out.set(pixels.subarray(left + (top + y) * width, left + (top + y) * width + w), y * w);
+  }
+  return ["quest-scroll.png", encodePng(out, w, h)];
+}
+
 /** One tile at SUPERSAMPLE size, straight out of the client's renderer. */
 function drawTile(spec: TileSpec): Int32Array {
   const obj = ObjType.list(spec.obj);
@@ -435,6 +493,9 @@ tileFiles.push([
   "community.png",
   encodePng(await drawCommunityTile(OUT_DIR, TILE_WIDTH, TILE_HEIGHT), TILE_WIDTH, TILE_HEIGHT),
 ]);
+// Not a tile: the quest journal's parchment, which `/genealogy` writes its
+// tree on. In the same set for the version, and named for what it is.
+tileFiles.push(drawQuestScroll());
 const tileNames = tileFiles.map(([file]) => file.slice(0, -".png".length));
 const tilesVersion = writeSet(fresh("public/img/game/tiles"), tileFiles);
 writeFileSync(
@@ -446,7 +507,7 @@ writeFileSync(
 );
 console.log(
   `tiles    ${tileFiles.length} -> public/img/game/tiles/<name>.png?v=${tilesVersion} (${TILE_WIDTH}x${TILE_HEIGHT}): ` +
-    [...TILES.map((tile) => tile.what), "Varrock square"].join(", "),
+    [...TILES.map((tile) => tile.what), "Varrock square", "the quest journal scroll"].join(", "),
 );
 console.log(`wrote    lib/title/tiles.json`);
 

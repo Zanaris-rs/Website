@@ -1482,7 +1482,9 @@ framing live. The Community tile is a scene instead: Varrock square with three
 adventurers standing in it, drawn by the clan photo's own drawer
 (`scripts/game-icons/community.ts`, from the committed `renderer.js`,
 `bodies.bin` and backdrop), a 154x240 window of the photo averaged down to
-77x120.
+77x120. The same set carries `quest-scroll`, which is not a tile: the 2004
+quest journal's parchment model, drawn as the client draws an interface model
+at twice the game's size, which `/genealogy` is written on.
 
 The textures are for Adventurer Log stylesheets (their picture picker), and
 `scripts/update-game-textures.sh` takes them out of the pack the same way:

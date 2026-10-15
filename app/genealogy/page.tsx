@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
+import type { CSSProperties } from "react";
 
 import account from "@/components/account/Account.module.css";
+import styles from "@/components/invite/Genealogy.module.css";
 import GenealogyTree from "@/components/invite/GenealogyTree";
 import Frame from "@/components/site/Frame";
-import Panel from "@/components/site/Panel";
 import TitleBox from "@/components/site/TitleBox";
 import { logHref } from "@/lib/adventurer-log/href";
 import type { Look } from "@/lib/chathead/look";
@@ -20,6 +21,7 @@ import {
 import { chatheadLooks } from "@/lib/outfits/looks";
 import { DEFAULT_LOOKS_MAX } from "@/lib/outfits/queries";
 import { SITE_NAME } from "@/lib/site";
+import { titleTileSrc } from "@/lib/title/tiles";
 
 export const metadata: Metadata = {
   title: "Genealogy",
@@ -91,10 +93,11 @@ export default async function GenealogyPage() {
     <Frame>
       <TitleBox title="Genealogy" links={communityLinks(null)} width={COMMUNITY_BAR_WIDTH} />
 
-      <Panel align="left">
-        <div className={account.heading}>
-          <b>The Lineage of {SITE_NAME}</b>
-        </div>
+      <div
+        className={styles.scroll}
+        style={{ "--scroll": `url(${titleTileSrc("quest-scroll")})` } as CSSProperties}
+      >
+        <div className={styles.scrollTitle}>The Lineage of {SITE_NAME}</div>
 
         {error ? (
           <p className={account.error} role="alert">
@@ -102,7 +105,7 @@ export default async function GenealogyPage() {
           </p>
         ) : (
           <>
-            <p className={account.note}>
+            <p className={styles.scrollNote}>
               No adventurer finds {SITE_NAME} alone. The Founders were here first, and head
               this scroll; every adventurer since was shown the way by one already inside,
               and stands beneath them. So far, {rows.length}{" "}
@@ -115,7 +118,7 @@ export default async function GenealogyPage() {
             </div>
           </>
         )}
-      </Panel>
+      </div>
     </Frame>
   );
 }
