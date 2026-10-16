@@ -81,6 +81,34 @@ export function loadPunishments(
   );
 }
 
+/**
+ * The hourly series over a window, and nothing else.
+ *
+ * `loadEconomyOverview` reads this alongside the newest census and the spawn
+ * record, because the page prints all three. `/api/economy/snapshots` prints
+ * one, and each of the other two is a connection out of a pool of two — so it
+ * asks the single question it has an answer for.
+ */
+export function loadEconomySnapshots(
+  window: EconomyWindow = ECONOMY_DEFAULT_WINDOW,
+): Promise<Load<Snapshot[]>> {
+  return read("economy", publicEconomyStatement(window.days), parseSnapshots);
+}
+
+/**
+ * The newest census, keeping "has not run" apart from "could not be read".
+ *
+ * `loadEconomyCatalogue` below folds both into `unavailable`, which is right
+ * for /economy/items — a catalogue with no catalogue on it is an empty page
+ * either way, and the panel says the same thing. An API cannot fold them: one
+ * is a 200 describing a server whose first hour has not come round, the other
+ * is a 503. `read` already draws exactly that line, so this asks it directly
+ * rather than asking a loader that has thrown the answer away.
+ */
+export function loadEconomyLatest(): Promise<Load<Census | null>> {
+  return read("economy census", publicEconomyLatestStatement(), parseCensus);
+}
+
 /* --- the census, one section at a time --- */
 
 /**
